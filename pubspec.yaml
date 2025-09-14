@@ -1,0 +1,75 @@
+name: cotopay
+description: A new Flutter project.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  image_picker: ^1.1.2
+  share_plus: ^11.1.0
+  url_launcher: ^6.2.6
+  mobile_scanner: ^5.1.1
+  audioplayers: ^6.0.0
+  intl: ^0.19.0
+  file_picker: ^8.0.5
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.1.0
+  encrypt: ^5.0.3
+  http: ^1.2.1
+  pem: ^2.0.0
+  convert: ^3.1.1
+  crypto: ^3.0.2
+  basic_utils: ^5.6.1
+  shared_preferences: ^2.2.2
+  pointycastle: ^3.6.2
+  asn1lib: ^1.1.1
+  flutter_cashfree_pg_sdk: 2.2.9+47
+
+  # Zaroori package
+  connectivity_plus: ^6.0.3
+  internet_connection_checker: ^1.0.0+1 # यह पैकेज जोड़ें
+  lottie: ^3.1.2
+  provider: ^6.1.1 # यह पैकेज जोड़ें
+
+  # UI package
+  fluttertoast: ^8.2.12
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/logo.png
+    - assets/images/otp_logo.png
+    - assets/images/bank.png
+    - assets/logo.png
+    - assets/lottie/
+    - assets/sound/
+    - assets/add_icon.png
+    - assets/avatar.png
+    - assets/issue_icon.png
+    - assets/logo.png
+    - assets/no_offers.png
+    - assets/no_vouchers.webp
+    - assets/offer_icon.png
+    - assets/scan.png
+    - assets/upi_logo.png
+    - assets/voucher_illustration.png
+
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21

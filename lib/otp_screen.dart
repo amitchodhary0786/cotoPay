@@ -1,0 +1,100 @@
+
+import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'home.dart';
+import 'api_service.dart';
+import 'session_manager.dart';
+
+class OtpScreen extends StatefulWidget {
+  final String phoneNumber;
+  final String orderId;
+  final String txnId;
+
+  const OtpScreen({super.key, required this.phoneNumber, required this.orderId, required this.txnId});
+  @override
+  State<OtpScreen> createState() => _OtpScreenState();
+}
+
+class _OtpScreenState extends State<OtpScreen> {
+  final List<TextEditingController> _otpControllers = List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final ApiService _apiService = ApiService();
+  bool _isLoading = false;
+  bool isOtpValid = true;
+  bool isButtonEnabled = false;
+  Timer? _timer;
+  int _start = 60;
+  bool _isResendEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    startTimer();
+  }
+  @override
+  void dispose() { _timer?.cancel(); for (var c in _otpControllers) { c.dispose(); } for (var n in _focusNodes) { n.dispose(); } super.dispose(); }
+
+  void startTimer() { setState(() { _isResendEnabled = false; _start = 60; }); _timer = Timer.periodic(const Duration(seconds: 1), (Timer timer) { if (!mounted) { timer.cancel(); return; } if (_start == 0) { setState(() { _isResendEnabled = true; timer.cancel(); }); } else { setState(() { _start--; }); } }, ); }
+  Future<void> _handleResendOtp() async { if (_isLoading) return; setState(() { _isLoading = true; }); try { final resendData = { 'mobile': widget.phoneNumber, 'orderId': widget.orderId }; final response = await _apiService.resendOtp(resendData); if (mounted) { if (response['status'] == true) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response['message'] ?? 'A new OTP has been sent successfully.'), backgroundColor: Colors.green)); startTimer(); } else { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response['message'] ?? 'Failed to resend OTP.'), backgroundColor: Colors.red)); setState(() { _isResendEnabled = true; }); } } } catch (e) { if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.red)); } } finally { if (mounted) { setState(() { _isLoading = false; }); } } }
+
+  Future<void> _handleVerifyOtp() async {
+    if (_isLoading) return;
+    FocusScope.of(context).unfocus();
+    setState(() { _isLoading = true; });
+    final enteredOtp = _otpControllers.map((e) => e.text).join();
+    try {
+      final otpData = { 'userName': '91${widget.phoneNumber}', 'otp': enteredOtp, 'mobile': widget.phoneNumber, 'orderId': widget.orderId,'template':"" };
+
+      // <<< बदलाव: सीधे API से डिक्रिप्टेड प्रतिक्रिया प्राप्त करें >>>
+      final response = await _apiService.verifyOtp(otpData);
+
+      debugPrint("✅ Received Decrypted API Response: $response");
+
+      if (mounted)
+      {
+        /*if (response['status'] == true && response['data'] != null)
+        {
+          await _saveUserDataAndLoginStatus(response['data']);
+
+
+          await SessionManager.saveLoginData(response['data']);
+
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP Verified Successfully!'), backgroundColor: Colors.green));
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const HomeScreen()), (route) => false);
+
+
+        }*/
+
+        if (response['status'] == true && response['data'] != null) {
+
+          await SessionManager.saveLoginData(response['data']);
+
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP Verified Successfully!'), backgroundColor: Colors.green));
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const HomeScreen()), (route) => false);
+        }
+
+      else {
+          setState(() { isOtpValid = false; });
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response['message'] ?? 'Invalid OTP.'), backgroundColor: Colors.red));
+        }
+      }
+    } catch (e) {
+      if (mounted) { setState(() { isOtpValid = false; }); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.red)); }
+    } finally {
+      if (mounted) { setState(() { _isLoading = false; }); }
+    }
+  }
+
+
+
+  void _handleInput(String value, int index) { if (value.isNotEmpty && index < 5) { _focusNodes[index + 1].requestFocus(); } _checkButtonEnable(); }
+  void _handleKey(RawKeyEvent event, int index) { if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace && _otpControllers[index].text.isEmpty && index > 0) { _focusNodes[index - 1].requestFocus(); } }
+  void _checkButtonEnable() { final otp = _otpControllers.map((c) => c.text).join(); setState(() { isButtonEnabled = otp.length == 6; if (isButtonEnabled) { isOtpValid = true; } }); }
+  OutlineInputBorder _getBorder() { return OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isOtpValid ? Colors.grey : Colors.red, width: 1.5)); }
+  OutlineInputBorder _getFocusedBorder() { return OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isOtpValid ? Colors.blue : Colors.red, width: 1.5)); }
+  @override
+  Widget build(BuildContext context) { return Scaffold( body: SafeArea( child: Padding( padding: const EdgeInsets.all(24.0), child: Column( crossAxisAlignment: CrossAxisAlignment.start, children: [ Row(children: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_ios)), const SizedBox(width: 4), Image.asset('assets/images/otp_logo.png', width: 99, height: 24)]), const SizedBox(height: 10), const Text('Enter OTP', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600)), const SizedBox(height: 8), Text('OTP code has been sent to your phone +91-xxxxxx${widget.phoneNumber.substring(widget.phoneNumber.length - 4)}', style: const TextStyle(fontSize: 14, color: Colors.black54)), const SizedBox(height: 32), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: List.generate(6, (index) { return SizedBox(width: 48, height: 48, child: RawKeyboardListener(focusNode: FocusNode(), onKey: (event) => _handleKey(event, index), child: TextField(controller: _otpControllers[index], focusNode: _focusNodes[index], keyboardType: TextInputType.number, textAlign: TextAlign.center, maxLength: 1, inputFormatters: [FilteringTextInputFormatter.digitsOnly], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), onChanged: (value) => _handleInput(value, index), decoration: InputDecoration(counterText: '', contentPadding: const EdgeInsets.symmetric(vertical: 12), border: _getBorder(), enabledBorder: _getBorder(), focusedBorder: _getFocusedBorder())))); })), if (!isOtpValid) const Padding(padding: EdgeInsets.only(top: 4), child: Text('Invalid OTP. Please try again', style: TextStyle(color: Colors.red, fontSize: 13))), const SizedBox(height: 24), Row( children: [ const Text("Didn't receive the code? "), _isResendEnabled ? GestureDetector(onTap: _isLoading ? null : _handleResendOtp, child: Text('Resend OTP', style: TextStyle(color: _isLoading ? Colors.grey : Colors.blue, fontWeight: FontWeight.bold))) : Text('Resend in ${_start ~/ 60}:${(_start % 60).toString().padLeft(2, '0')}', style: const TextStyle(color: Colors.grey)), ], ), const Spacer(), SizedBox(width: double.infinity, child: ElevatedButton(onPressed: isButtonEnabled && !_isLoading ? _handleVerifyOtp : null, style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52), backgroundColor: isButtonEnabled ? const Color(0xFF367AFF) : Colors.grey.shade300, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('CONFIRM', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)))), const SizedBox(height: 24), ], ), ), ), ); }
+}
