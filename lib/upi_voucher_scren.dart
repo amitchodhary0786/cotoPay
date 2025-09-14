@@ -3,8 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'approve_vouchers_screen.dart';
 import 'issue_voucher_screen.dart';
-
-// Keep your existing imports for ApiService / SessionManager
 import 'api_service.dart';
 import 'package:cotopay/session_manager.dart';
 import 'package:intl/intl.dart';
@@ -24,7 +22,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
   List<dynamic> _banks = [];
   bool _loadingBanks = true;
   String? _error;
-  String _selectedBankName = "All Linked Bank Accounts"; // default label
+  String _selectedBankName = "All Linked Bank Accounts";
   DateTime? _lastUpdated;
 
   @override
