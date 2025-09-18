@@ -27,12 +27,20 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
   // Banks loaded from API
   List<dynamic> _banks = [];
+
   bool _loadingBanks = true;
   String _selectedBankName = 'Select account';
   String _selectedBankMasked = 'xxxx1234';
   String _selectedBankId = '';
   double _availableBalance = 0.0;
   bool _loadingBalance = true;
+
+  // store full selected bank object (so we can read merchant/submerchant/payerva/etc)
+  Map<String, dynamic>? _selectedBankFull;
+
+  // store bank summary returned by getBankSummary
+  Map<String, dynamic>? _bankSummary;
+  bool _loadingBankSummary = false;
 
   // Dynamic voucher entries
   final List<_VoucherEntry> _entries = [];
@@ -97,7 +105,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         _banks = List<dynamic>.from(bankResp['data']);
         debugPrint('[IssueVoucher] _loadBanks: loaded ${_banks.length} banks');
         if (_banks.isNotEmpty) {
-          // select first bank and fetch its balance
+          // select first bank and fetch its balance and summary
           _selectBankAtIndex(0);
         } else {
           // no banks - stop loading balance
@@ -134,6 +142,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
   // ---------------- voucher categories ----------------
 
+  /// Loads top-level voucher categories from API and builds internal model.
   Future<void> _loadVoucherCategories() async {
     setState(() {
       _loadingCategories = true;
@@ -146,25 +155,43 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       debugPrint('[IssueVoucher] _loadVoucherCategories: raw resp => $resp');
 
       if (resp != null && (resp['status'] == true || resp['success'] == true)) {
-        final data = resp['data'];
+        // try multiple possible shapes
+        final data = resp['data'] ?? resp['result'] ?? resp;
         List items = [];
-        if (data is List) items = data;
-        else if (data is Map && data['data'] is List) items = data['data'];
+        if (data is List) {
+          items = data;
+        } else if (data is Map && data['data'] is List) {
+          items = data['data'];
+        } else {
+          // if response contains an object with list under other keys, try best-effort
+          if (resp is Map) {
+            // look for first List found in map values
+            for (final v in resp.values) {
+              if (v is List) {
+                items = v;
+                break;
+              }
+            }
+          }
+        }
 
         debugPrint('[IssueVoucher] _loadVoucherCategories: parsed ${items.length} categories');
 
+        // Map into internal structure expected by picker
         _voucherCategories = items.map<Map<String, dynamic>>((raw) {
-          final topId = raw['id'];
-          final voucherName = raw['voucherName'] ?? raw['name'] ?? 'Category';
+          final topId = raw['id'] ?? raw['topId'] ?? raw['categoryId'];
+          // IMPORTANT: use voucherName from API as category title (this is what you requested)
+          final voucherName = raw['voucherName'] ?? raw['name'] ?? raw['title'] ?? raw['label'] ?? 'Category';
           final purposeCode = raw['purposeCode'] ?? raw['code'] ?? raw['id'];
           final icon = raw['voucherIcon'] ?? raw['icon'];
 
           return {
             'topId': topId,
             'purposeCode': purposeCode,
-            'title': voucherName.toString(),
+            // store voucherName into title so we can use it for purposeDescription/voucherDesc
+            'title': voucherName?.toString() ?? 'Category',
             'icon': icon,
-            'children': <Map<String, dynamic>>[],
+            'children': <Map<String, dynamic>>[], // start empty; will be filled via subcategory API
             'loadingChildren': false,
             'raw': raw,
           };
@@ -192,8 +219,13 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       return;
     }
 
-    if ((top['children'] as List).isNotEmpty) {
-      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: children already loaded for purposeCode=$purposeCode / topId=$topId');
+    // ensure children list exists
+    if (top['children'] == null) _voucherCategories[topIndex]['children'] = <Map<String, dynamic>>[];
+
+    // don't reload if children already present
+    final existingChildren = (top['children'] as List).cast<Map<String, dynamic>>();
+    if (existingChildren.isNotEmpty) {
+      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: children already loaded for topId=$topId');
       return;
     }
 
@@ -201,29 +233,49 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       _voucherCategories[topIndex]['loadingChildren'] = true;
     });
 
-    debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: fetching subcategories for purposeCode=$purposeCode topId=$topId (index=$topIndex)');
+    debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: fetching subcategories for topIndex=$topIndex (topId=$topId purposeCode=$purposeCode)');
 
     try {
       final params = <String, dynamic>{};
-      if (purposeCode != null) params['purposeCode'] = purposeCode;
-      else params['id'] = topId;
 
+      // Prefer sending the explicit topId as 'id' (this ensures getVoucherSubCategoryList receives category id)
+      if (topId != null) {
+        params['id'] = topId;
+      }
+      // Also include purposeCode if available (safe to provide both)
+      if (purposeCode != null) {
+        params['purposeCode'] = purposeCode;
+      }
+
+      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: calling getVoucherSubCategoryList with params: $params');
       final resp = await _api_serviceSafeGet(() => _apiService.getVoucherSubCategoryList(params));
       debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: raw resp => $resp');
 
       if (resp != null && (resp['status'] == true || resp['success'] == true)) {
-        final data = resp['data'] ?? resp['subCategories'] ?? resp['result'] ?? resp;
+        final data = resp['data'];
         List items = [];
         if (data is List) items = data;
         else if (data is Map && data['data'] is List) items = data['data'];
+        else {
+          // try to find first List in response map
+          if (data is Map) {
+            for (final v in data.values) {
+              if (v is List) {
+                items = v;
+                break;
+              }
+            }
+          }
+        }
+
         debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: parsed ${items.length} children');
 
         final children = items.map<Map<String, dynamic>>((raw) {
-          final cid = raw['id'] ?? raw['subId'] ?? raw['code'] ?? raw['purposeCode'] ?? raw['value'];
-          final title = raw['title'] ?? raw['name'] ?? raw['label'] ?? raw['subName'] ?? raw['purposeName'] ?? raw['description'] ?? raw['voucherName'] ?? 'Sub';
+          final cid = raw['id'];
+          final title = raw['mccDesc'];
           return {
             'id': cid,
-            'title': title.toString(),
+            'title': title?.toString() ?? 'mccDesc',
             'raw': raw,
           };
         }).toList();
@@ -233,6 +285,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         });
       } else {
         debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: response indicates failure or no children');
+        // leave children empty, caller will treat top category as selectable
       }
     } catch (e, st) {
       debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: error => $e\n$st');
@@ -240,6 +293,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       setState(() {
         _voucherCategories[topIndex]['loadingChildren'] = false;
       });
+      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: finished for topIndex=$topIndex');
     }
   }
 
@@ -336,25 +390,31 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     }
     final bank = _banks[idx];
     final bankName = (bank['bankName'] ?? bank['name'] ?? 'Account').toString();
-    final account = (bank['acNumber'] ?? bank['account'] ?? '').toString();
+    final account = (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '').toString();
     final masked = _maskAccount(account);
 
     debugPrint('[IssueVoucher] _selectBankAtIndex: selected bank index=$idx name=$bankName account=$account id=${bank['id'] ?? bank['bankId']}');
 
     setState(() {
+      _selectedBankFull = Map<String, dynamic>.from(bank as Map);
       _selectedBankName = bankName;
       _selectedBankMasked = masked;
       _selectedBankId = (bank['id']?.toString() ?? bank['bankId']?.toString() ?? '');
       _loadingBalance = true; // show loader while fetching balance
       _availableBalance = 0.0; // reset prior balance while loading
+      _bankSummary = null;
+      _loadingBankSummary = true;
     });
 
     try {
       final user = await SessionManager.getUserData();
       debugPrint('[IssueVoucher] _selectBankAtIndex: session user => $user');
       if (user == null || user.employerid == null) {
-        debugPrint('[IssueVoucher] _selectBankAtIndex: no user/employerid, aborting balance fetch');
-        setState(() => _loadingBalance = false);
+        debugPrint('[IssueVoucher] _selectBankAtIndex: no user/employerid, aborting balance & summary fetch');
+        setState(() {
+          _loadingBalance = false;
+          _loadingBankSummary = false;
+        });
         return;
       }
 
@@ -363,6 +423,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         "orgId": user.employerid,
       };
 
+      // fetch balance
       debugPrint('[IssueVoucher] _selectBankAtIndex: calling getBankBalance with params: $params');
       final balResp = await _api_serviceSafeGet(() => _apiService.getBankBalance(params));
       debugPrint('[IssueVoucher] _selectBankAtIndex: getBankBalance raw response => $balResp');
@@ -380,9 +441,44 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         debugPrint('[IssueVoucher] _selectBankAtIndex: balance response indicates failure or null');
         setState(() => _loadingBalance = false);
       }
+
+      // fetch bank summary (new behavior): call getBankSummary with same params
+      try {
+        debugPrint('[IssueVoucher] _selectBankAtIndex: calling getBankSummary with params: $params');
+        final summaryResp = await _api_serviceSafeGet(() => _apiService.getBankSummary(params));
+        debugPrint('[IssueVoucher] _selectBankAtIndex: getBankSummary raw => $summaryResp');
+        if (summaryResp != null && (summaryResp['status'] == true || summaryResp['success'] == true || summaryResp.isNotEmpty)) {
+          // try to normalize summary map
+          if (summaryResp is Map<String, dynamic>) {
+            setState(() {
+              _bankSummary = Map<String, dynamic>.from(summaryResp);
+              _loadingBankSummary = false;
+            });
+          } else {
+            setState(() {
+              _bankSummary = {'raw': summaryResp};
+              _loadingBankSummary = false;
+            });
+          }
+        } else {
+          setState(() {
+            _bankSummary = null;
+            _loadingBankSummary = false;
+          });
+        }
+      } catch (e, st) {
+        debugPrint('[IssueVoucher] _selectBankAtIndex: Error fetching bank summary: $e\n$st');
+        setState(() {
+          _bankSummary = null;
+          _loadingBankSummary = false;
+        });
+      }
     } catch (e, st) {
-      debugPrint('[IssueVoucher] _selectBankAtIndex: Error fetching bank balance: $e\n$st');
-      setState(() => _loadingBalance = false);
+      debugPrint('[IssueVoucher] _selectBankAtIndex: Error fetching bank balance/summary: $e\n$st');
+      setState(() {
+        _loadingBalance = false;
+        _loadingBankSummary = false;
+      });
     }
   }
 
@@ -532,13 +628,37 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                   children: [
                                     InkWell(
                                       onTap: () async {
+                                        // toggle expansion
                                         setState(() => _expandedTopIndex = isExpanded ? null : index);
                                         sheetSetState(() {});
+                                        // If expanding and children empty, fetch from API
                                         if (!isExpanded && (children.isEmpty)) {
+                                          // mark loading in both parent and sheet UI
                                           setState(() => _voucherCategories[index]['loadingChildren'] = true);
                                           sheetSetState(() {});
                                           await _loadSubCategoriesForIndex(index);
                                           sheetSetState(() {});
+                                          // after loading, if still no children -> treat as selectable top
+                                          final updatedChildren = (_voucherCategories[index]['children'] as List).cast<Map<String, dynamic>>();
+                                          if (updatedChildren.isEmpty) {
+                                            debugPrint('[IssueVoucher] _openVoucherPicker: no children returned for index=$index, selecting top category "$title"');
+                                            setState(() {
+                                              // Set selectedVoucher to top title and also store top voucherName for payload fields
+                                              _entries[forIndex].selectedVoucher = title;
+                                              _entries[forIndex].selectedPurposeCode = cat['purposeCode']?.toString();
+                                              _entries[forIndex].selectedTopId = cat['topId']?.toString();
+
+                                              // store parent voucherName to be used as purposeDescription and voucherDesc in payload
+                                              _entries[forIndex].selectedTopVoucherName = title;
+
+                                              // clear any child/mcc
+                                              _entries[forIndex].selectedChildId = null;
+                                              _entries[forIndex].selectedMcc = null;
+                                              _entries[forIndex].selectedMccDesc = null;
+                                            });
+                                            Navigator.of(ctx).pop();
+                                            return;
+                                          }
                                         }
                                       },
                                       child: Container(
@@ -564,7 +684,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                               padding: EdgeInsets.symmetric(vertical: 12),
                                               child: Center(child: CircularProgressIndicator()),
                                             )
-                                          else if (children.isEmpty)
+                                          else if ((_voucherCategories[index]['children'] as List).isEmpty)
+                                          // if children empty (and not loading) we show a simple selectable top (this case usually handled after API call above)
                                             Column(children: [
                                               ListTile(
                                                 contentPadding: const EdgeInsets.only(left: 68.0, right: 12.0),
@@ -576,6 +697,14 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                     _entries[forIndex].selectedVoucher = title;
                                                     _entries[forIndex].selectedPurposeCode = cat['purposeCode']?.toString();
                                                     _entries[forIndex].selectedTopId = cat['topId']?.toString();
+
+                                                    // store top voucherName for payload fields
+                                                    _entries[forIndex].selectedTopVoucherName = title;
+
+                                                    // clear child/mcc
+                                                    _entries[forIndex].selectedChildId = null;
+                                                    _entries[forIndex].selectedMcc = null;
+                                                    _entries[forIndex].selectedMccDesc = null;
                                                   });
                                                   Navigator.of(ctx).pop();
                                                 },
@@ -583,7 +712,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                               Divider(color: Colors.grey.shade200, height: 1),
                                             ])
                                           else
-                                            ...children.map((child) {
+                                          // render children loaded from API
+                                            ...(_voucherCategories[index]['children'] as List).map<Map<String, dynamic>>((child) => child).map((child) {
                                               final childTitle = child['title'] ?? 'Sub';
                                               final childId = child['id'];
                                               final IconData childIcon = _iconForChild(childTitle.toString());
@@ -594,11 +724,33 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                   title: Text(childTitle.toString(), style: const TextStyle(fontWeight: FontWeight.w500, fontSize: _formFontSize)),
                                                   onTap: () {
                                                     debugPrint('[IssueVoucher] _openVoucherPicker: selected sub="$childTitle" (id=$childId) for index=$forIndex');
+
+                                                    // extract mcc and mccDesc from child's raw map if present
+                                                    String? extractedMcc;
+                                                    String? extractedMccDesc;
+                                                    try {
+                                                      final raw = child['raw'];
+                                                      if (raw is Map) {
+                                                        // common keys: mcc, mccDesc
+                                                        extractedMcc = (raw['mcc'] ?? raw['MCC'] ?? raw['mccCode'])?.toString();
+                                                        extractedMccDesc = (raw['mccDesc'] ?? raw['mcc_description'] ?? raw['mccDesc'])?.toString();
+                                                      }
+                                                    } catch (_) {}
+
                                                     setState(() {
+                                                      // UI: show child title in selectedVoucher (so user sees the specific mccDesc)
                                                       _entries[forIndex].selectedVoucher = childTitle.toString();
                                                       _entries[forIndex].selectedChildId = childId?.toString();
                                                       _entries[forIndex].selectedPurposeCode = cat['purposeCode']?.toString();
                                                       _entries[forIndex].selectedTopId = cat['topId']?.toString();
+
+                                                      // set extracted mcc fields (may be null if not present)
+                                                      _entries[forIndex].selectedMcc = extractedMcc;
+                                                      _entries[forIndex].selectedMccDesc = extractedMccDesc;
+
+                                                      // VERY IMPORTANT: store the parent voucherName (from top category) into selectedTopVoucherName
+                                                      // This is what will be used to fill purposeDescription and voucherDesc in payload
+                                                      _entries[forIndex].selectedTopVoucherName = (cat['title']?.toString() ?? null);
                                                     });
                                                     Navigator.of(ctx).pop();
                                                   },
@@ -614,43 +766,6 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                   ],
                                 );
                               }),
-
-                            const SizedBox(height: 12),
-                            const Padding(padding: EdgeInsets.symmetric(vertical: 6), child: Text('OTHER CATEGORIES', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54))),
-                            const SizedBox(height: 8),
-
-                            LayoutBuilder(builder: (context, constraints) {
-                              int crossCount = 3;
-                              if (constraints.maxWidth > 600) crossCount = 4;
-                              final listForGrid = _voucherCategories;
-                              return GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: listForGrid.length,
-                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: crossCount, childAspectRatio: 0.95, mainAxisSpacing: 12, crossAxisSpacing: 12),
-                                itemBuilder: (context, index) {
-                                  final cat = listForGrid[index];
-                                  final title = cat['title'] ?? 'Cat';
-                                  final icon = _iconForCategory(cat, index);
-                                  return GestureDetector(
-                                    onTap: () {
-                                      debugPrint('[IssueVoucher] _openVoucherPicker: selected grid cat="${title}" for index=$forIndex');
-                                      setState(() {
-                                        _entries[forIndex].selectedVoucher = title.toString();
-                                        _entries[forIndex].selectedPurposeCode = cat['purposeCode']?.toString();
-                                        _entries[forIndex].selectedTopId = cat['topId']?.toString();
-                                      });
-                                      Navigator.of(ctx).pop();
-                                    },
-                                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                      Container(width: 56, height: 56, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade300), color: Colors.white), child: Center(child: Icon(icon, color: Colors.green, size: 22))),
-                                      const SizedBox(height: 8),
-                                      Text(title.toString(), style: const TextStyle(fontSize: 13), textAlign: TextAlign.center),
-                                    ]),
-                                  );
-                                },
-                              );
-                            }),
                           ],
                         ),
                       ),
@@ -739,7 +854,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                         itemBuilder: (context, index) {
                           final bank = _banks[index];
                           final bankName = (bank['bankName'] ?? bank['name'] ?? 'Bank').toString();
-                          final account = (bank['acNumber'] ?? bank['account'] ?? '').toString();
+                          final account = (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '').toString();
                           final masked = _maskAccount(account);
                           final bankIconBase64 = bank['bankIcon']?.toString();
                           return ListTile(
@@ -1095,13 +1210,44 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                 keyboardType: TextInputType.number,
                 style: const TextStyle(fontSize: _formFontSize),
                 decoration: InputDecoration(
+
+
                   hintText: 'Enter Amount',
                   hintStyle: const TextStyle(fontSize: _formFontSize, color: Colors.grey),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: entry.isAmountInvalid ? Colors.red : Colors.grey.shade300,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: entry.isAmountInvalid ? Colors.red : Colors.blue,
+                      width: 2,
+                    ),
+                  ),
                 ),
-                onChanged: (_) => setState(() {}),
+                onChanged: (value) {
+                  final entered = double.tryParse(value) ?? 0;
+
+                  if (entered > 50000) {
+                    // clear value
+                    entry.amountController.clear();
+
+                    // set invalid state
+                    setState(() {
+                      entry.isAmountInvalid = true;
+                    });
+                  } else {
+                    // reset invalid state
+                    setState(() {
+                      entry.isAmountInvalid = false;
+                    });
+                  }
+                },
               ),
             ),
           ),
@@ -1343,59 +1489,80 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     );
   }
 
-
   void _onSubmit() {
-    // Build entries list for display + API
+    // Use stored selected bank map if available
+    final selectedBank = _selectedBankFull ?? <String, dynamic>{};
+
+    // helper to safely read bank fields with multiple possible key names
+    String? _bankField(List<String> keys) {
+      for (final k in keys) {
+        if (selectedBank.containsKey(k) && selectedBank[k] != null) return selectedBank[k].toString();
+      }
+      return null;
+    }
+
+    final merchantId = _bankField(['merchentIid', 'merchantId', 'merchantID']);
+    final subMerchantId = _bankField(['submurchentid', 'subMerchantId', 'subMerchantID']);
+    final bankCodeField = _bankField(['bankCode', 'bankcode']);
+    final accountNumberField = _bankField(['acNumber', 'accountNumber', 'acnumber', 'account']);
+    final payerVaField = _bankField(['payerva', 'payerVA', 'payerVa']);
+
     final voucherDetails = _entries.map((e) {
       return {
         'name': e.nameController.text.trim(),
         'mobile': e.mobileController.text.trim(),
         'amount': e.amountController.text.trim(),
         'startDate': DateFormat('yyyy-MM-dd').format(e.selectedDate),
-        'expDate': null,
+        'voucher':e.selectedMccDesc,
         'purposeCode': e.selectedPurposeCode,
-        'mcc': null,
-        'mccDescription': null,
-        'purposeDescription': e.selectedVoucher,
+        // now populate mcc and mccDescription from entry if selected
+        'mcc': e.selectedMcc,
+        'mccDescription': e.selectedMccDesc,
+        // IMPORTANT: use selectedTopVoucherName (which holds voucherName from getVoucherCategoryList) for these two fields
+        'purposeDescription': e.selectedTopVoucherName ?? e.selectedVoucher,
         'type': null,
-        'bankcode': null,
+        'bankcode': bankCodeField,
         'voucherCode': e.selectedPurposeCode,
         'voucherType': null,
-        'voucherDesc': e.selectedVoucher,
+        'voucherDesc': e.selectedTopVoucherName ?? e.selectedVoucher,
         'redemptionType': (e.redemptionType ?? '').toUpperCase(),
         'validity': _validityToDays(e.validity),
       };
     }).toList();
 
-    // Build a concise payload for verification screen (you can add more fields as needed)
+    // Build a concise payload for verification screen (include availableBalance and bankSummary)
     final verifyPayload = {
       'bank': {
         'name': _selectedBankName,
         'masked': _selectedBankMasked,
         'id': _selectedBankId,
+        'merchantId': merchantId,
+        'subMerchantId': subMerchantId,
+        'bankCode': bankCodeField,
+        'accountNumber': accountNumberField,
+        'payerVA': payerVaField,
+        'availableBalance': _availableBalance, // <-- added balance to pass to next screen
+        'summary': _bankSummary, // <-- added bank summary
+        'raw': selectedBank,
       },
       'entries': voucherDetails,
-      'orgId': null, // we'll get from SessionManager in verify screen
-      'accountNumber': null, // can fill if available from selected bank object
+      'orgId': null,
+      'accountNumber': accountNumberField,
     };
 
-    // navigate to verification screen
+    // navigate to verification screen (cast bank map to correct type)
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => VoucherVerifyScreen(
           apiService: _apiService,
-          bankInfo: _selectedBankId.isNotEmpty ? {
-            'name': _selectedBankName,
-            'masked': _selectedBankMasked,
-            'id': _selectedBankId,
-          } : null,
+          bankInfo: verifyPayload['bank'] as Map<String, dynamic>?,
           entries: voucherDetails,
         ),
       ),
     );
   }
 
-// helper to convert dropdown validity text to numeric days used in your example
+  // helper to convert dropdown validity text to numeric days used in your example
   String? _validityToDays(String? validity) {
     if (validity == null) return null;
     // if it already numeric string, return as-is
@@ -1406,7 +1573,6 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     if (onlyDigits != null) return onlyDigits;
     return null;
   }
-
 }
 
 // ---------------- helper classes ----------------
@@ -1430,6 +1596,13 @@ class _VoucherEntry {
   String? selectedTopId;
   String? selectedChildId;
 
+  // NEW: store selected mcc/mccDesc from chosen subcategory
+  String? selectedMcc;
+  String? selectedMccDesc;
+
+  // NEW: store top-level voucherName (from getVoucherCategoryList) for purposeDescription / voucherDesc
+  String? selectedTopVoucherName;
+
   // place to store search results (for suggestions)
   dynamic searchResults;
 
@@ -1452,6 +1625,8 @@ class _VoucherEntry {
           selectedVoucher != null &&
           redemptionType != null &&
           validity != null;
+
+  bool isAmountInvalid = false;
 
   void dispose() {
     try {

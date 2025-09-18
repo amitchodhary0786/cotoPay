@@ -194,6 +194,13 @@ class ApiService {
     //return _callApiEndpoint('$_baseServiceUrl/getOtpNew', userData);
     return _callApiEndpoint('$_baseServiceUrl/getOtp2Factor', userData);
   }
+
+  Future<Map<String, dynamic>> getVoucherOtp(Map<String, dynamic> userData) async {
+    //return _callApiEndpoint('$_baseServiceUrl/getOtpNew', userData);
+    return _callApiEndpoint('http://52.66.10.111:8088/userServices/Api/get/sendOtp', userData);
+  }
+
+
   Future<Map<String, dynamic>> verifyOtp(Map<String, dynamic> otpData) async {
     //return _callApiEndpoint('$_baseServiceUrl/verifyOtpNew', otpData);
     return _callApiEndpoint('$_baseServiceUrl/verifyOtp2Factor', otpData);
@@ -209,6 +216,13 @@ class ApiService {
 
 Future<Map<String, dynamic>> getBankList(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/erupiLinkAccountListWithStatus', params);
+   }
+
+   Future<Map<String, dynamic>> getBankListUpi(Map<String, dynamic> params) async {
+    return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/voucherCreateBankList', params);
+   }
+   Future<Map<String, dynamic>> getBankSummary(Map<String, dynamic> params) async {
+    return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/voucherCreateSummaryDetailByAccount', params);
    }
 
    Future<Map<String, dynamic>> getBankBalance(Map<String, dynamic> params) async {

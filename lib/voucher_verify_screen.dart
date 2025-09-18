@@ -1,4 +1,5 @@
 // voucher_verify_screen.dart
+import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
@@ -24,14 +25,37 @@ class VoucherVerifyScreen extends StatefulWidget {
 
 class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   bool _consentChecked = false;
-  bool _loading = false;
+  bool _loading = false; // main button loading / disabled
   String _statusMessage = '';
+
+  // OTP dialog state
+  final List<TextEditingController> _otpControllers = List.generate(6, (_) => TextEditingController());
+  int _resendSeconds = 30;
+  Timer? _resendTimer;
+  String? _orderId; // filled after OTP send
+  bool _isVerifyingOtp = false; // used by dialog for UI spinner
+  bool _isSendingOtp = false;
+
+  // guard to avoid reentry inside verify method
+  bool _verifyInProgress = false;
 
   // These must match backend secret/clientKey
   static const String SECRET_KEY = '0123456789012345';
   static const String CLIENT_KEY = 'client-secret-key';
-  static const String MANDATE_TYPE = '01'; // as example
+  static const String MANDATE_TYPE = '01'; // example
 
+  @override
+  void dispose() {
+    for (final c in _otpControllers) {
+      c.dispose();
+    }
+    _resendTimer?.cancel();
+    super.dispose();
+  }
+
+  // --------------------------
+  // BUILD / UI
+  // --------------------------
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.of(context).size.width;
@@ -50,23 +74,19 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // top dark bank card similar to Figma
               _buildTopBankCard(),
               const SizedBox(height: 16),
-
               _buildHeaderCard(),
               const SizedBox(height: 8),
-
-              // entries list
               ...widget.entries.asMap().entries.map((pair) {
                 final idx = pair.key;
                 final e = pair.value;
                 return _buildEntryCard(idx + 1, e);
               }).toList(),
-
               const SizedBox(height: 16),
               Row(children: [
                 Checkbox(value: _consentChecked, onChanged: (v) => setState(() => _consentChecked = v ?? false)),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'I confirm that the details uploaded above are correct to the best of my knowledge, and are approved by the competent authority in my organization.',
@@ -74,24 +94,31 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                   ),
                 ),
               ]),
-
               const SizedBox(height: 12),
               if (_statusMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Text(_statusMessage, style: const TextStyle(color: Colors.red)),
                 ),
-
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: (!_consentChecked || _loading) ? null : _issueVoucher,
+                  onPressed: (!_consentChecked || _loading) ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: (_consentChecked && !_loading) ? const Color(0xFF3366FF) : const Color(0xFFDFEAFE),
+                    backgroundColor: (_consentChecked && !_loading) ? const Color(0xFF3366FF) : const Color(0xFFFFFFFF),
+                    foregroundColor: (_consentChecked && !_loading) ? Colors.white : const Color(0xFF3366FF),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('ISSUE VOUCHER', style: TextStyle(fontWeight: FontWeight.w600)),
+                  child: _loading
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(
+                    'ISSUE VOUCHER',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: (_consentChecked && !_loading) ? Colors.white : const Color(0xFF3366FF),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -102,17 +129,19 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     );
   }
 
+  // --------------------------
+  // Helper UI pieces (unchanged)
+  // --------------------------
   Widget _buildTopBankCard() {
-    final bank = widget.bankInfo;
-    // mimic dark rounded card with pill and amount on right (Figma)
+    final bank = widget.bankInfo ?? <String, dynamic>{};
+    final masked = _firstString(bank, ['masked', 'acNumber', 'accountNumber', 'acnumber', 'account', 'bankAccount']) ?? 'xxxx1234';
+    final dynamic rawBalance = _firstValue(bank, ['availableBalance', 'balance', 'availableBal', 'balanceAmount', 'available_balance']);
+    final double balance = _parseBalance(rawBalance);
+
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF26282C),
-        borderRadius: BorderRadius.circular(14),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFF26282C), borderRadius: BorderRadius.circular(14)),
       child: Row(children: [
-        // left: cotoBalance label
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             RichText(
@@ -125,26 +154,16 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Row(children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF26282C),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white.withOpacity(0.06)),
-                ),
-                child: Text(bank?['masked'] ?? 'xxxx1234', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-              ),
-            ]),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(color: const Color(0xFF26282C), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white.withOpacity(0.06))),
+              child: Text(masked, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ),
           ]),
         ),
-
-        // right: amount display
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(
-            NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(_parseBalance(bank?['availableBalance'])),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20),
-          ),
+          Text(NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(balance),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
           const SizedBox(height: 6),
           Text('Available Balance', style: TextStyle(color: Colors.white70, fontSize: 12)),
         ]),
@@ -155,10 +174,28 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   double _parseBalance(dynamic v) {
     if (v == null) return 0.0;
     try {
-      return double.tryParse(v.toString()) ?? 0.0;
+      if (v is num) return v.toDouble();
+      final s = v.toString().trim();
+      if (s.isEmpty) return 0.0;
+      final cleaned = s.replaceAll(RegExp(r'[^\d\.\-]'), '');
+      return double.tryParse(cleaned) ?? 0.0;
     } catch (_) {
       return 0.0;
     }
+  }
+
+  String? _firstString(Map<String, dynamic> m, List<String> keys) {
+    for (final k in keys) {
+      if (m.containsKey(k) && m[k] != null) return m[k].toString();
+    }
+    return null;
+  }
+
+  dynamic _firstValue(Map<String, dynamic> m, List<String> keys) {
+    for (final k in keys) {
+      if (m.containsKey(k) && m[k] != null) return m[k];
+    }
+    return null;
   }
 
   Widget _buildHeaderCard() {
@@ -173,8 +210,8 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         if (bank != null) ...[
           const SizedBox(height: 12),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(bank['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
-            Text(bank['masked'] ?? '', style: const TextStyle(color: Colors.black54)),
+            Text(bank['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text(bank['masked']?.toString() ?? _firstString(bank, ['masked', 'acNumber', 'accountNumber']) ?? '', style: const TextStyle(color: Colors.black54)),
           ])
         ]
       ]),
@@ -182,10 +219,10 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   }
 
   Widget _buildEntryCard(int index, Map<String, dynamic> e) {
-    // small helper to format amount
     String formatAmount(String? a) {
       if (a == null || a.isEmpty) return '';
-      return NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(double.tryParse(a) ?? 0);
+      final parsed = double.tryParse(a) ?? 0.0;
+      return NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(parsed);
     }
 
     return Container(
@@ -196,11 +233,41 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         Row(children: [
           const Icon(Icons.local_offer_outlined, size: 20),
           const SizedBox(width: 8),
-          Text(e['voucherName'] ?? 'Fuel Voucher', style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(e['purposeDescription'] ?? e['voucherDesc'] ?? 'Voucher', style: const TextStyle(fontWeight: FontWeight.w700)),
           const Spacer(),
           InkWell(
             onTap: () {
-              // optional: allow remove or edit — in verify screen we can ignore
+              final total = widget.entries.length;
+
+              if (total == 1) {
+                // confirm before deleting last voucher — then go back if user confirms
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Delete Voucher?'),
+                    content: const Text('If you delete this voucher, you will need to create it again. Do you want to proceed?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            widget.entries.remove(e);
+                          });
+                          Navigator.of(context).pop(); // close dialog
+                          Navigator.of(context).pop(); // navigate back
+                        },
+                        child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                // remove directly when more than one
+                setState(() {
+                  widget.entries.remove(e);
+                });
+              }
             },
             child: const Icon(Icons.delete_outline, color: Colors.red),
           ),
@@ -235,125 +302,438 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     );
   }
 
-  Future<void> _issueVoucher() async {
+  // --------------------------
+  // OTP / Login / Verify / Issue flows
+  // --------------------------
+
+  /// Called when user taps ISSUE VOUCHER button. Sends OTP and opens OTP dialog.
+  Future<void> _handleLogin() async {
+    if (_loading) return;
+    FocusScope.of(context).unfocus();
+
     setState(() {
       _loading = true;
       _statusMessage = '';
+      _isSendingOtp = true;
     });
 
     try {
       final user = await SessionManager.getUserData();
-      final orgId = user?.employerid;
-      final createdBy = user?.username ?? user?.username ?? 'Unknown';
+      final employerMobile = user?.mobile?.toString() ?? '';
+      final rowcount = widget.entries.length.toString();
 
-      // merchant/subMerchant/payerVA/accountNumber should come from config / selected bank
-      final merchantId = '610954'; // REPLACE with real merchantId from config/session
-      final subMerchantId = merchantId;
-      final accountNumber = widget.bankInfo?['accountNumber'] ?? widget.bankInfo?['masked'] ?? '';
-      final payerVA = widget.bankInfo?['payerVA'] ?? 'merchant@icici'; // replace or fetch from bank config
+      // Build payload - adapt keys if your backend needs different names
+      final payload = {
+        "mobile": employerMobile,
+        "template": "OTP Number Vouchers Issuance",
+        "value": rowcount,
+      };
 
-      // create erupiVoucherCreateDetails list
+      final response = await widget.apiService.getVoucherOtp(payload);
+      debugPrint('[getVoucherOtp] => $response');
+
+      if (response != null && response['status'] == true) {
+        // store orderId if returned
+        if (response['data'] != null && response['data']['orderId'] != null) {
+          _orderId = response['data']['orderId'].toString();
+        } else if (response['orderId'] != null) {
+          _orderId = response['orderId'].toString();
+        } else {
+          _orderId = null;
+        }
+
+        // reset OTP controllers
+        for (final c in _otpControllers) c.text = '';
+
+        // start resend timer
+        _startResendTimer();
+
+        // open OTP dialog (responsive)
+        _showOtpDialog(employerMobile);
+      } else {
+        final msg = response != null ? (response['message'] ?? 'Failed to send OTP') : 'Failed to send OTP';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+      }
+    } catch (e, st) {
+      debugPrint('Error sending OTP: $e\n$st');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error sending OTP: $e'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _isSendingOtp = false;
+        });
+      }
+    }
+  }
+
+  void _startResendTimer() {
+    _resendTimer?.cancel();
+    setState(() => _resendSeconds = 30);
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (_resendSeconds <= 0) {
+        t.cancel();
+      } else {
+        setState(() => _resendSeconds -= 1);
+      }
+    });
+  }
+
+  /// Responsive OTP dialog
+  void _showOtpDialog(String mobile) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final mq = MediaQuery.of(ctx);
+        final w = mq.size.width;
+        final dialogWidth = w < 500 ? w * 0.92 : 480.0;
+        final otpBoxSize = (dialogWidth - 80) / 6; // approx spacing
+        final otpFont = otpBoxSize * 0.45;
+
+        return StatefulBuilder(builder: (context, setDialogState) {
+          Future<void> resendOtp() async {
+            setDialogState(() => _isSendingOtp = true);
+            try {
+              final user = await SessionManager.getUserData();
+              final employerMobile = user?.mobile?.toString() ?? '';
+              final payload = {
+                "mobile": employerMobile,
+                "template": "OTP Number Vouchers Issuance",
+                "value": widget.entries.length.toString(),
+              };
+              final resp = await widget.apiService.getVoucherOtp(payload);
+              debugPrint('[resendOtp] => $resp');
+              if (resp != null && resp['status'] == true) {
+                _startResendTimer();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP resent'), backgroundColor: Colors.green));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(resp?['message'] ?? 'Could not resend OTP'), backgroundColor: Colors.red));
+              }
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Resend error: $e'), backgroundColor: Colors.red));
+            } finally {
+              if (mounted) setDialogState(() => _isSendingOtp = false);
+            }
+          }
+
+          Future<void> verifyOtpFromDialog() async {
+            setDialogState(() => _isVerifyingOtp = true);
+            debugPrint('>>> Dialog: starting OTP verify');
+
+            final success = await _handleVerifyOtp(); // returns bool
+            setDialogState(() => _isVerifyingOtp = false);
+
+            if (!mounted) return;
+
+            if (success) {
+              debugPrint('>>> Dialog: OTP verified successfully, closing dialog and calling _issueVoucher');
+              // close OTP dialog
+              try { Navigator.of(ctx).pop(); } catch (_) {}
+              // quick green toast
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP Verified'), backgroundColor: Colors.green, duration: Duration(milliseconds: 900)));
+
+              // small delay then call issue
+              await Future.delayed(const Duration(milliseconds: 400));
+
+              // call _issueVoucher
+              await _issueVoucher();
+            } else {
+              debugPrint('>>> Dialog: OTP verification failed — not calling _issueVoucher');
+            }
+          }
+
+          Widget otpBoxesRow() {
+            return Wrap(
+              spacing: otpBoxSize * 0.08,
+              alignment: WrapAlignment.center,
+              children: List.generate(6, (i) {
+                return SizedBox(
+                  width: otpBoxSize.clamp(40.0, 64.0),
+                  height: otpBoxSize.clamp(40.0, 64.0),
+                  child: TextField(
+                    controller: _otpControllers[i],
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    maxLength: 1,
+                    style: TextStyle(fontSize: otpFont.clamp(16.0, 22.0), fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.blue.shade300, width: 2), borderRadius: BorderRadius.circular(8)),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onChanged: (v) {
+                      if (v.isNotEmpty) {
+                        if (i + 1 < 6) FocusScope.of(context).nextFocus();
+                        else FocusScope.of(context).unfocus();
+                      } else {
+                        if (i - 1 >= 0) FocusScope.of(context).previousFocus();
+                      }
+                    },
+                  ),
+                );
+              }),
+            );
+          }
+
+          return Dialog(
+            insetPadding: EdgeInsets.symmetric(horizontal: mq.size.width * 0.04, vertical: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: dialogWidth),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // header row with title and close
+                    Row(
+                      children: [
+                        Expanded(child: Text('Authentication for Issuance', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                        InkWell(onTap: () { _resendTimer?.cancel(); Navigator.of(ctx).pop(); }, child: const Icon(Icons.close)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    otpBoxesRow(),
+                    const SizedBox(height: 12),
+
+                    // resend line
+                    if (_resendSeconds > 0)
+                      Text("Didn't receive the code? 00:${_resendSeconds.toString().padLeft(2, '0')}", style: const TextStyle(color: Colors.black54))
+                    else
+                      GestureDetector(onTap: resendOtp, child: Text("Didn't receive the code? Resend", style: TextStyle(color: Colors.blue.shade700))),
+
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(8)),
+                      child: const Text('OTP code has been sent to your phone. Enter OTP to validate issuance.', style: TextStyle(fontSize: 13)),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: (_isVerifyingOtp || _isSendingOtp) ? null : verifyOtpFromDialog,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: _isVerifyingOtp ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('AUTHENTICATE', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  /// Verify OTP handler — returns bool (true if verified)
+  Future<bool> _handleVerifyOtp() async {
+    if (_verifyInProgress) {
+      debugPrint('>>> _handleVerifyOtp: already in progress, returning false');
+      return false;
+    }
+    _verifyInProgress = true;
+
+    final enteredOtp = _otpControllers.map((c) => c.text.trim()).join();
+    debugPrint('>>> _handleVerifyOtp: enteredOtp="$enteredOtp", orderId=$_orderId');
+
+    if (enteredOtp.length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter 6-digit OTP'), backgroundColor: Colors.red));
+      _verifyInProgress = false;
+      return false;
+    }
+
+    setState(() { _statusMessage = ''; });
+
+    try {
+      final user = await SessionManager.getUserData();
+      final mobile = user?.mobile?.toString() ?? '';
+
+      final otpPayload = {
+        'mobile': mobile,
+        'otp': enteredOtp,
+        if (_orderId != null) 'orderId': _orderId,
+      };
+
+      debugPrint('>>> _handleVerifyOtp: calling api.verifyOtp with payload: $otpPayload');
+      final resp = await widget.apiService.verifyOtp(otpPayload);
+      debugPrint('<<< _handleVerifyOtp: verifyOtp response: $resp');
+
+      if (resp != null && resp['status'] == true) {
+        _verifyInProgress = false;
+        return true;
+      } else {
+        final msg = resp != null ? (resp['message'] ?? 'Invalid OTP') : 'Invalid OTP';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+        _verifyInProgress = false;
+        return false;
+      }
+    } catch (e, st) {
+      debugPrint('*** _handleVerifyOtp ERROR: $e\n$st');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('OTP verify error: $e'), backgroundColor: Colors.red));
+      _verifyInProgress = false;
+      return false;
+    }
+  }
+
+  /// ISSUE VOUCHER — responsive congrats dialog and full request body
+  Future<void> _issueVoucher() async {
+    debugPrint('>>> _issueVoucher: starting');
+    setState(() { _loading = true; _statusMessage = ''; });
+
+    try {
+      final user = await SessionManager.getUserData();
+      final orgId = user?.employerid?.toString() ?? '';
+      final createdBy = (user?.username ?? '').toString();
+
+      final merchantId = widget.bankInfo?['merchantId']?.toString() ?? widget.bankInfo?['merchentIid']?.toString() ?? '610954';
+      final subMerchantId = widget.bankInfo?['subMerchantId']?.toString() ?? widget.bankInfo?['submurchentid']?.toString() ?? merchantId;
+      final accountNumber = widget.bankInfo?['accountNumber']?.toString() ?? widget.bankInfo?['acNumber']?.toString() ?? '';
+      final payerVA = widget.bankInfo?['payerVA']?.toString() ?? widget.bankInfo?['payeeVPA']?.toString() ?? widget.bankInfo?['payerva']?.toString() ?? 'merchant@icici';
+      final bankcode = widget.bankInfo?['bankCode']?.toString() ?? widget.bankInfo?['bankcode']?.toString() ?? widget.bankInfo?['bankName']?.toString() ?? '';
+
       final List<Map<String, dynamic>> details = widget.entries.map((e) {
         return {
-          "requestId": null,
-          "voucherId": null,
           "name": e['name'] ?? '',
           "mobile": e['mobile'] ?? '',
-          "amount": e['amount'] ?? '',
-          "startDate": e['startDate'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          "expDate": e['expDate'],
-          "purposeCode": e['purposeCode'] ?? e['voucherCode'] ?? '',
+          "voucher": e['voucher'] ?? e['voucherName'] ?? e['purposeDescription'] ?? '',
           "mcc": e['mcc'] ?? '',
           "mccDescription": e['mccDescription'] ?? '',
-          "purposeDescription": e['purposeDescription'] ?? '',
-          "type": null,
-          "bankcode": widget.bankInfo?['bankcode'] ?? '',
-          "voucherCode": e['purposeCode'] ?? '',
-          "voucherType": null,
-          "voucherDesc": e['purposeDescription'] ?? '',
+          "purposeCode": e['purposeCode'] ?? e['voucherCode'] ?? '',
+          "purposeDescription": e['purposeDescription'] ?? e['voucherDesc'] ?? '',
+          "voucherCode": e['voucherCode'] ?? e['purposeCode'] ?? '',
+          "voucherDesc": e['voucherDesc'] ?? e['purposeDescription'] ?? '',
           "redemptionType": e['redemptionType'] ?? '',
-          "validity": e['validity'] ?? ''
+          "amount": e['amount']?.toString() ?? '',
+          "startDate": e['startDate'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          "validity": e['validity']?.toString() ?? '',
         };
       }).toList();
 
       final consent = _consentChecked ? 'yes' : 'no';
+      final activeStatus = '';
 
-      // Build hashing string (order exactly as backend expects)
-      final dataString = (consent) +
-          (createdBy) +
-          (orgId?.toString() ?? '') +
-          (merchantId) +
-          (subMerchantId) +
-          (accountNumber) +
-          (payerVA) +
-          (MANDATE_TYPE) +
-          (CLIENT_KEY) +
-          (SECRET_KEY);
+      final hashInput = consent +
+          createdBy +
+          orgId +
+          merchantId +
+          subMerchantId +
+          accountNumber +
+          payerVA +
+          MANDATE_TYPE +
+          SECRET_KEY +
+          CLIENT_KEY;
 
-      final hash = _sha256Hex(dataString);
+      debugPrint("Hash Input: $hashInput");
+
+      final hash = _sha256Hex(hashInput);
 
       final requestBody = {
+        "consent": consent,
+        "createdby": createdBy,
+        "orgId": orgId,
         "merchantId": merchantId,
         "subMerchantId": subMerchantId,
+        "activeStatus": activeStatus,
+        "bankcode": bankcode,
+        "accountNumber": accountNumber,
+        "payerVA": payerVA,
         "mandateType": MANDATE_TYPE,
         "clientKey": CLIENT_KEY,
         "hash": hash,
-        "activeStatus": "",
-        "payeeVPA": null,
-        "consent": consent,
-        "otpValidationStatus": null,
-        "creationDate": null,
-        "createdby": createdBy,
-        "accountId": null,
-        "orgId": orgId,
-        "accountNumber": accountNumber,
-        "response": null,
-        "responseApi": null,
-        "merchanttxnid": null,
-        "creationmode": null,
-        "payerVA": payerVA,
-        "bankcode": widget.bankInfo?['bankcode'] ?? '',
         "erupiVoucherCreateDetails": details,
       };
 
-      // call API (expects ApiService.createSingleVoucher implemented)
+      debugPrint('[VoucherVerify] requestBody => ${jsonEncode(requestBody)}');
+
       final resp = await widget.apiService.createSingleVoucher(requestBody);
 
+      debugPrint('<<< _issueVoucher: api response => $resp');
+
       if (resp != null && (resp['status'] == true || resp['success'] == true)) {
-        // success - show dialog and then pop
+        // show congrats dialog responsive
         await showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (_) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            content: Column(mainAxisSize: MainAxisSize.min, children: const [
-              Icon(Icons.check_circle, color: Colors.green, size: 56),
-              SizedBox(height: 12),
-              Text('Congratulations!', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text('Voucher Successfully Issued', textAlign: TextAlign.center),
-            ]),
-            actions: [
-              TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Done'))
-            ],
-          ),
+          builder: (ctx) {
+            final mq = MediaQuery.of(ctx);
+            final w = mq.size.width;
+            final dialogWidth = w < 500 ? w * 0.92 : 420.0;
+            return Dialog(
+              insetPadding: EdgeInsets.symmetric(horizontal: mq.size.width * 0.04),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: dialogWidth),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 22),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.green.shade50),
+                      child: const Icon(Icons.check, color: Colors.green, size: 36),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text('Congratulations!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const SizedBox(height: 8),
+                    const Text('Voucher Successfully Issued', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54)),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop(); // close dialog
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            );
+          },
         );
-        // navigate back or to any screen you want
+
+        // after done, navigate to root/home
         Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
+        final msg = resp != null ? (resp['message'] ?? 'Failed to issue voucher') : 'Failed to issue voucher';
+        debugPrint('!!! _issueVoucher failed: $msg');
         setState(() {
-          _statusMessage = (resp != null && resp['message'] != null) ? resp['message'].toString() : 'Failed to issue voucher. Please try again.';
+          _statusMessage = msg;
         });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
       }
     } catch (e, st) {
-      debugPrint('Voucher verify error: $e\n$st');
+      debugPrint('*** _issueVoucher EXCEPTION: $e\n$st');
       setState(() {
         _statusMessage = 'An error occurred: ${e.toString()}';
       });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Issue error: $e'), backgroundColor: Colors.red));
     } finally {
-      setState(() {
+      if (mounted) setState(() {
         _loading = false;
       });
+      debugPrint('>>> _issueVoucher: finished (loading=false)');
     }
   }
 

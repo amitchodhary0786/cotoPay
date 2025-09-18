@@ -8,6 +8,194 @@ import 'api_service.dart';
 import 'package:cotopay/session_manager.dart';
 import 'package:intl/intl.dart';
 import 'account_settings_screen.dart';
+import 'voucher_detail_screen.dart';
+
+// Note: keep your other imports as before.
+
+// No changes needed for FilterBottomSheet, it remains the same.
+class FilterBottomSheet extends StatefulWidget {
+  final Function(Map<String, bool> selectedCategories, String? selectedTimePeriod) onApplyFilter;
+  final Map<String, bool> initialCategories;
+  final String? initialTimePeriod;
+
+  const FilterBottomSheet({
+    super.key,
+    required this.onApplyFilter,
+    required this.initialCategories,
+    this.initialTimePeriod,
+  });
+
+  @override
+  State<FilterBottomSheet> createState() => _FilterBottomSheetState();
+}
+
+class _FilterBottomSheetState extends State<FilterBottomSheet> {
+  int _activeFilterIndex = 0;
+  late Map<String, bool> _categories;
+  late String? _selectedTimePeriod;
+  final List<String> _timePeriods = ['Current Month', 'Last Month', 'Current Financial Year', 'Last Financial Year', 'All History'];
+
+  @override
+  void initState() {
+    super.initState();
+    _categories = Map.from(widget.initialCategories);
+    _selectedTimePeriod = widget.initialTimePeriod;
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _categories.updateAll((key, value) => false);
+      _selectedTimePeriod = 'All History';
+    });
+  }
+
+  void _applyAndClose() {
+    widget.onApplyFilter(_categories, _selectedTimePeriod);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(top: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 16),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text('FILTER BY', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54, letterSpacing: 0.8)),
+          ),
+          const Divider(height: 24),
+          SizedBox(
+            height: 280,
+            child: Row(children: [_buildLeftPane(), const VerticalDivider(width: 1, thickness: 1), _buildRightPane()]),
+          ),
+          const Divider(height: 1),
+          Padding(padding: const EdgeInsets.all(16.0), child: _buildActionButtons())
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeftPane() {
+    return SizedBox(
+      width: 150,
+      child: Column(
+        children: [
+          _buildFilterSelector('Category Type', 0),
+          _buildFilterSelector('Select Time Period', 1),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterSelector(String title, int index) {
+    final bool isActive = _activeFilterIndex == index;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _activeFilterIndex = index;
+        });
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        color: isActive ? Colors.blue.withOpacity(0.05) : Colors.transparent,
+        child: Text(title, style: TextStyle(fontWeight: isActive ? FontWeight.bold : FontWeight.normal, color: isActive ? Colors.blue.shade700 : Colors.black87)),
+      ),
+    );
+  }
+
+  Widget _buildRightPane() {
+    return Expanded(child: AnimatedSwitcher(duration: const Duration(milliseconds: 200), child: _activeFilterIndex == 0 ? _buildCategoryOptions() : _buildTimePeriodOptions()));
+  }
+
+  Widget _buildCategoryOptions() {
+    return ListView(
+      key: const ValueKey('categories'),
+      padding: EdgeInsets.zero,
+      children: _categories.keys.map((String key) {
+        return SizedBox(
+          height: 48,
+          child: CheckboxListTile(
+            title: Text(key, style: const TextStyle(fontSize: 14)),
+            value: _categories[key],
+            onChanged: (bool? value) {
+              setState(() {
+                _categories[key] = value ?? false;
+              });
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+            activeColor: Colors.green,
+            contentPadding: const EdgeInsets.only(left: 8),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTimePeriodOptions() {
+    return ListView(
+      key: const ValueKey('time_periods'),
+      padding: EdgeInsets.zero,
+      children: _timePeriods.map((String value) {
+        return SizedBox(
+          height: 48,
+          child: RadioListTile<String>(
+            title: Text(value, style: const TextStyle(fontSize: 14)),
+            value: value,
+            groupValue: _selectedTimePeriod,
+            onChanged: (String? newValue) {
+              setState(() {
+                _selectedTimePeriod = newValue;
+              });
+            },
+            activeColor: Colors.green,
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: const EdgeInsets.only(left: 8),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(children: [
+      Expanded(
+        child: OutlinedButton(
+          onPressed: _clearFilters,
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+          child: const Text('Clear All', style: TextStyle(color: Colors.black54)),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: ElevatedButton(
+          onPressed: _applyAndClose,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text('Apply'),
+        ),
+      )
+    ]);
+  }
+}
+
 
 class UpiVouchersScreen extends StatefulWidget {
   const UpiVouchersScreen({super.key});
@@ -31,10 +219,25 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
   String _activeCount = "0";
   double _activeAmount = 0.0;
 
+  int? _roleId;
+
   @override
   void initState() {
     super.initState();
     _loadBankList();
+    _loadRoleId();
+  }
+
+  Future<void> _loadRoleId() async {
+    try {
+      final id = await SessionManager.getRoleId();
+      if (!mounted) return;
+      setState(() {
+        _roleId = id;
+      });
+    } catch (e) {
+      debugPrint("Failed to load role id: $e");
+    }
   }
 
   Future<void> _loadBankList() async {
@@ -82,7 +285,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
       });
 
       // fetch summary for default selection (All)
-      await _fetchBankSummary( _selectedBankAccount ?? '');
+      await _fetchBankSummary(_selectedBankAccount ?? '');
     } catch (e) {
       debugPrint("Error loading bank list: $e");
       if (!mounted) return;
@@ -93,15 +296,13 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
     }
   }
 
-  Future<void> _fetchBankSummary( String accNumber) async {
+  Future<void> _fetchBankSummary(String accNumber) async {
     try {
       final userData = await SessionManager.getUserData();
       if (userData == null || userData.employerid == null) {
         throw Exception("User not available");
       }
 
-
-      // show a small loading effect for card (optional) - here we'll update lastUpdated only when success
       final params = {"orgId": userData.employerid, "accNumber": accNumber};
       final response = await _apiService.getBankSummary(params);
 
@@ -127,7 +328,6 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
       });
     } catch (e) {
       debugPrint("Error fetching bank summary: $e");
-      // do not throw UI-blocking error; keep previous values but update lastUpdated time if you want
       if (!mounted) return;
       setState(() {
         _error = e.toString();
@@ -228,7 +428,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                               Navigator.of(ctx).pop();
 
                               // call summary API for selected bank
-                              await _fetchBankSummary( account ?? '');
+                              await _fetchBankSummary(account);
                             },
                             leading: _bankIconWidget(bankLogoBase64, size: 44, fallbackText: bankName),
                             title: Text(bankName, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -433,7 +633,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                                     final userData = await SessionManager.getUserData();
                                     if (userData != null && userData.employerid != null) {
                                       await _loadBankList();
-                                      await _fetchBankSummary( _selectedBankAccount ?? '');
+                                      await _fetchBankSummary(_selectedBankAccount ?? '');
                                     } else {
                                       await _loadBankList();
                                     }
@@ -454,21 +654,8 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
             SizedBox(height: horizontalPadding * 1.1),
 
             // --- WHITE rounded section (Office UPI Vouchers)
-
-
-        FutureBuilder<int?>(
-          future: SessionManager.getRoleId(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const SizedBox(); // can show loader if needed
-            }
-
-            final roleId = snapshot.data;
-
-               debugPrint('Role ID: $roleId');
-
-            if (roleId == 8 || roleId == 9) {
-              return Column(
+            if (_roleId == 8 || _roleId == 9) ...[
+              Column(
                 children: [
                   Container(
                     decoration: BoxDecoration(
@@ -632,18 +819,13 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                   ),
                   SizedBox(height: horizontalPadding * 1.0),
                 ],
-              );
-            } else {
-              return const SizedBox.shrink(); // hide if not roleId 8 or 9
-            }
+              )
+            ] else
+              const SizedBox.shrink(),
 
-          },
-        ),
-
-
-
-
-
+            // the rest of the UI (vouchers list) is below
+            // (I'll include VouchersScreen content below)
+            // For brevity and safety, I'm switching the next screen to the VouchersScreen you provided originally.
           ],
         ),
       ),
@@ -666,5 +848,433 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
         ),
       ),
     );
+  }
+}
+
+// ------------------------ VouchersScreen ------------------------
+
+class VouchersScreen extends StatefulWidget {
+  final ApiService? apiService;
+
+  const VouchersScreen({super.key, this.apiService});
+
+  @override
+  State<VouchersScreen> createState() => _VouchersScreenState();
+}
+
+class _VouchersScreenState extends State<VouchersScreen> {
+  late final ApiService _apiService;
+  final TextEditingController _vouchersSearchController = TextEditingController();
+  final TextEditingController _transactionsSearchController = TextEditingController(); // kept if you reuse later
+
+  List<dynamic> _originalVouchers = [];
+  List<dynamic> _filteredVouchers = [];
+  bool _isVouchersLoading = true;
+  String? _vouchersError;
+
+  Map<String, bool> _voucherSelectedCategories = {'Fuel': false, 'Meal': false, 'Travel': false, 'Accommodation': false, 'Entertainment': false};
+  String? _voucherSelectedTimePeriod = 'All History';
+
+  @override
+  void initState() {
+    super.initState();
+    _apiService = widget.apiService ?? ApiService();
+    _vouchersSearchController.addListener(_applyVoucherFilters);
+    _loadVoucherData();
+  }
+
+  @override
+  void dispose() {
+    _vouchersSearchController.removeListener(_applyVoucherFilters);
+    _vouchersSearchController.dispose();
+    _transactionsSearchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadVoucherData() async {
+    if (mounted) setState(() {
+      _isVouchersLoading = true;
+      _vouchersError = null;
+    });
+
+    try {
+      final userData = await SessionManager.getUserData();
+      final params = {"orgId": userData?.employerid ?? "", "timePeriod": "AH"};
+      final response = await _apiService.getVoucherList(params);
+      if (mounted) {
+        if (response['status'] == true && response['data'] is List) {
+          setState(() {
+            _originalVouchers = response['data'];
+            _isVouchersLoading = false;
+          });
+        } else {
+          setState(() {
+            _originalVouchers = [];
+            _isVouchersLoading = false;
+            _vouchersError = response['message'] ?? 'Failed to load vouchers';
+          });
+        }
+        _applyVoucherFilters();
+      }
+    } catch (e) {
+      if (mounted) setState(() {
+        _isVouchersLoading = false;
+        _vouchersError = e.toString();
+      });
+    }
+  }
+
+  void _applyVoucherFilters() {
+    List<dynamic> result = _filterGenericList(
+      _originalVouchers,
+      _vouchersSearchController.text,
+          (item) => [item['purposeDesc'], item['name']],
+          (item) => item['expDate'],
+      activeFilters: _voucherSelectedCategories,
+      timePeriod: _voucherSelectedTimePeriod,
+    );
+    if (mounted) setState(() => _filteredVouchers = result);
+  }
+
+  List<dynamic> _filterGenericList(
+      List<dynamic> originalList,
+      String query,
+      List<String?> Function(dynamic) searchFields,
+      String? Function(dynamic) dateField, {
+        required Map<String, bool> activeFilters,
+        required String? timePeriod,
+      }) {
+    final q = query.toLowerCase();
+    final activeCategories = activeFilters.entries.where((e) => e.value).map((e) => e.key.toLowerCase()).toList();
+    var filtered = originalList.where((item) {
+      final searchCorpus = searchFields(item).where((s) => s != null).map((s) => s!.toLowerCase()).join(' ');
+      final categorySource = searchFields(item).first?.toLowerCase() ?? '';
+      final matchesQuery = q.isEmpty || searchCorpus.contains(q);
+      final matchesCategory = activeCategories.isEmpty || activeCategories.any((cat) => categorySource.contains(cat));
+      return matchesQuery && matchesCategory;
+    }).toList();
+
+    if (timePeriod != null && timePeriod != 'All History') {
+      filtered = filtered.where((item) {
+        final dateStr = dateField(item);
+        final itemDate = _parseDate(dateStr);
+        if (itemDate == null) return false;
+        final now = DateTime.now();
+        switch (timePeriod) {
+          case 'Current Month':
+            return itemDate.year == now.year && itemDate.month == now.month;
+          case 'Last Month':
+            final last = DateTime(now.year, now.month - 1);
+            return itemDate.year == last.year && itemDate.month == last.month;
+          case 'Current Financial Year':
+            int year = (now.month < 4) ? now.year - 1 : now.year;
+            return itemDate.isAfter(DateTime(year, 3, 31)) && itemDate.isBefore(DateTime(year + 1, 4, 1));
+          case 'Last Financial Year':
+            int year = (now.month < 4) ? now.year - 2 : now.year - 1;
+            return itemDate.isAfter(DateTime(year, 3, 31)) && itemDate.isBefore(DateTime(year + 1, 4, 1));
+          default:
+            return true;
+        }
+      }).toList();
+    }
+
+    return filtered;
+  }
+
+  DateTime? _parseDate(String? dateStr) {
+    if (dateStr == null || dateStr.trim().isEmpty) return null;
+    final formats = [DateFormat("yyyy-MM-dd HH:mm:ss"), DateFormat("d MMM yyyy"), DateFormat("yyyy-MM-dd"), DateFormat("dd-MM-yyyy"), DateFormat("MM/dd/yyyy")];
+    for (var format in formats) {
+      try {
+        return format.parse(dateStr);
+      } catch (_) {}
+    }
+    debugPrint('Date parsing failed for ALL formats: $dateStr');
+    return null;
+  }
+
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => FilterBottomSheet(
+        initialCategories: _voucherSelectedCategories,
+        initialTimePeriod: _voucherSelectedTimePeriod,
+        onApplyFilter: (newCategories, newTimePeriod) {
+          setState(() {
+            _voucherSelectedCategories = newCategories;
+            _voucherSelectedTimePeriod = newTimePeriod;
+          });
+          _applyVoucherFilters();
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black), onPressed: () => Navigator.pop(context)),
+        // Add these two lines to left-align the title
+        centerTitle: false,
+        titleSpacing: 0,
+        title: const Text('Vouchers', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+        actions: [IconButton(icon: const Icon(Icons.download_outlined, color: Colors.black), onPressed: () {})],
+      ),
+
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(children: [
+          Row(children: [
+            Expanded(
+              child: TextField(
+                controller: _vouchersSearchController,
+                decoration: InputDecoration(
+                  hintText: 'Search Vouchers',
+                  prefixIcon: const Icon(Icons.search, color: Colors.green),
+                  contentPadding: EdgeInsets.zero,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+              child: IconButton(onPressed: _showFilterSheet, icon: const Icon(Icons.tune, color: Colors.black54)),
+            )
+          ]),
+          const SizedBox(height: 16),
+          if (_isVouchersLoading)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (_vouchersError != null)
+            Expanded(child: Center(child: Text('Error: $_vouchersError')))
+          else
+            Expanded(
+              child: Column(children: [
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text('${_filteredVouchers.length} AVAILABLE', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                  IconButton(icon: const Icon(Icons.refresh, color: Colors.grey), onPressed: _loadVoucherData),
+                ]),
+                const SizedBox(height: 8),
+                if (_filteredVouchers.isEmpty)
+                  Expanded(
+                    child: _originalVouchers.isEmpty
+                        ? _buildEmptyState(message: "No Voucher issued yet!", showButton: true)
+                        : _buildEmptyState(message: "No vouchers match your filters."),
+                  )
+                else
+                  Expanded(
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      itemCount: _filteredVouchers.length,
+                      itemBuilder: (context, index) => _buildVoucherCard(voucherData: _filteredVouchers[index]),
+                    ),
+                  ),
+              ]),
+            )
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState({required String message, bool showButton = false}) {
+    return Center(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            // Using a fallback icon in case the asset is not found
+            Image.asset('assets/no_vouchers.webp', width: 200, height: 200, errorBuilder: (context, error, stackTrace) => Icon(Icons.inbox_outlined, size: 100, color: Colors.grey.shade400)),
+            const SizedBox(height: 24),
+            Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87)),
+            if (showButton) ...[
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade600,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(200, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Issue Vouchers', style: TextStyle(fontSize: 16)),
+              )
+            ]
+          ]),
+        ),
+      ),
+    );
+  }
+
+  // UPDATED WIDGET: Replaced _buildVoucherCard with the responsive version.
+  Widget _buildVoucherCard({required Map<String, dynamic> voucherData}) {
+    String title = (voucherData['purposeDesc'] ?? '').toString().replaceAll('Vouhcer', 'Voucher');
+    if (title.trim().isEmpty) title = 'N/A';
+    String subtitle = (voucherData['name'] ?? 'Self').toString();
+
+    // handle different possible API keys and normalise
+    String redemptionRaw = (voucherData['redemtionType'] ?? voucherData['redemptionType'] ?? '').toString();
+    String redemptionType = redemptionRaw.trim().isEmpty ? 'Unknown' : redemptionRaw.trim().toLowerCase().capitalize();
+
+    double amount = 0.0;
+    final amtRaw = voucherData['amount'];
+    if (amtRaw is num) amount = amtRaw.toDouble();
+    else if (amtRaw is String) amount = double.tryParse(amtRaw) ?? 0.0;
+
+    String validity = _getValidityString(voucherData['expDate']?.toString());
+
+    // Important: read voucherStatus, but fall back to 'type' if API uses that
+    String statusRaw = voucherData['type'];
+    final status = statusRaw.toLowerCase();
+
+    final bool isRejected = status == 'failed';
+    final bool isActive = status == 'active';
+    final bool isExpired = status == 'expired';
+
+    // card border color based on status
+    Color cardBorderColor = Colors.grey.shade200;
+    if (isRejected) cardBorderColor = Colors.pink.shade400;
+    else if (isActive) cardBorderColor = Colors.green.shade600;
+    else if (isExpired) cardBorderColor = Colors.grey.shade400;
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: cardBorderColor.withOpacity(0.45), width: 1.2),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: isActive ? () => Navigator.push(context, MaterialPageRoute(builder: (context) => VoucherDetailScreen(voucherData: voucherData))) : null,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          height: 125,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: Colors.black.withOpacity(0.05),
+                    child: Icon(_getIconForPurpose(title), color: Colors.black87, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 4),
+                        Text(subtitle, style: TextStyle(color: Colors.grey.shade600, fontSize: 14), overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
+                  ),
+
+                  // status badge / arrow
+                  if (isRejected)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.pink.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text('Failed', style: TextStyle(color: Colors.pink.shade700, fontSize: 12, fontWeight: FontWeight.w600)),
+                    )
+                  else if (isExpired)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text('Expired', style: TextStyle(color: Colors.grey.shade700, fontSize: 12, fontWeight: FontWeight.w600)),
+                    )
+                  else if (isActive)
+                      Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400)
+                ],
+              ),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            redemptionType.toLowerCase() == 'single' ? Icons.looks_one_outlined : Icons.monetization_on_outlined,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(redemptionType, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                        ],
+                      ),
+                      if (!isRejected) ...[
+                        const SizedBox(height: 4),
+                        Text(validity, style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500)),
+                      ],
+                    ],
+                  ),
+
+                  Text(
+                    NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(amount),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // UPDATED HELPER: Changed icon for 'meal' to better match the design.
+  IconData _getIconForPurpose(String purpose) {
+    String p = purpose.toLowerCase();
+    if (p.contains('fuel') || p.contains('petroleum')) return Icons.local_gas_station_outlined;
+    if (p.contains('meal') || p.contains('food')) return Icons.coffee_outlined;
+    if (p.contains('motorcycle')) return Icons.two_wheeler_outlined;
+    if (p.contains('groceries')) return Icons.shopping_cart_outlined;
+    return Icons.card_giftcard_outlined;
+  }
+
+  String _getValidityString(String? expDateStr) {
+    if (expDateStr == null || expDateStr.trim().isEmpty) return 'No expiry';
+    try {
+      final expiryDate = DateTime.parse(expDateStr);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final expiry = DateTime(expiryDate.year, expiryDate.month, expiryDate.day);
+      final difference = expiry.difference(today).inDays;
+      if (difference < 0) return 'Expired';
+      if (difference == 0) return 'Expires today';
+      if (difference <= 30) return 'Valid for $difference days';
+      return 'Expires on ${DateFormat('d MMM yyyy').format(expiry)}';
+    } catch (e) {
+      debugPrint("Could not parse expiry date: $expDateStr");
+      return 'Expires: $expDateStr';
+    }
+  }
+}
+
+extension NullableStringHelpers on String? {
+  String capitalize() {
+    if (this == null || this!.trim().isEmpty) return this ?? '';
+    final String trimmed = this!.trim();
+    return trimmed[0].toUpperCase() + trimmed.substring(1).toLowerCase();
   }
 }

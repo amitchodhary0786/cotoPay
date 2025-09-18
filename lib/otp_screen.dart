@@ -48,29 +48,23 @@ class _OtpScreenState extends State<OtpScreen> {
     try {
       final otpData = { 'userName': '91${widget.phoneNumber}', 'otp': enteredOtp, 'mobile': widget.phoneNumber, 'orderId': widget.orderId,'template':"" };
 
-      // <<< बदलाव: सीधे API से डिक्रिप्टेड प्रतिक्रिया प्राप्त करें >>>
       final response = await _apiService.verifyOtp(otpData);
 
       debugPrint("✅ Received Decrypted API Response: $response");
 
       if (mounted)
       {
-        /*if (response['status'] == true && response['data'] != null)
+
+        if (response['status'] == true && response['data'] != null)
         {
-          await _saveUserDataAndLoginStatus(response['data']);
-
-
-          await SessionManager.saveLoginData(response['data']);
-
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP Verified Successfully!'), backgroundColor: Colors.green));
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const HomeScreen()), (route) => false);
-
-
-        }*/
-
-        if (response['status'] == true && response['data'] != null) {
+          final data = response['data'];
 
           await SessionManager.saveLoginData(response['data']);
+
+          // Save role_id separately
+          if (data['role_id'] != null) {
+            await SessionManager.saveRoleId(data['role_id']);
+          }
 
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP Verified Successfully!'), backgroundColor: Colors.green));
           Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const HomeScreen()), (route) => false);

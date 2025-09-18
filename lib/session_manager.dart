@@ -47,6 +47,7 @@ class UserData {
 class SessionManager {
   static const String _userDataKey = 'userData';
   static const String _isLoggedInKey = 'isLoggedIn';
+  static const String _roleIdKey = "role_id";
 
   static Future<bool> isLoggedIn() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -64,6 +65,9 @@ class SessionManager {
       String userJsonString = jsonEncode(userDataObject.toJson());
       await prefs.setString(_userDataKey, userJsonString);
 
+
+
+
       debugPrint("✅ [SessionManager] Login status and User data saved.");
     } catch (e) {
       debugPrint("❌ [SessionManager] Error saving login data: $e");
@@ -79,6 +83,18 @@ class SessionManager {
     }
     return null;
   }
+
+  // new method to save role_id
+  static Future<void> saveRoleId(int roleId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_roleIdKey, roleId);
+  }
+
+  static Future<int?> getRoleId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_roleIdKey);
+  }
+
 
   static Future<void> updateUserData(UserData updatedData) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
