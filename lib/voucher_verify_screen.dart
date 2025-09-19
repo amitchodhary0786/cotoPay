@@ -610,7 +610,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         return {
           "name": e['name'] ?? '',
           "mobile": e['mobile'] ?? '',
-          "voucher": e['voucher'] ?? e['voucherName'] ?? e['purposeDescription'] ?? '',
+          "voucherType": e['voucherType'] ?? e['voucherType'] ?? e['voucherType'] ?? '',
           "mcc": e['mcc'] ?? '',
           "mccDescription": e['mccDescription'] ?? '',
           "purposeCode": e['purposeCode'] ?? e['voucherCode'] ?? '',
@@ -657,6 +657,8 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         "hash": hash,
         "erupiVoucherCreateDetails": details,
       };
+
+
 
       debugPrint('[VoucherVerify] requestBody => ${jsonEncode(requestBody)}');
 
