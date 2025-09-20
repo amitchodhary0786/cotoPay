@@ -42,7 +42,11 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   // These must match backend secret/clientKey
   static const String SECRET_KEY = '0123456789012345';
   static const String CLIENT_KEY = 'client-secret-key';
-  static const String MANDATE_TYPE = '01'; // example
+  static const String MANDATE_TYPE = '01';
+
+  bool _isOtpFilled = false;
+  final TextEditingController _otpController = TextEditingController();
+
 
   @override
   void dispose() {
@@ -56,6 +60,10 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   // --------------------------
   // BUILD / UI
   // --------------------------
+
+
+
+
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.of(context).size.width;
@@ -129,7 +137,11 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     );
   }
 
-  // --------------------------
+
+
+  // ---------------
+  //
+  // -----------
   // Helper UI pieces (unchanged)
   // --------------------------
   Widget _buildTopBankCard() {
@@ -468,18 +480,29 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                       contentPadding: EdgeInsets.zero,
                     ),
                     onChanged: (v) {
+                      // move focus
                       if (v.isNotEmpty) {
                         if (i + 1 < 6) FocusScope.of(context).nextFocus();
                         else FocusScope.of(context).unfocus();
                       } else {
                         if (i - 1 >= 0) FocusScope.of(context).previousFocus();
                       }
+
+                      // compute joined OTP and update _isOtpFilled in the dialog's state
+                      final entered = _otpControllers.map((c) => c.text.trim()).join();
+                      final filled = entered.length == 6 && entered.runes.every((r) => r >= 48 && r <= 57); // digits only
+
+                      // update dialog state so button becomes enabled/disabled immediately
+                      setDialogState(() {
+                        _isOtpFilled = filled;
+                      });
                     },
                   ),
                 );
               }),
             );
           }
+
 
           return Dialog(
             insetPadding: EdgeInsets.symmetric(horizontal: mq.size.width * 0.04, vertical: 24),
@@ -520,15 +543,42 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                     // button
                     SizedBox(
                       width: double.infinity,
+
                       child: ElevatedButton(
-                        onPressed: (_isVerifyingOtp || _isSendingOtp) ? null : verifyOtpFromDialog,
+                        onPressed: (_isVerifyingOtp || _isSendingOtp || !_isOtpFilled)
+                            ? null
+                            : verifyOtpFromDialog,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
+                          backgroundColor: _isOtpFilled
+                              ? const Color(0xFF367AFF)   // OTP filled
+                              : const Color(0xFFEBF2FF),  // OTP not filled
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
-                        child: _isVerifyingOtp ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('AUTHENTICATE', style: TextStyle(fontWeight: FontWeight.w600)),
+                        child: _isVerifyingOtp
+                            ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                            : Text(
+                          'AUTHENTICATE',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: _isOtpFilled
+                                ? Colors.white              // OTP filled
+                                : const Color(0xFFA3C2FF),  // OTP not filled
+                          ),
+                        ),
                       ),
+
+
+
                     ),
                   ],
                 ),
@@ -562,7 +612,6 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     try {
       final user = await SessionManager.getUserData();
       final mobile = user?.mobile?.toString() ?? '';
-
       final otpPayload = {
         'mobile': mobile,
         'otp': enteredOtp,
@@ -589,6 +638,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       return false;
     }
   }
+
 
   /// ISSUE VOUCHER — responsive congrats dialog and full request body
   Future<void> _issueVoucher() async {
@@ -701,11 +751,17 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                           Navigator.of(ctx).pop(); // close dialog
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
+                          backgroundColor: const Color(0xFF367AFF), // #367AFF
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
+                        child: const Text(
+                          'Done',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white, // white text
+                          ),
+                        ),
                       ),
                     ),
                   ]),
@@ -744,4 +800,6 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     final digest = sha256.convert(bytes);
     return digest.toString();
   }
+
+
 }
