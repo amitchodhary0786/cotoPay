@@ -91,7 +91,7 @@ class _CotoBalanceCardState extends State<CotoBalanceCard> with WidgetsBindingOb
     try {
       final userData = await SessionManager.getUserData();
       if (userData != null && userData.employerid != null) {
-        final params = {"orgId": userData.employerid};
+        final params = {"orgId": userData.employerid, "applicationType": "mobile"};
         final response = await getCashFreeOrderIdList(params);
         debugPrint("📤 Transaction Response: $response");
         if (response['status'] == true && response['data'] != null) {
@@ -175,17 +175,14 @@ class _CotoBalanceCardState extends State<CotoBalanceCard> with WidgetsBindingOb
           Padding(padding: EdgeInsets.only(right: 8.0), child: Icon(Icons.notifications_none, color: Colors.black)),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await _loadInitialData();
-          await _loadTransactions();
-        },
-        child: ListView(
-          padding: EdgeInsets.symmetric(horizontal: horizontalMargin),
+      // Outer padding same as previous ListView padding
+      body: Padding(
+        padding: EdgeInsets.symmetric(horizontal: horizontalMargin),
+        child: Column(
           children: [
             SizedBox(height: clampDouble(screenHeight * 0.02, 12, 30)),
 
-            // CARD — visually matches the provided image
+            // CARD — visually matches the provided image (fixed, non-scrollable)
             Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: cardMaxWidth),
@@ -349,73 +346,119 @@ class _CotoBalanceCardState extends State<CotoBalanceCard> with WidgetsBindingOb
 
             SizedBox(height: clampDouble(screenHeight * 0.03, 12, 36)),
 
-            Text("TRANSACTIONS", style: TextStyle(color: Colors.black87, fontSize: clampDouble(screenWidth * 0.038, 12, 16), fontWeight: FontWeight.bold)),
-            SizedBox(height: clampDouble(screenHeight * 0.01, 8, 14)),
-
-            // transactions list
-            _loadingTransactions
-                ? Padding(padding: EdgeInsets.symmetric(vertical: clampDouble(screenHeight * 0.05, 20, 40)), child: const Center(child: CircularProgressIndicator()))
-                : _transactions.isEmpty
-                ? Padding(padding: EdgeInsets.symmetric(vertical: clampDouble(screenHeight * 0.04, 16, 32)), child: const Text("No transactions found"))
-                : Column(
-              children: List.generate(_transactions.length, (index) {
-                final txn = _transactions[index];
-                final orderStatus = (txn['orderStatus'] ?? '').toString();
-                final title = (txn['title'] ?? (orderStatus == "PAID" ? "Trial Payment" : "Order")).toString();
-                final vendor = (txn['customerName'] ?? 'CotoPay').toString();
-
-                String rawDate = (txn['orderDate'] ?? txn['createdAt'] ?? txn['date'] ?? '3 Jul').toString();
-                final dateStr = _formatDate(rawDate);
-
-                final amount = txn['orderAmount'] != null ? "₹${txn['orderAmount']}" : "₹0";
-
-                return Column(
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: clampDouble(screenHeight * 0.012, 8, 14)),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // avatar
-                          Container(
-                            width: avatarSize,
-                            height: avatarSize,
-                            decoration: const BoxDecoration(color: Color(0xFFE8F5E9), shape: BoxShape.circle),
-                            child: Center(child: Icon(Icons.receipt_long, color: const Color(0xFF2F945A), size: clampDouble(avatarSize * 0.55, 16, 28))),
-                          ),
-                          SizedBox(width: clampDouble(screenWidth * 0.03, 8, 16)),
-
-                          // text column
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: clampDouble(screenWidth * 0.042, 13, 16))),
-                                SizedBox(height: clampDouble(screenHeight * 0.008, 4, 8)),
-                                Text(vendor, style: TextStyle(color: const Color(0xFF2F945A), fontSize: clampDouble(screenWidth * 0.036, 12, 14), fontWeight: FontWeight.w600)),
-                                SizedBox(height: clampDouble(screenHeight * 0.006, 3, 6)),
-                                Text(dateStr, style: TextStyle(color: Colors.grey.shade600, fontSize: clampDouble(screenWidth * 0.032, 11, 13))),
-                              ],
-                            ),
-                          ),
-
-                          // amount right aligned
-                          Text(amount, style: TextStyle(fontWeight: FontWeight.bold, fontSize: clampDouble(screenWidth * 0.042, 13, 16))),
-                        ],
-                      ),
-                    ),
-
-                    // Divider aligned after avatar (indent from content left — ListView already has horizontal padding)
-                    Divider(height: 1, color: Colors.grey.shade300, indent: dividerIndent),
-                  ],
-                );
-              }),
+            // Transactions header (fixed)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("TRANSACTIONS", style: TextStyle(color: Colors.black87, fontSize: clampDouble(screenWidth * 0.038, 12, 16), fontWeight: FontWeight.bold)),
+                  SizedBox(height: clampDouble(screenHeight * 0.01, 8, 14)),
+                ],
+              ),
             ),
 
-            SizedBox(height: clampDouble(screenHeight * 0.06, 28, 64)),
+            // The only scrollable area — wraps the list with RefreshIndicator
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  await _loadInitialData();
+                  await _loadTransactions();
+                },
+                // Build transaction list as a scrollable ListView
+                child: _buildTransactionList(screenWidth, screenHeight, avatarSize, dividerIndent),
+              ),
+            ),
+            // bottom spacing (after the list)
+            SizedBox(height: clampDouble(screenHeight * 0.02, 12, 30)),
           ],
         ),
       ),
+    );
+  }
+
+  /// Returns a scrollable ListView (or a one-item list for loading/empty state)
+  Widget _buildTransactionList(double screenWidth, double screenHeight, double avatarSize, double dividerIndent) {
+    // loading: show a vertically centered loader inside a scrollable (so pull-to-refresh works)
+    if (_loadingTransactions) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(height: clampDouble(screenHeight * 0.05, 20, 40)),
+          const Center(child: CircularProgressIndicator()),
+          SizedBox(height: clampDouble(screenHeight * 0.5, 200, 400)), // give space so loader is centered-ish
+        ],
+      );
+    }
+
+    // empty: show a message but keep list scrollable
+    if (_transactions.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(height: clampDouble(screenHeight * 0.04, 16, 32)),
+          const Center(child: Text("No transactions found")),
+          SizedBox(height: clampDouble(screenHeight * 0.5, 200, 400)),
+        ],
+      );
+    }
+
+    // populated list
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      itemCount: _transactions.length + 1, // +1 for bottom spacing
+      separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade300, indent: dividerIndent),
+      itemBuilder: (context, index) {
+        if (index == _transactions.length) {
+          // bottom spacing at the end of list
+          return SizedBox(height: clampDouble(screenHeight * 0.06, 28, 64));
+        }
+
+        final txn = _transactions[index];
+        final orderStatus = (txn['orderStatus'] ?? '').toString();
+        final title = (txn['title'] ?? (orderStatus == "PAID" ? "Trial Payment" : "Order")).toString();
+        final vendor = (txn['customerName'] ?? 'CotoPay').toString();
+
+        String rawDate = (txn['orderDate'] ?? txn['createdAt'] ?? txn['date'] ?? '3 Jul').toString();
+        final dateStr = _formatDate(rawDate);
+
+        final amount = txn['orderAmount'] != null ? "₹${txn['orderAmount']}" : "₹0";
+
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: clampDouble(screenHeight * 0.012, 8, 14)),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // avatar
+              Container(
+                width: avatarSize,
+                height: avatarSize,
+                decoration: const BoxDecoration(color: Color(0xFFE8F5E9), shape: BoxShape.circle),
+                child: Center(child: Icon(Icons.receipt_long, color: const Color(0xFF2F945A), size: clampDouble(avatarSize * 0.55, 16, 28))),
+              ),
+              SizedBox(width: clampDouble(screenWidth * 0.03, 8, 16)),
+
+              // text column
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: clampDouble(screenWidth * 0.042, 13, 16))),
+                    SizedBox(height: clampDouble(screenHeight * 0.008, 4, 8)),
+                    Text(vendor, style: TextStyle(color: const Color(0xFF2F945A), fontSize: clampDouble(screenWidth * 0.036, 12, 14), fontWeight: FontWeight.w600)),
+                    SizedBox(height: clampDouble(screenHeight * 0.006, 3, 6)),
+                    Text(dateStr, style: TextStyle(color: Colors.grey.shade600, fontSize: clampDouble(screenWidth * 0.032, 11, 13))),
+                  ],
+                ),
+              ),
+
+              // amount right aligned
+              Text(amount, style: TextStyle(fontWeight: FontWeight.bold, fontSize: clampDouble(screenWidth * 0.042, 13, 16))),
+            ],
+          ),
+        );
+      },
     );
   }
 
