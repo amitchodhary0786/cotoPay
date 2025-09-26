@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:cotopay/issue_voucher_screen.dart';
 import 'upi_voucher_scren.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

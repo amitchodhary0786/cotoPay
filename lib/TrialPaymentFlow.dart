@@ -333,6 +333,7 @@ class TrialPaymentFlow {
       "acNumber": "",
       "createdBy": userData?.username ?? "",
       "orderId": orderId,
+      "applicationType": "mobile",
     };
 
     debugPrint("▶ API Request Params: ${jsonEncode(params)}");

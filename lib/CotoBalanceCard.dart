@@ -91,7 +91,7 @@ class _CotoBalanceCardState extends State<CotoBalanceCard> with WidgetsBindingOb
     try {
       final userData = await SessionManager.getUserData();
       if (userData != null && userData.employerid != null) {
-        final params = {"orgId": userData.employerid, "applicationType": "mobile"};
+        final params = {"orgId": userData.employerid};
         final response = await getCashFreeOrderIdList(params);
         debugPrint("📤 Transaction Response: $response");
         if (response['status'] == true && response['data'] != null) {
