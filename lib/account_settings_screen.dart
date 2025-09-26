@@ -1,6 +1,8 @@
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'session_manager.dart';
 import 'edit_profile_screen.dart';
 import 'app_permissions_screen.dart';
@@ -9,6 +11,7 @@ import 'help_and_support_screen.dart';
 import 'about_us_screen.dart';
 import 'terms_and_conditions_screen.dart';
 import 'package:cotopay/CotoBalanceCard.dart';
+import 'api_service.dart'; // make sure this exists and has deleteAccount method
 
 class DotPatternPainter extends CustomPainter {
   @override
@@ -24,6 +27,7 @@ class DotPatternPainter extends CustomPainter {
       }
     }
   }
+
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
@@ -40,6 +44,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   String _mobile = '...';
   String? _email;
 
+  final ApiService _apiService = ApiService();
+  bool _deleting = false;
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +61,81 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         _mobile = userData.mobile ?? 'N/A';
         _email = userData.email;
       });
+    }
+  }
+
+  Future<void> _confirmAndDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Yes, Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deleteAccount();
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final userData = await SessionManager.getUserData();
+
+    final user = await SessionManager.getUserData();
+
+    final params = {
+      "id": "860",
+      "userDetailsId": "2490",
+      "employerId": null, // will be null if not present
+      "status": "Deactive",
+    };
+
+    setState(() => _deleting = true);
+
+    try {
+      final response = await _apiService.deleteAccount(params);
+      // Save full response JSON in SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('delete_account_response', json.encode(response));
+
+      if (response['status'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✅ Account deleted successfully')),
+          );
+          // Clear stored session/user data
+
+          // Navigate to app root (or login) - adjust as per your routing
+       //   if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+            if (mounted) { await SessionManager.logout(context);}}
+
+      } else {
+        final msg = response['message']?.toString() ?? 'Failed to delete account';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('❌ $msg')),
+          );
+        }
+      }
+    } catch (e, st) {
+      debugPrint('Error deleting account: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting account: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _deleting = false);
     }
   }
 
@@ -131,7 +213,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                             );
                             _loadUserData();
                           },
-
                         ),
                       ],
                     ),
@@ -221,6 +302,24 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             },
           ),
           const Spacer(),
+
+          // Delete Account text
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: GestureDetector(
+              onTap: _deleting ? null : _confirmAndDelete,
+              child: Text(
+                _deleting ? 'Deleting...' : 'Delete Account',
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ),
+
           const Padding(
             padding: EdgeInsets.only(bottom: 24),
             child: Text('CotoPay v1.1.2  •  Copyright 2025', style: TextStyle(color: Colors.grey, fontSize: 12)),

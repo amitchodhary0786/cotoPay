@@ -18,6 +18,7 @@ import 'qr_scanner_screen.dart';
 import 'rewards_screen.dart';
 import 'issue_how_voucher_works.dart';
 import 'package:cotopay/util/refreshservice.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -204,8 +205,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 }
 
 /* --------------------
-   HOME CONTENT (kept mostly same)
-   - added RefreshService.refresh() calls after pushes inside HomeContent
+   HOME CONTENT (responsive improvements)
+   - Reduced spacing above "OFFERS ON VOUCHERS"
+   - More responsive font sizes/paddings
+   - Smarter initial child size for sheet
    -------------------- */
 
 class HomeContent extends StatelessWidget {
@@ -236,102 +239,188 @@ class HomeContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final double statusBarHeight = MediaQuery.of(context).padding.top;
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // card width / carousel height (responsive)
     final double cardWidth = (screenWidth < 360)
         ? screenWidth * 0.82
-        : (screenWidth < 600 ? math.min(280, screenWidth * 0.65) : 320);
-    final double carouselHeight = math.max(160, cardWidth * 0.9);
+        : (screenWidth < 600 ? math.min(300, screenWidth * 0.66) : 340);
+    final double carouselHeight = math.max(150, cardWidth * 0.85);
 
-    return Column(
+    // Estimate top area height so the draggable sheet starts below it.
+    // Reduced the extra buffer to allow the sheet to come up higher.
+    final double topAreaEstimatedHeight = statusBarHeight + 12 + // slightly smaller top padding
+        110 + // voucher balance card (reduced a bit)
+        carouselHeight + // carousel
+        16 + // spacing
+        88; // action buttons approx
+
+    // Convert to fraction for DraggableScrollableSheet initialChildSize
+    final double initialSheetFraction = (screenHeight - topAreaEstimatedHeight) / screenHeight;
+    // allow smaller min so sheet can appear higher on larger screens; clamp sensibly
+    final double initialChildSize = initialSheetFraction.clamp(0.22, 0.78);
+
+    return Stack(
       children: [
-        Container(color: const Color(0xff1C1C1E), padding: EdgeInsets.only(top: statusBarHeight), child: _buildTopBar(context)),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Container(
-              color: const Color(0xff1C1C1E),
+        // Background dark area (fills whole screen behind sheet)
+        Container(color: const Color(0xff1C1C1E)),
+        // Column for fixed top area content
+        SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Top bar
+              Container(color: const Color(0xff1C1C1E), child: _buildTopBar(context)),
+              const SizedBox(height: 8), // slightly smaller
+              // Voucher balance card (future builder)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: FutureBuilder<List<dynamic>>(
+                  future: voucherListFuture,
+                  builder: (context, snapshot) {
+                    int activeVoucherCount = 0;
+                    double totalAmount = 0.0;
+                    if (snapshot.connectionState == ConnectionState.done &&
+                        snapshot.hasData &&
+                        !snapshot.hasError) {
+                      final createdVouchers = snapshot.data!.where((voucher) => voucher['type'] == 'Active').toList();
+                      activeVoucherCount = createdVouchers.length;
+                      totalAmount = createdVouchers.fold(
+                          0.0, (sum, item) => sum + ((item['amount'] as num?)?.toDouble() ?? 0.0));
+                    }
+                    return _buildVoucherBalanceCard(count: activeVoucherCount, totalAmount: totalAmount);
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Carousel area (fixed height)
+              SizedBox(
+                height: carouselHeight,
+                child: FutureBuilder<List<dynamic>>(
+                  future: voucherListFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: Colors.white));
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                          child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+                    }
+
+                    final createdVouchers =
+                    snapshot.hasData ? snapshot.data!.where((voucher) => voucher['type'] == 'Active').toList() : [];
+
+                    if (createdVouchers.isEmpty) {
+                      return Center(
+                          child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: math.max(24.0, screenWidth * 0.06)),
+                              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                Text('Buy your first voucher to experience the magic of UPI Vouchers!',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: math.max(13, screenWidth * 0.038))),
+                                const SizedBox(height: 12),
+                                ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.amber,
+                                        foregroundColor: Colors.black,
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                    icon: const Icon(Icons.star, size: 18),
+                                    label: const Text('Experience UPI Magic', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    onPressed: () async {
+                                      await Navigator.push(context, MaterialPageRoute(builder: (context) => const HowUpiVouchersWorks()));
+                                      RefreshService.refresh();
+                                    }),
+                              ])));
+                    }
+
+                    return ListView.builder(
+                        clipBehavior: Clip.none,
+                        scrollDirection: Axis.horizontal,
+                        padding: EdgeInsets.symmetric(horizontal: math.max(12, screenWidth * 0.04)),
+                        itemCount: createdVouchers.length,
+                        itemBuilder: (context, index) {
+                          final voucherData = createdVouchers[index];
+                          final double rightPadding = (index == createdVouchers.length - 1) ? math.max(12, screenWidth * 0.04) : 16.0;
+                          return Padding(
+                              padding: EdgeInsets.only(right: rightPadding),
+                              child: _buildVoucherCard(context, voucherData: voucherData, cardWidth: cardWidth));
+                        });
+                  },
+                ),
+              ),
+              const SizedBox(height: 14),
+              // Action buttons
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0), child: _buildActionButtons(screenWidth: screenWidth)),
+              const SizedBox(height: 8),
+              // Leave some space - sheet will overlap below
+              const SizedBox(height: 6),
+            ],
+          ),
+        ),
+
+        // Draggable/Scrollable white sheet for OFFERS
+        DraggableScrollableSheet(
+          initialChildSize: initialChildSize, // responsive initial height
+          minChildSize: 0.18,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)],
+              ),
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
-                  FutureBuilder<List<dynamic>>(
-                    future: voucherListFuture,
-                    builder: (context, snapshot) {
-                      int activeVoucherCount = 0;
-                      double totalAmount = 0.0;
-                      if (snapshot.connectionState == ConnectionState.done && snapshot.hasData && !snapshot.hasError) {
-                        final createdVouchers = snapshot.data!.where((voucher) => voucher['type'] == 'Active').toList();
-                        activeVoucherCount = createdVouchers.length;
-                        totalAmount = createdVouchers.fold(0.0, (sum, item) => sum + ((item['amount'] as num?)?.toDouble() ?? 0.0));
-                      }
-                      return _buildVoucherBalanceCard(count: activeVoucherCount, totalAmount: totalAmount);
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: carouselHeight,
-                    child: FutureBuilder<List<dynamic>>(
-                      future: voucherListFuture,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator(color: Colors.white));
-                        }
-                        if (snapshot.hasError) {
-                          return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
-                        }
-
-                        final createdVouchers = snapshot.hasData ? snapshot.data!.where((voucher) => voucher['type'] == 'Active').toList() : [];
-
-                        if (createdVouchers.isEmpty) {
-                          return Center(
-                              child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                    Text('Buy your first voucher to experience the magic of UPI Vouchers!',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: math.max(14, screenWidth * 0.04))),
-                                    const SizedBox(height: 16),
-                                    ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.amber,
-                                            foregroundColor: Colors.black,
-                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                                        icon: const Icon(Icons.star, size: 20),
-                                        label: const Text('Experience UPI Magic', style: TextStyle(fontWeight: FontWeight.bold)),
-                                        onPressed: () async {
-                                          await Navigator.push(context, MaterialPageRoute(builder: (context) => const HowUpiVouchersWorks()));
-                                          // after return, ask home to refresh via global service
-                                          RefreshService.refresh();
-                                        }),
-                                  ])));
-                        }
-
-                        return ListView.builder(
-                            clipBehavior: Clip.none,
-                            scrollDirection: Axis.horizontal,
-                            padding: EdgeInsets.symmetric(horizontal: math.max(12, screenWidth * 0.04)),
-                            itemCount: createdVouchers.length,
-                            itemBuilder: (context, index) {
-                              final voucherData = createdVouchers[index];
-                              final double rightPadding = (index == createdVouchers.length - 1) ? math.max(12, screenWidth * 0.04) : 16.0;
-                              return Padding(
-                                  padding: EdgeInsets.only(right: rightPadding),
-                                  child: _buildVoucherCard(context, voucherData: voucherData, cardWidth: cardWidth));
-                            });
-                      },
+                  const SizedBox(height: 8), // reduced from 12 -> 8
+                  // drag handle
+                  Center(
+                      child: Container(
+                          width: 44, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2.5)))),
+                  const SizedBox(height: 6), // reduced spacing before title
+                  // Title (reduced top space as requested)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'OFFERS ON VOUCHERS',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: math.max(13, screenWidth * 0.036), // responsive font
+                          color: Colors.black87,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0), child: _buildActionButtons(screenWidth: screenWidth)),
-                  const SizedBox(height: 16),
-                  _buildOffersSection(),
+                  const SizedBox(height: 8),
+                  // The scrollable offers list that uses the passed scrollController
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.only(bottom: 90, top: 6),
+                      children: [
+                        _offerTile(icon: Icons.local_gas_station_outlined, title: 'Indian Oil', subtitle: 'Get up to 50% Cashback'),
+                        _offerTile(icon: Icons.local_shipping_outlined, title: 'Onboard 20+ Vehicles', subtitle: 'Get up to 50% Cashback'),
+                        _offerTile(icon: Icons.list_alt, title: 'Issue 5 Fuel Vouchers', subtitle: 'Get up to 50% Cashback'),
+                        const SizedBox(height: 8),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ),
+            );
+          },
         ),
       ],
     );
   }
 
+  // Keep existing helper widgets as-is (copy from your original code)
   Widget _buildTopBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
@@ -381,26 +470,25 @@ class HomeContent extends StatelessWidget {
       return const Icon(Icons.business, color: Colors.white, size: 24);
     }
 
-    final double titleFont = math.max(13, cardWidth * 0.055);
-    final double amountFont = math.max(18, cardWidth * 0.08);
+    final double titleFont = math.max(12, cardWidth * 0.05);
+    final double amountFont = math.max(16, cardWidth * 0.075);
 
     return GestureDetector(
       onTap: () async {
         await Navigator.push(context, MaterialPageRoute(builder: (context) => VoucherDetailScreen(voucherData: voucherData)));
-        // refresh home after returning from details
         RefreshService.refresh();
       },
       child: Container(
         width: cardWidth,
         decoration: BoxDecoration(color: const Color(0xff2C2C2E), borderRadius: BorderRadius.circular(20)),
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(14.0),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(10)), child: bankIconWidget()),
             const SizedBox(width: 12),
             Expanded(child: Text(title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: titleFont), maxLines: 1, overflow: TextOverflow.ellipsis)),
           ]),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           const Text('Amount', style: TextStyle(color: Colors.white70, fontSize: 11)),
           Text(displayAmount, style: TextStyle(color: Colors.white, fontSize: amountFont, fontWeight: FontWeight.bold)),
           const Spacer(),
@@ -422,7 +510,11 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _buildActionButtons({required double screenWidth}) {
-    final buttonWidth = math.max(88.0, (screenWidth - 48) / 3);
+    // Calculate that 3 buttons fit gracefully on narrow screens by allowing wrap
+    final double effectiveSpacing = 8;
+    final double totalHorizontalPadding = 32; // left+right from parent padding
+    final double available = screenWidth - totalHorizontalPadding - (effectiveSpacing * 2);
+    final buttonWidth = (available / 3).clamp(88.0, 160.0);
     return Wrap(spacing: 8, runSpacing: 8, children: [
       SizedBox(width: buttonWidth, child: _actionButton(imagePath: 'assets/issue_icon.png', label: 'Issue')),
       SizedBox(width: buttonWidth, child: _actionButton(imagePath: 'assets/add_icon.png', label: 'Add Bill')),
@@ -433,10 +525,10 @@ class HomeContent extends StatelessWidget {
   Widget _actionButton({required String imagePath, required String label}) {
     return Container(
         margin: const EdgeInsets.symmetric(horizontal: 6),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(color: const Color(0xff2C2C2E), borderRadius: BorderRadius.circular(12)),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Image.asset(imagePath, width: 20, height: 20, color: Colors.white),
+          Image.asset(imagePath, width: 18, height: 18, color: Colors.white),
           const SizedBox(width: 8),
           Flexible(child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
         ]));
@@ -450,8 +542,8 @@ class HomeContent extends StatelessWidget {
     ).format(totalAmount);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
         color: const Color(0xff2C2C2E),
         borderRadius: BorderRadius.circular(16),
@@ -459,8 +551,8 @@ class HomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Image.asset('assets/upi_logo.png', height: 22),
-          const SizedBox(height: 12),
+          Image.asset('assets/upi_logo.png', height: 20),
+          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -489,30 +581,12 @@ class HomeContent extends StatelessWidget {
               ),
               Text(
                 displayAmount,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
               ),
             ],
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildOffersSection() {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24.0))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SizedBox(height: 12),
-        Center(child: Container(width: 48, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2.5)))),
-        const SizedBox(height: 16),
-        const Padding(padding: EdgeInsets.symmetric(horizontal: 16.0), child: Text('OFFERS ON VOUCHERS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87, letterSpacing: 0.5))),
-        const SizedBox(height: 8),
-        _offerTile(icon: Icons.local_gas_station_outlined, title: 'Indian Oil', subtitle: 'Get up to 50% Cashback'),
-        _offerTile(icon: Icons.local_shipping_outlined, title: 'Onboard 20+ Vehicles', subtitle: 'Get up to 50% Cashback'),
-        _offerTile(icon: Icons.list_alt, title: 'Issue 5 Fuel Vouchers', subtitle: 'Get up to 50% Cashback'),
-        const SizedBox(height: 90),
-      ]),
     );
   }
 

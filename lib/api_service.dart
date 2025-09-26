@@ -214,8 +214,12 @@ class ApiService {
    }
 
 
-Future<Map<String, dynamic>> getBankList(Map<String, dynamic> params) async {
+  Future<Map<String, dynamic>> getBankList(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/erupiLinkAccountListWithStatus', params);
+   }
+
+   Future<Map<String, dynamic>> deleteAccount(Map<String, dynamic> params) async {
+    return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/update/emplOnboardingStatus', params);
    }
 
    Future<Map<String, dynamic>> getBankListUpi(Map<String, dynamic> params) async {

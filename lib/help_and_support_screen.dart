@@ -122,7 +122,7 @@ class _HelpAndSupportScreenState extends State<HelpAndSupportScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Column(
+        /*          child: Column(
                     children: [
                       // Section Title
                       const Padding(
@@ -150,7 +150,7 @@ class _HelpAndSupportScreenState extends State<HelpAndSupportScreen> {
                       ),
                     ],
                   ),
-                ),
+        */        ),
               ),
             ),
           ],
