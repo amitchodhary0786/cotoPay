@@ -260,6 +260,9 @@ class HomeContent extends StatelessWidget {
     // allow smaller min so sheet can appear higher on larger screens; clamp sensibly
     final double initialChildSize = initialSheetFraction.clamp(0.22, 0.78);
 
+    // compute a responsive top margin so sheet appears lower on screen
+    final double topMargin = math.max(20.0, screenHeight * 0.10); // adjust multiplier to control distance
+
     return Stack(
       children: [
         // Background dark area (fills whole screen behind sheet)
@@ -352,7 +355,7 @@ class HomeContent extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               // Action buttons
-              Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0), child: _buildActionButtons(screenWidth: screenWidth)),
+              // Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0), child: _buildActionButtons(screenWidth: screenWidth)),
               const SizedBox(height: 8),
               // Leave some space - sheet will overlap below
               const SizedBox(height: 6),
@@ -360,61 +363,67 @@ class HomeContent extends StatelessWidget {
           ),
         ),
 
-        // Draggable/Scrollable white sheet for OFFERS
-        DraggableScrollableSheet(
-          initialChildSize: initialChildSize, // responsive initial height
-          minChildSize: 0.18,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)],
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8), // reduced from 12 -> 8
-                  // drag handle
-                  Center(
-                      child: Container(
-                          width: 44, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2.5)))),
-                  const SizedBox(height: 6), // reduced spacing before title
-                  // Title (reduced top space as requested)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'OFFERS ON VOUCHERS',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: math.max(13, screenWidth * 0.036), // responsive font
-                          color: Colors.black87,
-                          letterSpacing: 0.4,
+        // Positioned DraggableScrollableSheet with responsive top margin
+        Positioned(
+          top: topMargin,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: DraggableScrollableSheet(
+            initialChildSize: initialChildSize, // responsive initial height (relative to screen)
+            minChildSize: 0.18,
+            maxChildSize: 0.95,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)],
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 8), // reduced from 12 -> 8
+                    // drag handle
+                    Center(
+                        child: Container(
+                            width: 44, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2.5)))),
+                    const SizedBox(height: 6), // reduced spacing before title
+                    // Title (reduced top space as requested)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'OFFERS ON VOUCHERS',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: math.max(13, screenWidth * 0.036), // responsive font
+                            color: Colors.black87,
+                            letterSpacing: 0.4,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  // The scrollable offers list that uses the passed scrollController
-                  Expanded(
-                    child: ListView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.only(bottom: 90, top: 6),
-                      children: [
-                        _offerTile(icon: Icons.local_gas_station_outlined, title: 'Indian Oil', subtitle: 'Get up to 50% Cashback'),
-                        _offerTile(icon: Icons.local_shipping_outlined, title: 'Onboard 20+ Vehicles', subtitle: 'Get up to 50% Cashback'),
-                        _offerTile(icon: Icons.list_alt, title: 'Issue 5 Fuel Vouchers', subtitle: 'Get up to 50% Cashback'),
-                        const SizedBox(height: 8),
-                        const SizedBox(height: 24),
-                      ],
+                    const SizedBox(height: 8),
+                    // The scrollable offers list that uses the passed scrollController
+                    Expanded(
+                      child: ListView(
+                        controller: scrollController,
+                        padding: const EdgeInsets.only(bottom: 90, top: 6),
+                        children: [
+                          _offerTile(icon: Icons.local_gas_station_outlined, title: 'Indian Oil', subtitle: 'Get up to 50% Cashback'),
+                          _offerTile(icon: Icons.local_shipping_outlined, title: 'Onboard 20+ Vehicles', subtitle: 'Get up to 50% Cashback'),
+                          _offerTile(icon: Icons.list_alt, title: 'Issue 5 Fuel Vouchers', subtitle: 'Get up to 50% Cashback'),
+                          const SizedBox(height: 8),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -509,7 +518,7 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons({required double screenWidth}) {
+  /*Widget _buildActionButtons({required double screenWidth}) {
     // Calculate that 3 buttons fit gracefully on narrow screens by allowing wrap
     final double effectiveSpacing = 8;
     final double totalHorizontalPadding = 32; // left+right from parent padding
@@ -520,7 +529,7 @@ class HomeContent extends StatelessWidget {
       SizedBox(width: buttonWidth, child: _actionButton(imagePath: 'assets/add_icon.png', label: 'Add Bill')),
       SizedBox(width: buttonWidth, child: _actionButton(imagePath: 'assets/offer_icon.png', label: 'Rewards')),
     ]);
-  }
+  }*/
 
   Widget _actionButton({required String imagePath, required String label}) {
     return Container(
