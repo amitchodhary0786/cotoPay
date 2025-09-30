@@ -22,7 +22,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   }
 
   void _playScanSound() {
-    _audioPlayer.play(AssetSource('sounds/upi_scan_sound.mp3.mp3'));
+    _audioPlayer.play(AssetSource('sounds/upi_scan_sound.mp3'));
   }
 
 

@@ -10,6 +10,8 @@ import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
 import 'package:flutter/scheduler.dart';
 
+import 'api_service.dart';
+
 /// Small navigator holder used by callbacks to show UI safely.
 class AppNavigator {
   static final GlobalKey<NavigatorState> key = GlobalKey<NavigatorState>();
@@ -200,7 +202,7 @@ class TrialPaymentFlow {
                               // top row: label left, total amount right
                               Row(
                                 children: [
-                                  const Expanded(child: Text("Total Payble Amount", style: TextStyle(fontWeight: FontWeight.w600))),
+                                  const Expanded(child: Text("Total Payable Amount", style: TextStyle(fontWeight: FontWeight.w600))),
                                   Text("₹${_formatDouble(total)}", style: const TextStyle(fontWeight: FontWeight.w600)),
                                 ],
                               ),
@@ -391,9 +393,15 @@ class TrialPaymentFlow {
       // success callback
           (returnedOrderId) {
         debugPrint("Payment Success callback → orderId: $returnedOrderId");
-        // schedule UI work on next frame and use global navigator context if available
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          final navigatorCtx = AppNavigator.key.currentState?.context;
+
+        // call API to update status and then show dialog (use safe context)
+        SchedulerBinding.instance.addPostFrameCallback((_) async {
+          // prefer AppNavigator context if available
+          final navigatorCtx = AppNavigator.key.currentState?.context ?? context;
+          // call status update (this method is static and safe to call here)
+          await _loadInitialData(returnedOrderId);
+
+          // show success dialog
           if (navigatorCtx != null && navigatorCtx.mounted) {
             _showPaymentSuccessDialog(navigatorCtx);
           } else if (context.mounted) {
@@ -406,9 +414,19 @@ class TrialPaymentFlow {
       // error callback
           (CFErrorResponse error, String returnedOrderId) {
         debugPrint("Payment Error callback → orderId: $returnedOrderId, error: ${error.getMessage()}");
-        SchedulerBinding.instance.addPostFrameCallback((_) {
+
+        // Always attempt to update status on backend even on failure, then show snackbar if possible
+        SchedulerBinding.instance.addPostFrameCallback((_) async {
           final navigatorCtx = AppNavigator.key.currentState?.context;
           final useCtx = (navigatorCtx != null && navigatorCtx.mounted) ? navigatorCtx : (context.mounted ? context : null);
+
+          // call status update (fire-and-forget)
+          try {
+            await _loadInitialData(returnedOrderId);
+          } catch (e) {
+            debugPrint("Error while updating status after failure: $e");
+          }
+
           if (useCtx != null) {
             ScaffoldMessenger.of(useCtx).showSnackBar(SnackBar(content: Text("Payment failed: ${error.getMessage()}")));
           } else {
@@ -429,7 +447,63 @@ class TrialPaymentFlow {
     debugPrint("→ CFWebCheckoutPayment built");
 
     _cfService!.doPayment(payment);
+
     debugPrint("→ doPayment invoked");
+  }
+
+  /// Static helper to call your backend to update/check CashFree status.
+  /// This does not attempt UI `setState` — it logs results and shows a SnackBar when a navigator context is available.
+  static Future<void> _loadInitialData(String orderId) async {
+    try {
+      final apiService = ApiService(); // create local instance
+
+      // build params — include known values where possible
+      final params = {
+        "orderId": orderId,
+        "orderAmount": "",
+        "amountServiceCharge": "",
+        "orderCurrency": "",
+        "customerId": "",
+        "customerName":  "",
+        "customerEmail": "",
+        "customerPhone": "",
+        "orgId": "",
+        "payment_session_id": "",
+        "bankCode": "",
+        "bankName": "",
+        "acNumber": "",
+        "createdBy": "",
+      //  "applicationType": "mobile"
+        "applicationType": ""
+      };
+
+      debugPrint("▶ getCashFreeStatusUpdate params: ${jsonEncode(params)}");
+      final response = await apiService.getCashFreeStatusUpdate(params);
+      debugPrint("◀ getCashFreeStatusUpdate response: $response");
+
+      // if you have a navigator context, show message on failure (not mandatory)
+      final navigatorCtx = AppNavigator.key.currentState?.context;
+      if (response is Map && response['status'] == true) {
+
+        debugPrint("CashFree status updated successfully for orderId=$orderId");
+        if (navigatorCtx != null && navigatorCtx.mounted) {
+          // optionally show a tiny success snack (comment out if not desired)
+          // ScaffoldMessenger.of(navigatorCtx).showSnackBar(SnackBar(content: Text("Payment status updated")));
+          _showPaymentSuccessDialog(navigatorCtx);
+        }
+      } else {
+        debugPrint("CashFree status update reported failure or unexpected response.");
+        if (navigatorCtx != null && navigatorCtx.mounted) {
+          ScaffoldMessenger.of(navigatorCtx).showSnackBar(SnackBar(content: Text("Failed to update payment status")));
+        }
+      }
+    } catch (e) {
+      debugPrint("❌ Error in _loadInitialData: $e");
+      final navigatorCtx = AppNavigator.key.currentState?.context;
+      if (navigatorCtx != null && navigatorCtx.mounted) {
+        ScaffoldMessenger.of(navigatorCtx).showSnackBar(SnackBar(content: Text("Error updating payment status: $e")));
+      }
+    }
   }
 
   // show the "Payment completed" dialog (styled)

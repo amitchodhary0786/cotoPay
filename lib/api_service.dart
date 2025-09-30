@@ -249,6 +249,9 @@ class ApiService {
    Future<Map<String, dynamic>> getVoucherNameSearchMobile(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/employeeSearchWithMobile', params);
    }
+ Future<Map<String, dynamic>> getCashFreeStatusUpdate(Map<String, dynamic> params) async {
+    return _callApiEndpoint('http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrderId', params);
+   }
 
   /*Future<Map<String, dynamic>> getCotoBalanceTransactionList(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrderIdList', params);
