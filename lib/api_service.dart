@@ -242,6 +242,7 @@ class ApiService {
   Future<Map<String, dynamic>> getVoucherCategoryList() async {
     return _callApiEndpoint('http://52.66.10.111:8083/masterService/Api/get/voucherCategoryList', {});
    }
+
  Future<Map<String, dynamic>> getVoucherSubCategoryList(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8083/masterService/Api/get/mccByCotoCatIdList', params);
    }

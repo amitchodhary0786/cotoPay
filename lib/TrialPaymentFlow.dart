@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cotopay/session_manager.dart';
 import 'dart:convert';
@@ -21,20 +23,21 @@ class TrialPaymentFlow {
   // keep CF service reference so it doesn't get GC'd unexpectedly
   static CFPaymentGatewayService? _cfService;
 
-  /// Show amount selection dialog — unchanged interface
-  static Future<bool?> showAmountSelection(BuildContext context) {
+  /// Show amount selection dialog — responsive and styled to match screenshots.
+  static Future<bool?> showAmountSelection(BuildContext parentContext) {
+    final Completer<bool?> completer = Completer<bool?>();
     String selectedOption = "1000";
-    TextEditingController amountController = TextEditingController(text: "1000");
+    final TextEditingController amountController = TextEditingController(text: "1000");
 
-    return showDialog<bool>(
-      context: context,
+    showDialog(
+      context: parentContext,
       barrierDismissible: false,
       builder: (outerCtx) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: StatefulBuilder(
-            builder: (context, setState) {
+            builder: (dialogCtx, setState) {
               void updateSelection(String value) {
                 setState(() {
                   selectedOption = value;
@@ -45,14 +48,20 @@ class TrialPaymentFlow {
               Future<void> onContinuePressed() async {
                 final double amount = double.tryParse(amountController.text.replaceAll(',', '')) ?? 0;
                 if (amount <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter valid amount")));
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    const SnackBar(content: Text("Please enter valid amount")),
+                  );
                   return;
                 }
-                // Open breakup dialog and wait result
-                final bool? paid = await _showBreakupDialog(context, amount);
-                if (paid == true) {
-                  Navigator.of(outerCtx).pop(true); // close the amount dialog and signal success
-                }
+
+                // close amount dialog first (so only one dialog visible)
+                Navigator.of(dialogCtx).pop();
+
+                // open breakup dialog on the parent context (not nested under amount dialog)
+                final bool? paid = await _showBreakupDialog(parentContext, amount);
+
+                // When breakup completes, complete the showAmountSelection future
+                if (!completer.isCompleted) completer.complete(paid == true);
               }
 
               return Padding(
@@ -68,14 +77,24 @@ class TrialPaymentFlow {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Expanded(child: Text("Product Trial Payment", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-                          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(outerCtx).pop(false)),
+                          const Expanded(
+                            child: Text(
+                              "Product Trial Payment",
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              if (!completer.isCompleted) completer.complete(false);
+                              Navigator.of(dialogCtx).pop();
+                            },
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      const Text("Select Amount for Product Trial", style: TextStyle(fontSize: 14)),
+                      const SizedBox(height: 6),
+                      const Text("Select Amount for Product Trial", style: TextStyle(fontSize: 14, color: Colors.black87)),
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: tileSpacing,
@@ -88,27 +107,63 @@ class TrialPaymentFlow {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: amountController,
-                        keyboardType: TextInputType.numberWithOptions(decimal: true),
-                        decoration: InputDecoration(
-                          hintText: "Enter Other Amount",
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        ),
-                        onChanged: (val) {
-                          setState(() {
-                            if (selectedOption != "other") selectedOption = "other";
-                          });
-                        },
+                      // "Other" amount input field
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Enter Other Amount",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF7A7A7A), // soft grey label
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: amountController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            textAlign: TextAlign.left,
+                            decoration: InputDecoration(
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.only(left: 14, right: 6, top: 2),
+                                child: Text(
+                                  "₹",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+                              hintText: "0",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                if (selectedOption != "other") selectedOption = "other";
+                              });
+                            },
+                          ),
+                        ],
                       ),
+
+
                       const SizedBox(height: 18),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3B82F6), // primary blue
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            backgroundColor: const Color(0xFF3B82F6),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           onPressed: onContinuePressed,
@@ -123,27 +178,48 @@ class TrialPaymentFlow {
           ),
         );
       },
-    );
+    ).then((_) {
+      // If dialog dismissed by system or back button and completer not completed, complete false
+      if (!completer.isCompleted) completer.complete(false);
+    });
+
+    return completer.future;
   }
 
-  // responsive option tile
+  // responsive option tile — pill style matching screenshots
   static Widget _radioOptionResponsive(String label, String value, String selectedValue, Function(String) onSelected, double width) {
     final isSelected = value == selectedValue;
     return GestureDetector(
       onTap: () => onSelected(value),
       child: Container(
         width: width,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2F945A) : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? const Color(0xFF2F945A) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isSelected ? Colors.transparent : Colors.grey.shade200),
+          boxShadow: isSelected
+              ? [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ]
+              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_off, color: isSelected ? Colors.white : Colors.black54),
             const SizedBox(width: 8),
-            Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
@@ -164,7 +240,7 @@ class TrialPaymentFlow {
           insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: StatefulBuilder(
             builder: (ctx, setState) {
-              final double serviceFee = 0; // 1% fee example
+              final double serviceFee = 0; // example 1% (rounded)
               final double total = amount + serviceFee;
 
               return Padding(
@@ -193,8 +269,11 @@ class TrialPaymentFlow {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,9 +289,9 @@ class TrialPaymentFlow {
                               const SizedBox(height: 8),
 
                               // thin divider line
-                              Container(height: 1, color: Colors.grey.shade200),
+                              Container(height: 1, color: Colors.grey.shade100),
 
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 10),
 
                               // Show Break up row + trailing icon (info or undo depending on expanded)
                               Row(
@@ -225,12 +304,15 @@ class TrialPaymentFlow {
                                   GestureDetector(
                                     onTap: () => setState(() => isExpanded = !isExpanded),
                                     child: Container(
-                                      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade300)),
+
                                       padding: const EdgeInsets.all(6),
-                                      child: Icon(
-                                        isExpanded ? Icons.undo : Icons.info_outline,
-                                        size: 16,
-                                        color: Colors.black54,
+                                      child: Image.asset(
+                                        isExpanded
+                                            ? 'assets/images/revoke.png'
+                                            : 'assets/images/info.png',
+                                       /* width: 20,
+                                        height: 20,*/
+                                  //      color: Colors.black54, // optional tint
                                       ),
                                     ),
                                   ),
@@ -268,7 +350,7 @@ class TrialPaymentFlow {
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              side: const BorderSide(color: Color(0xFF3B82F6)), // blue border
+                              side: const BorderSide(color: Color(0xFF3B82F6)),
                             ),
                             child: const Text("Back", style: TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w600)),
                           ),
@@ -300,6 +382,7 @@ class TrialPaymentFlow {
       },
     );
   }
+
 
   static String _formatDouble(double v) {
     // show no decimals when whole, else 2 decimals

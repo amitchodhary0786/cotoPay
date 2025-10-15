@@ -66,6 +66,8 @@ flutter:
     - assets/scan.png
     - assets/upi_logo.png
     - assets/voucher_illustration.png
+    - assets/images/info.png
+    - assets/images/revoke.png
 
 
 flutter_launcher_icons:

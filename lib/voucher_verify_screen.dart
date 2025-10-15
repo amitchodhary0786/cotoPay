@@ -459,7 +459,8 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
             }
           }
 
-          Widget otpBoxesRow() {
+          Widget otpBoxesRow()
+          {
             return Wrap(
               spacing: otpBoxSize * 0.08,
               alignment: WrapAlignment.center,
@@ -505,6 +506,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
 
           return Dialog(
+
             insetPadding: EdgeInsets.symmetric(horizontal: mq.size.width * 0.04, vertical: 24),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             child: ConstrainedBox(
@@ -527,17 +529,49 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
                     // resend line
                     if (_resendSeconds > 0)
+
                       Text("Didn't receive the code? 00:${_resendSeconds.toString().padLeft(2, '0')}", style: const TextStyle(color: Colors.black54))
                     else
                       GestureDetector(onTap: resendOtp, child: Text("Didn't receive the code? Resend", style: TextStyle(color: Colors.blue.shade700))),
 
                     const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: const Text('OTP code has been sent to your phone. Enter OTP to validate issuance.', style: TextStyle(fontSize: 13)),
+                    Column(
+                      children: [
+
+                        FutureBuilder(
+                          future: SessionManager.getUserData(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+
+                            if (!snapshot.hasData) {
+                              return const Text('Unable to load user data');
+                            }
+
+                            final user = snapshot.data;
+                            final maskedNumber = (user?.mobile != null && user!.mobile!.length >= 4)
+                                ? '+91-xxxxxx ${user.mobile!.substring(user.mobile!.length - 4)}'
+                                : '+91-xxxxxxXXXX';
+
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'OTP code has been sent to your phone $maskedNumber. Enter OTP to validate issuance.',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
+
                     const SizedBox(height: 16),
 
                     // button
