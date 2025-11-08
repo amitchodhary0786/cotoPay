@@ -1,3 +1,4 @@
+/*
 
 import 'dart:convert';
 import 'dart:io';
@@ -31,22 +32,11 @@ class ApiService {
 
 
 
-  void _logLong(String message, {String tag = ""})
-  {
-    const int chunkSize = 800;
-    if (message.length <= chunkSize) {
-      debugPrint('$tag$message');
-    } else {
-      for (int i = 0; i < message.length; i += chunkSize) {
-        int end = (i + chunkSize < message.length) ? i + chunkSize : message.length;
-        debugPrint('$tag${message.substring(i, end)}');
-      }
-    }
-  }
 
 
-  final String _clientKey = "client-secret-key";       // TODO: APNA CLIENT KEY YAHAN DAALEIN
-  final String _clientSecretKey = "0123456789012345"; // TODO: APNA SECRET KEY YAHAN DAALEIN
+
+  final String _clientKey = "client-secret-key";       // TODO:  CLIENT KEY
+  final String _clientSecretKey = "0123456789012345"; // TODO:  SECRET KEY
   //final String _salt = "0123456789012345";
 
 
@@ -239,28 +229,47 @@ class ApiService {
   Future<Map<String, dynamic>> getCotoBalance(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/linkMultipleAccountAmount', params);
    }
-  Future<Map<String, dynamic>> getVoucherCategoryList() async {
-    return _callApiEndpoint('http://52.66.10.111:8083/masterService/Api/get/voucherCategoryList', {});
+
+   //OLD Api
+
+//  Future<Map<String, dynamic>> getVoucherCategoryList() async {
+  //  return _callApiEndpoint('http://52.66.10.111:8083/masterService/Api/get/voucherCategoryList', {});
+//   }
+
+
+
+   //old Api
+// Future<Map<String, dynamic>> getVoucherSubCategoryList(Map<String, dynamic> params) async {
+//    return _callApiEndpoint('http://52.66.10.111:8083/masterService/Api/get/mccByCotoCatIdList', params);
+ //  }
+
+Future<Map<String, dynamic>> getVoucherSubCategoryList(Map<String, dynamic> params) async {
+    return _callApiEndpoint('http://52.66.10.111:8083/masterService/api/vouchercat/fetch', params);
    }
 
- Future<Map<String, dynamic>> getVoucherSubCategoryList(Map<String, dynamic> params) async {
-    return _callApiEndpoint('http://52.66.10.111:8083/masterService/Api/get/mccByCotoCatIdList', params);
-   }
+  Future<Map<String, dynamic>> getVoucherCategoryList(Map<String, dynamic> params) async {
+    return _callApiEndpoint('http://52.66.10.111:8083/masterService/api/vouchercat/fetch', params);
+  }
 
-   Future<Map<String, dynamic>> getVoucherNameSearchMobile(Map<String, dynamic> params) async {
+
+  Future<Map<String, dynamic>> getVoucherNameSearchMobile(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/employeeSearchWithMobile', params);
    }
  Future<Map<String, dynamic>> getCashFreeStatusUpdate(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrderId', params);
    }
 
-  /*Future<Map<String, dynamic>> getCotoBalanceTransactionList(Map<String, dynamic> params) async {
+
+Future<Map<String, dynamic>> getCotoBalanceTransactionList(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrderIdList', params);
    }
-*/
-   /*Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async {
+
+
+
+Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrder', params);
-   }*/
+   }
+
 
 
   Future<Map<String, dynamic>> getAllTickets({required int orgId}) async
@@ -284,6 +293,10 @@ class ApiService {
     return _callApiEndpoint(endpoint, params);
   }
 
+  Future<Map<String, dynamic>> getCheckRegistration(Map<String, dynamic> userData) async {
+   // return _callApiEndpoint('http://52.66.10.111:8088/userServices/api/validateRegistration', userData);
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-api-validateRegistration', userData);
+  }
 
   Future<Map<String, dynamic>> getDashboard(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8090/empService/api/vouchers/summary', params);
@@ -331,6 +344,552 @@ class ApiService {
 
       final headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $_accessToken'};
       final uri = Uri.parse(url);
+
+
+
+
+
+      http.Response response;
+      if (method.toUpperCase() == 'PUT') {
+        response = await http.put(uri, headers: headers, body: requestBody);
+      } else {
+        response = await http.post(uri, headers: headers, body: requestBody);
+      }
+
+      debugPrint("📈 Response Status Code: ${response.statusCode}");
+      debugPrint("📤 Encrypted Response Body: ${response.body}");
+
+
+
+      if (response.statusCode == 200)
+      {
+        final responseBody = json.decode(response.body);
+        final privateKey = parser.parse(_privateKeyPem) as RSAPrivateKey;
+        final responseRsaEncrypter = encrypt.Encrypter(encrypt.RSA(privateKey: privateKey));
+        final decryptedSessionKeyBytes = responseRsaEncrypter.decryptBytes(encrypt.Encrypted.fromBase64(responseBody['encriptKey']));
+        final responseAesEncrypter = encrypt.Encrypter(encrypt.AES(encrypt.Key(Uint8List.fromList(decryptedSessionKeyBytes)), mode: encrypt.AESMode.cbc, padding: 'PKCS7'));
+
+        final encryptedResponsePayload = base64.decode(responseBody['encriptData']);
+        final responseIv = encryptedResponsePayload.sublist(0, 16);
+        final responseCiphertext = encryptedResponsePayload.sublist(16);
+
+        final decryptedBytes = responseAesEncrypter.decryptBytes(encrypt.Encrypted(responseCiphertext), iv: encrypt.IV(responseIv));
+        final decryptedJson = utf8.decode(decryptedBytes);
+        final finalResponse = json.decode(decryptedJson) as Map<String, dynamic>;
+
+
+
+
+
+
+
+        debugPrint("✅ Decrypted Response Data: ${jsonEncode(finalResponse)}");
+
+        debugPrint("---------------- API Request End -----------------");
+
+        return finalResponse;
+      } else {
+        throw Exception('API request to $url failed: ${response.statusCode}\nBody: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint("❌ Error in API communication: $e");
+      debugPrint("---------------- API Request End -----------------");
+      rethrow;
+    }
+  }
+
+  Uint8List _generateRandomBytes(int length) {
+    return Uint8List.fromList(List<int>.generate(length, (_) => Random.secure().nextInt(256)));
+  }
+
+}*/
+
+
+
+//Production
+
+
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
+import 'package:crypto/crypto.dart';
+import 'package:flutter/material.dart'; // debugPrint के लिए आवश्यक
+
+import 'package:http/http.dart' as http;
+import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:pointycastle/asymmetric/api.dart' show RSAPublicKey, RSAPrivateKey;
+
+class ApiService {
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+  ApiService._internal();
+
+  final String _baseTokenUrl = "http://52.66.10.111:8082/tokenService/Api";
+  final String _baseServiceUrl = "http://52.66.10.111:8088/userServices/Api";
+  final String _baseEmpServiceUrl = "http://52.66.10.111:8090/empService/Api";
+  final String _baseCotoBalance = "http://52.66.10.111:8090/empService/Api/get/";
+
+  final String  _baseTokenUrlProd= "https://4v7sshk7ij.execute-api.ap-south-1.amazonaws.com/tokenService/Api";
+  final String _baseServiceUrlProd = "https://4v7sshk7ij.execute-api.ap-south-1.amazonaws.com/userServices/Api";
+  final String _baseEmpServiceUrlProd = "https://4v7sshk7ij.execute-api.ap-south-1.amazonaws.com/empService/Api";
+
+  String? _accessToken;
+
+  final String _publicKeyPem = [ '-----BEGIN PUBLIC KEY-----', 'MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgHXCjyOCwM2uqpxXlbecLn+uvzQX', 'c24uzBs5vzY0GEPKmQVfWJ5w0hzNE8doFPOcVYLDHCg1LG2EDoANwT39Pm4y6JTP', '1rI/Qf/dVDmfrGB7LXzEp6gL6nu/hdQjWEF8h/qmq54SDLz3RC33Y8CC9oG8IekQ', 'fiCXotl9FPPyGk2XAgMBAAE=', '-----END PUBLIC KEY-----', ].join('\n');
+  final String _privateKeyPem = [ '-----BEGIN RSA PRIVATE KEY-----', 'MIICWgIBAAKBgHXCjyOCwM2uqpxXlbecLn+uvzQXc24uzBs5vzY0GEPKmQVfWJ5w', '0hzNE8doFPOcVYLDHCg1LG2EDoANwT39Pm4y6JTP1rI/Qf/dVDmfrGB7LXzEp6gL', '6nu/hdQjWEF8h/qmq54SDLz3RC33Y8CC9oG8IekQfiCXotl9FPPyGk2XAgMBAAEC', 'gYB1OI+txJlR5R219UV2eUScGwH/w5xGwNSyAUDCnwbMbJ74Bxo61YmB2+5lX8kD', 'WsqQGNItgAjSl1Kry4VhxHXgdw3gU/15QDzjz4NSSpD3xvv8cZMCXmUtlmRYRc5a', '21V/ouhLetlIWDpwpAG/rvORQDSXd/2QRBGoURS+9DUxSQJBAL8km2tSBL3Qa5Vm', '0HwuiJlYnfzudX08jRyTbiHVLTr0tR0wa3h+CjuVUGuOLUC/tCxUIQI8frOp7xq2', '63quDcUCQQCdt6GYGyD8nEsfE5DmCtAv5EdZS8TOFnG4ep1wGp6WdA0aKT9/ennr', '0UzlcNfqtFf8tSKYa/kWLqK98/CEf1+rAkBY4GOn9j4gKG4tzN26METx0KO9fP+C', 'WQpgNCkscBwU4r3oMaB3KVwGsnnvWO+vwLO9PO0QRiK/1Y9JQ66gn5flAkAB454y', '5ThK7lBUCfb1WnHN8Q0Nu8OauFgaXpWeLyNxJ+i0RIQ3Ma9eLL6gDO75J7naFA1b', 'CAgOxPY8EjzySVhLAkBYUq6QMyDh2lpS2BFHA8TspVi5f7TtTndTRTnoy9MWNqQ+', 'UuvRWwTEtYdwCwFbW5dG/tG8sZHLKGPm0cVcu1tD', '-----END RSA PRIVATE KEY-----', ].join('\n');
+
+
+  final String _publicKeyPemProd = [ '-----BEGIN PUBLIC KEY-----', 'MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgHXCjyOCwM2uqpxXlbecLn+uvzQX', 'c24uzBs5vzY0GEPKmQVfWJ5w0hzNE8doFPOcVYLDHCg1LG2EDoANwT39Pm4y6JTP', '1rI/Qf/dVDmfrGB7LXzEp6gL6nu/hdQjWEF8h/qmq54SDLz3RC33Y8CC9oG8IekQ', 'fiCXotl9FPPyGk2XAgMBAAE=', '-----END PUBLIC KEY-----', ].join('\n');
+  final String _privateKeyPemProd = [ '-----BEGIN RSA PRIVATE KEY-----', 'MIICWgIBAAKBgHXCjyOCwM2uqpxXlbecLn+uvzQXc24uzBs5vzY0GEPKmQVfWJ5w', '0hzNE8doFPOcVYLDHCg1LG2EDoANwT39Pm4y6JTP1rI/Qf/dVDmfrGB7LXzEp6gL', '6nu/hdQjWEF8h/qmq54SDLz3RC33Y8CC9oG8IekQfiCXotl9FPPyGk2XAgMBAAEC', 'gYB1OI+txJlR5R219UV2eUScGwH/w5xGwNSyAUDCnwbMbJ74Bxo61YmB2+5lX8kD', 'WsqQGNItgAjSl1Kry4VhxHXgdw3gU/15QDzjz4NSSpD3xvv8cZMCXmUtlmRYRc5a', '21V/ouhLetlIWDpwpAG/rvORQDSXd/2QRBGoURS+9DUxSQJBAL8km2tSBL3Qa5Vm', '0HwuiJlYnfzudX08jRyTbiHVLTr0tR0wa3h+CjuVUGuOLUC/tCxUIQI8frOp7xq2', '63quDcUCQQCdt6GYGyD8nEsfE5DmCtAv5EdZS8TOFnG4ep1wGp6WdA0aKT9/ennr', '0UzlcNfqtFf8tSKYa/kWLqK98/CEf1+rAkBY4GOn9j4gKG4tzN26METx0KO9fP+C', 'WQpgNCkscBwU4r3oMaB3KVwGsnnvWO+vwLO9PO0QRiK/1Y9JQ66gn5flAkAB454y', '5ThK7lBUCfb1WnHN8Q0Nu8OauFgaXpWeLyNxJ+i0RIQ3Ma9eLL6gDO75J7naFA1b', 'CAgOxPY8EjzySVhLAkBYUq6QMyDh2lpS2BFHA8TspVi5f7TtTndTRTnoy9MWNqQ+', 'UuvRWwTEtYdwCwFbW5dG/tG8sZHLKGPm0cVcu1tD', '-----END RSA PRIVATE KEY-----', ].join('\n');
+
+
+
+
+
+
+
+  void _logLong(String message, {String tag = ""})
+  {
+    const int chunkSize = 800;
+    if (message.length <= chunkSize) {
+      debugPrint('$tag$message');
+    } else {
+      for (int i = 0; i < message.length; i += chunkSize) {
+        int end = (i + chunkSize < message.length) ? i + chunkSize : message.length;
+        debugPrint('$tag${message.substring(i, end)}');
+      }
+    }
+  }
+
+
+  final String _clientKey = "client-secret-key";       // TODO: APNA CLIENT KEY YAHAN DAALEIN
+  final String _clientSecretKey = "0123456789012345"; // TODO: APNA SECRET KEY YAHAN DAALEIN
+  //final String _salt = "0123456789012345";
+
+
+
+  String _generateSha256Hash(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString(); //
+  }
+
+  Future<void> _ensureToken() async {
+    if (_accessToken != null && _accessToken!.isNotEmpty) return;
+    debugPrint("Generating new access token...");
+    //   try {
+    //     //final url = Uri.parse('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/tokenService-Api-get-access-token');
+    //     final url = Uri.parse('http://52.66.10.111:8082/tokenService/Api/get/access-token');
+    //     final headers = {
+    //       'companyId': 'HRMS00001',
+    //       'Content-Type': 'application/json',
+    //
+    //     };
+    //     // 'x-api-key': 'TQpLFUwpJcX6XGO51SwdCBhruQyRtG1Dl8z1zkc0',
+    //    // final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 20));
+    //     final request = http.Request('GET', url);
+    //     request.headers.addAll(headers);
+    //     request.body = jsonEncode({});
+    //     final response = await request.send().timeout(const Duration(seconds: 20));
+    //     final responseBody = await response.stream.bytesToString();
+    //
+    //     if (response.statusCode == 200) {
+    //       final responseData = json.decode(responseBody);
+    //       _accessToken = responseData['access_token'];
+    //       if (_accessToken == null) throw Exception('Access token is null in the response');
+    //       debugPrint("Access Token generated successfully.");
+    //       debugPrint('Amit_Responce ${responseData}');
+    //     } else {
+    //       throw Exception('Failed to generate token: ${response.statusCode}');
+    //     }
+    //   } on SocketException {
+    //     throw Exception('No Internet connection or server is down.');
+    //   } catch (e) {
+    //     debugPrint("Error generating token: $e");
+    //     rethrow;
+    //   }
+    // }
+
+    try {
+      //pre prod
+      //final url = Uri.parse('http://52.66.10.111:8082/tokenService/Api/get/access-token');
+      //production
+      final url = Uri.parse('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/tokenService-Api-get-access-token');
+      final headers = {
+        'companyId': 'HRMS00001',
+        'Content-Type': 'application/json',
+        'x-api-key': 'TQpLFUwpJcX6XGO51SwdCBhruQyRtG1Dl8z1zkc0',
+      };
+      final request = http.Request('GET', url);
+      request.headers.addAll(headers);
+      request.body = jsonEncode({});
+
+      final response = await request.send().timeout(const Duration(seconds: 20));
+
+      final responseBody = await response.stream.bytesToString();
+
+      // final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final responseData = json.decode(responseBody);
+        debugPrint('✅ Amit_Response: $responseData');
+        _accessToken = responseData['access_token'];
+        if (_accessToken == null) throw Exception('Access token is null in the response');
+        debugPrint("Access Token generated successfully.");
+
+      } else {
+        throw Exception('Failed to generate token: ${response.statusCode}');
+      }
+    } on SocketException {
+      throw Exception('No Internet connection or server is down.');
+    } catch (e) {
+      debugPrint("Error generating token: $e");
+      rethrow;
+    }
+  }
+
+
+
+  Future<Map<String, dynamic>> addTicket({
+    required int orgId,
+    required String subject,
+    required String issueDesc,
+    String ticketImg = "",
+    required String createdBy,
+  }) async
+  {
+    final dataString = '$orgId$subject$issueDesc$createdBy$ticketImg$_clientKey$_clientSecretKey';
+
+    debugPrint("❌ Hash Data String: $dataString");
+
+
+    final String generatedHash = _generateSha256Hash(dataString);
+    debugPrint("❌ Generated Hash: $generatedHash");
+
+    final Map<String, dynamic> ticketPayload = {
+      "orgId": orgId,
+      "subject": subject,
+      "issueDesc": issueDesc,
+      "ticketImg": ticketImg,
+      "createdby": createdBy,
+      "clientKey": _clientKey,
+      "id":"",
+      "ticketnumber":"",
+      "issuetype":"",
+      "status":"",
+      "updatedby":"",
+      "responseIssueDesc":"",
+      "custTicketStatus":"",
+      "custTicketStatusDesc":"",
+      "respTicketStatus":"",
+      "respTicketStatusDesc":"",
+      "responseTktImg":"",
+      "responedby":"",
+      "ticketno":"",
+      "response":"",
+      "name":"",
+      "remarks":"",
+
+
+      "hash": generatedHash
+    };
+
+    final String url = '$_baseEmpServiceUrl/add/ticket';
+
+
+    return _callApiEndpoint(url, ticketPayload, method: 'POST');
+  }
+  Future<Map<String, dynamic>> addTicketComment(
+      {
+        required int id,
+        required int orgId,
+        required String issueDesc,
+        String ticketImg = "",
+        required String createdBy,
+        required int respTicketStatus ,
+        required String respTicketStatusDesc ,
+
+
+      }) async
+  {
+    final dataString = '$id$orgId$issueDesc$createdBy$ticketImg$_clientKey$_clientSecretKey';
+
+    debugPrint("❌ Hash Data String: $dataString");
+
+
+    final String generatedHash = _generateSha256Hash(dataString);
+    debugPrint("❌ Generated Hash: $generatedHash");
+
+    final Map<String, dynamic> ticketPayload = {
+      "id": id,
+      "orgId": orgId,
+      "issueDesc": issueDesc,
+      "ticketImg": ticketImg,
+      "createdby": createdBy,
+      "clientKey": _clientKey,
+
+      "ticketnumber":"",
+      "issuetype":"",
+      "status":"",
+      "updatedby":"",
+      "responseIssueDesc":"",
+      "custTicketStatus":"",
+      "custTicketStatusDesc":"",
+      "respTicketStatus":respTicketStatus,
+      "respTicketStatusDesc":respTicketStatusDesc,
+      "responseTktImg":"",
+      "responedby":"",
+      "ticketno":"",
+      "response":"",
+      "name":"",
+      "remarks":"",
+
+
+
+
+      "hash": generatedHash
+    };
+    final String url = '$_baseEmpServiceUrl/add/ticketTransaction';
+
+
+    return _callApiEndpoint(url, ticketPayload, method: 'POST');
+  }
+
+
+
+
+  Future<Map<String, dynamic>> getOtp(Map<String, dynamic> userData) async {
+    //PreProduction
+    //return _callApiEndpoint('$_baseServiceUrl/getOtp2Factor', userData);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-Api-getOtp2Factor', userData);
+  }
+
+  /*Future<Map<String, dynamic>> getCheckRegistration(Map<String, dynamic> userData) async {
+    return _callApiEndpoint('http://52.66.10.111:8088/userServices/api/validateRegistration', userData);
+  }*/
+
+  Future<Map<String, dynamic>> getVoucherOtp(Map<String, dynamic> userData) async {
+    //PreProduction
+    //return _callApiEndpoint('$_baseServiceUrl/get/sendOtp', userData);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-Api-get-sendOtp', userData);
+
+  }
+
+
+  Future<Map<String, dynamic>> verifyOtp(Map<String, dynamic> otpData) async {
+    //PreProduction
+    //return _callApiEndpoint('$_baseServiceUrl/verifyOtp2Factor', otpData);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-Api-verifyOtp2Factor', otpData);
+
+  }
+  Future<Map<String, dynamic>> resendOtp(Map<String, dynamic> resendData) async {
+    //PreProduction
+    //return _callApiEndpoint('$_baseServiceUrl/getOtpResend', resendData);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-Api-getOtpResend', resendData);
+
+  }
+
+  Future<Map<String, dynamic>> getVoucherList(Map<String, dynamic> params) async {
+    //PreProduction
+    //return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/erupiVoucherCreateListLimit', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-erupiVoucherCreateListLimit', params);
+  }
+
+
+  Future<Map<String, dynamic>> getBankList(Map<String, dynamic> params) async {
+    //PreProduction
+    //return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/erupiLinkAccountListWithStatus', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-erupiLinkAccountListWithStatus', params);
+  }
+
+  Future<Map<String, dynamic>> deleteAccount(Map<String, dynamic> params) async {
+    //PreProduction
+    //return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/update/emplOnboardingStatus', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-update-emplOnboardingStatus', params);
+  }
+
+  Future<Map<String, dynamic>> getBankListUpi(Map<String, dynamic> params) async {
+    //PreProduction
+    //return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/voucherCreateBankList', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-voucherCreateBankList', params);
+  }
+  Future<Map<String, dynamic>> getBankSummary(Map<String, dynamic> params) async {
+    //PreProduction
+    // return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/voucherCreateSummaryDetailByAccount', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-voucherCreateSummaryDetailByAccount', params);
+  }
+
+  Future<Map<String, dynamic>> getBankBalance(Map<String, dynamic> params) async {
+    //PreProduction
+    //return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/linkMultipleAccountAmount', params);
+    //PreProduction
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-linkMultipleAccountAmount', params);
+
+  }
+  Future<Map<String, dynamic>> createSingleVoucher(Map<String, dynamic> params) async {
+    //PreProduction
+    //return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/add/erupiVoucherSingleCreation', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-add-erupiVoucherSingleCreation', params);
+  }
+
+  Future<Map<String, dynamic>> getCotoBalance(Map<String, dynamic> params) async {
+    //PreProduction
+    //return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/linkMultipleAccountAmount', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-linkMultipleAccountAmount', params);
+  }
+  Future<Map<String, dynamic>> getVoucherCategoryList() async {
+    //Preproduction
+    // return _callApiEndpoint('http://52.66.10.111:8083/masterService/Api/get/voucherCategoryList', {});
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/masterService-Api-get-voucherCategoryList', {});
+
+  }
+
+  Future<Map<String, dynamic>> getCheckRegistration(Map<String, dynamic> userData) async {
+   // return _callApiEndpoint('http://52.66.10.111:8088/userServices/api/validateRegistration', userData);
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-api-validateRegistration', userData);
+  }
+
+  Future<Map<String, dynamic>> getVoucherSubCategoryList(Map<String, dynamic> params) async {
+    //PreProduction
+    //return _callApiEndpoint('http://52.66.10.111:8083/masterService/Api/get/mccByCotoCatIdList', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/masterService-Api-get-mccByCotoCatIdList', params);
+  }
+
+  Future<Map<String, dynamic>> getVoucherNameSearchMobile(Map<String, dynamic> params) async {
+    //PreProduction
+    //return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/employeeSearchWithMobile', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-employeeSearchWithMobile', params);
+  }
+  Future<Map<String, dynamic>> getCashFreeStatusUpdate(Map<String, dynamic> params) async {
+    //PreProduction
+    //return _callApiEndpoint('http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrderId', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first//cashFree-Api-get-cashFreeOrderId', params);
+  }
+
+/*Future<Map<String, dynamic>> getCotoBalanceTransactionList(Map<String, dynamic> params) async {
+    return _callApiEndpoint('http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrderIdList', params);
+   }
+*/
+
+
+/*Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async {
+    return _callApiEndpoint('http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrder', params);
+   }*/
+
+
+
+  Future<Map<String, dynamic>> getAllTickets({required int orgId}) async
+  {
+    final params = {
+      'orgId': orgId.toString(),
+    };
+    //PreProduction
+    //final endpoint = 'http://52.66.10.111:8090/empService/Api/get/allTicket';
+    //Production
+    final endpoint = 'https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-allTicket';
+
+    return _callApiEndpoint(endpoint, params);
+  }
+
+  Future<Map<String, dynamic>> getAllTicketsDetails({required int orgId, required int id}) async {
+    final params = {
+      'orgId': orgId.toString(),
+      'id': id.toString(),
+    };
+    //PreProduction
+    //final endpoint = 'http://52.66.10.111:8090/empService/Api/get/ticketTransHistory';
+    //PreProduction
+    final endpoint = 'https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-ticketTransHistory';
+
+    return _callApiEndpoint(endpoint, params);
+  }
+
+
+/*
+Future<Map<String, dynamic>> getVoucherSubCategoryList(Map<String, dynamic> params) async {
+    return _callApiEndpoint('http://52.66.10.111:8083/masterService/api/vouchercat/fetch', params);
+   }
+
+  Future<Map<String, dynamic>> getVoucherCategoryList(Map<String, dynamic> params) async {
+    return _callApiEndpoint('http://52.66.10.111:8083/masterService/api/vouchercat/fetch', params);
+  }
+*/
+
+
+  Future<Map<String, dynamic>> getDashboard(Map<String, dynamic> params) async {
+    //PreProduction
+    //return _callApiEndpoint('http://52.66.10.111:8090/empService/api/vouchers/summary', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-api-vouchers-summary', params);
+  }
+  Future<Map<String, dynamic>> getVoucherListRedeem(Map<String, dynamic> params) async {
+    //PreProduction
+    // return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/erupiVoucherCreateListRedeem', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-erupiVoucherCreateListRedeem', params);
+  }
+
+  Future<Map<String, dynamic>> getVoucherHistoryDetails(Map<String, dynamic> params) async {
+    //PreProuction
+    //return _callApiEndpoint('http://52.66.10.111:8090/empService/Api/get/erupiVoucherStatusHistory', params);
+    //Production
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-erupiVoucherStatusHistory', params);
+  }
+
+  Future<Map<String, dynamic>> updateUserProfile({required int userId, required Map<String, dynamic> profileData}) async {
+    //final url = '$_baseServiceUrl/update/userprofile1/$userId';
+
+    //PreProduction
+    //final url = 'http://52.66.10.111:8088/userServices/api/update/userprofile1/$userId';
+    //Production
+    final url = 'https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-api-update-userprofile1/$userId';
+    return _callApiEndpoint(url, profileData, method: 'POST');
+  }
+
+  Future<Map<String, dynamic>> _callApiEndpoint(String url, Map<String, dynamic> data, {String method = 'POST'}) async {
+    await _ensureToken();
+    if (_accessToken == null) throw Exception('Authorization token is missing.');
+
+    debugPrint("------------Auth Token ------------   " +_accessToken.toString());
+    debugPrint("------------ API Request Initiated ------------");
+    debugPrint("📡 URL: $url");
+    debugPrint("🔑 Plaintext Request Data: ${jsonEncode(data)}");
+
+    try {
+      final parser = encrypt.RSAKeyParser();
+      final publicKey = parser.parse(_publicKeyPem) as RSAPublicKey;
+      final sessionKey = _generateRandomBytes(16);
+      final iv = _generateRandomBytes(16);
+      final rsaEncrypter = encrypt.Encrypter(encrypt.RSA(publicKey: publicKey));
+      final aesEncrypter = encrypt.Encrypter(encrypt.AES(encrypt.Key(sessionKey), mode: encrypt.AESMode.cbc, padding: 'PKCS7'));
+
+      final encryptedSessionKey = rsaEncrypter.encryptBytes(sessionKey);
+      final encryptedData = aesEncrypter.encryptBytes(utf8.encode(json.encode(data)), iv: encrypt.IV(iv));
+
+      final payloadWithIv = iv + encryptedData.bytes;
+      final requestBody = json.encode({'encriptData': base64.encode(payloadWithIv), 'encriptKey': encryptedSessionKey.base64});
+
+      debugPrint("🔒 Encrypted Request Body: $requestBody");
+
+
+      final headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $_accessToken' , 'x-api-key' : 'TQpLFUwpJcX6XGO51SwdCBhruQyRtG1Dl8z1zkc0', 'companyId' : 'HRMS00001'};
+      final uri = Uri.parse(url);
+      //final uri = Uri.parse("https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-Api-getOtp2Factor");
 
 
 

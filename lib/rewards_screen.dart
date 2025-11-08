@@ -1,3 +1,4 @@
+import 'package:cotopay/account_settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
@@ -48,11 +49,11 @@ class _RewardsScreenState extends State<RewardsScreen> with SingleTickerProvider
         slivers: [
           SliverAppBar(
             backgroundColor: Colors.white,
-            pinned: false,
             elevation: 0,
-            title: _buildTopBar(),
-            toolbarHeight: 80,
-            automaticallyImplyLeading: false,
+            leading: IconButton(icon: const Icon(Icons.sort, color: Colors.black), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AccountSettingsScreen()))),
+            title: const Text('Reward', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+            actions: [IconButton(icon: const Icon(Icons.download_outlined, color: Colors.black), onPressed: () {})],
+
           ),
           SliverToBoxAdapter(
             child: Container(

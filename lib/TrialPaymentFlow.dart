@@ -425,10 +425,15 @@ class TrialPaymentFlow {
 
     try {
       final response = await http.post(
-        Uri.parse("http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrder"),
-        headers: {"Content-Type": "application/json"},
+        //PreProduction : "http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrder"
+        //"Production" : "https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/cashFree-Api-get-cashFreeOrder"
+        Uri.parse("https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/cashFree-Api-get-cashFreeOrder"),
+        // headers: {"Content-Type": "application/json", 'x-api-key' : 'TQpLFUwpJcX6XGO51SwdCBhruQyRtG1Dl8z1zkc0','Authorization': 'Bearer $_accessToken'},
+        headers: {"Content-Type": "application/json", 'x-api-key' : 'TQpLFUwpJcX6XGO51SwdCBhruQyRtG1Dl8z1zkc0'},
         body: jsonEncode(params),
       );
+
+
       debugPrint("◀ API Response: status=${response.statusCode}, body=${response.body}");
 
       if (response.statusCode == 200) {
@@ -520,7 +525,7 @@ class TrialPaymentFlow {
     );
 
     final session = CFSessionBuilder()
-        .setEnvironment(CFEnvironment.SANDBOX) // or PRODUCTION
+        .setEnvironment(CFEnvironment.PRODUCTION) // or PRODUCTION
         .setOrderId(orderId)
         .setPaymentSessionId(sessionId)
         .build();

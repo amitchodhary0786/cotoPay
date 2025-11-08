@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
-
-import 'package:cotopay/issue_voucher_screen.dart';
 import 'upi_voucher_scren.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -103,78 +101,216 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final isHomePageSelected = _selectedIndex == 0;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isHomePageSelected ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
+        extendBody: true,
         backgroundColor: Colors.white,
         body: IndexedStack(
           index: _selectedIndex,
           children: [
             HomeContent(name: _name, voucherListFuture: _voucherListFuture),
-            // Vouchers screen: navigate and after return refresh
-            UpiVouchersScreen(),
-            Container(), // Placeholder for QR Scanner
+            const SafeArea(child: UpiVouchersScreen()),
+
+            Container(),
             const SafeArea(child: RewardsScreen()),
             const SafeArea(child: HistoryScreen()),
           ],
         ),
-        bottomNavigationBar: _buildBottomNavBar(),
+
+        // Center the FAB
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        floatingActionButton: _buildFab(),
+
+        // Centered FAB (slightly lowered so it visually sits inside the notch)
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(top: 78), // tune 8..12 per device if needed
+          child: SizedBox(
+            width: 64,
+            height: 64,
+            child: FloatingActionButton(
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (c) => const QrScannerScreen()),
+                );
+                _loadInitialData();
+              },
+              elevation: 6,
+              backgroundColor: const Color(0xff34A853),
+              shape: const CircleBorder(
+                side: BorderSide(width: 1, color: Color(0xffEAF4EF)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Image.asset(
+                  'assets/scan.png',
+                  width: 40,
+                  height: 40,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Responsive bottom bar (5 equal slots: 0,1,2(center placeholder),3,4)
+        bottomNavigationBar: _buildBottomNavBarResponsive(),
       ),
     );
   }
 
-  Widget _buildBottomNavBar() {
+  // -------------------------
+  // Responsive bottom bar (5 equal slots)
+  // -------------------------
+  Widget _buildBottomNavBarResponsive()
+  {
     return BottomAppBar(
-      surfaceTintColor: Colors.white,
       color: Colors.white,
-      height: 70,
-      elevation: 8,
+      elevation: 6,
       shape: const CircularNotchedRectangle(),
-      notchMargin: 8.0,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _bottomNavItem(
-              label: 'Home',
-              selectedIcon: Icons.home,
-              unselectedIcon: Icons.home_outlined,
-              index: 0),
-          _bottomNavItem(
-              label: 'Vouchers',
-              selectedIcon: Icons.confirmation_number,
-              unselectedIcon: Icons.confirmation_number_outlined,
-              index: 1),
-          const SizedBox(width: 48),
-          _bottomNavItem(
-              label: 'Rewards',
-              selectedIcon: Icons.card_giftcard,
-              unselectedIcon: Icons.card_giftcard_outlined,
-              index: 3),
-          _bottomNavItem(
-              label: 'History',
-              selectedIcon: Icons.history,
-              unselectedIcon: Icons.history_outlined,
-              index: 4),
-        ],
+      notchMargin: 6,
+      child: SafeArea(
+        top: false,
+        child: LayoutBuilder(builder: (context, constraints) {
+          const horizontalPadding = 12.0;
+          final availableWidth = constraints.maxWidth - (horizontalPadding * 2);
+
+          // 5 equal slots (4 menu + 1 center placeholder)
+          final slotWidth = availableWidth / 5.0;
+
+          // responsive icon size & font size (clamped)
+          final iconSize = (slotWidth * 0.34).clamp(18.0, 28.0);
+          final fontSize = (slotWidth * 0.16).clamp(10.0, 13.0);
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8.0),
+            child: Row(
+              children: [
+                // Slot 0 - Home
+                _navTile(
+                  width: slotWidth,
+                  iconWidget: Image.asset(
+                    'assets/home_b.png', // use your actual asset file
+                    fit: BoxFit.contain,
+                  ),
+                  label: 'Home',
+                  index: 0,
+                  iconSize: iconSize,
+                  fontSize: fontSize,
+                ),
+
+                // Slot 1 - Vouchers
+                _navTile(
+                  width: slotWidth,
+                  iconWidget: Image.asset(
+                    'assets/voucher_b.png',
+                    fit: BoxFit.contain,
+                  ),
+                  label: 'Vouchers',
+                  index: 1,
+                  iconSize: iconSize,
+                  fontSize: fontSize,
+                ),
+
+
+                // Slot 2 - Center placeholder (keeps spacing equal)
+                SizedBox(
+                  width: slotWidth,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // reserve vertical space so labels align
+                      SizedBox(height: iconSize),
+                      const SizedBox(height: 4),
+                    ],
+                  ),
+                ),
+
+                // Slot 3 - Rewards
+                _navTile(
+                  width: slotWidth,
+                  iconWidget: Image.asset(
+                    'assets/offer_b.png',
+                    fit: BoxFit.contain,
+                  ),
+                  label: 'Rewards',
+                  index: 3,
+                  iconSize: iconSize,
+                  fontSize: fontSize,
+                ),
+
+                // Slot 4 - History
+                _navTile(
+                  width: slotWidth,
+                  iconWidget: Image.asset(
+                    'assets/his_b.png',
+                    fit: BoxFit.contain,
+                  ),
+                  label: 'History',
+                  index: 4,
+                  iconSize: iconSize,
+                  fontSize: fontSize,
+                ),
+              ],
+            ),
+          );
+        }),
       ),
     );
   }
 
-  Widget _bottomNavItem(
-      {required String label,
-        required IconData selectedIcon,
-        required IconData unselectedIcon,
-        required int index}) {
+
+
+
+    Widget _navTile({
+    required double width,
+    required Widget iconWidget, // Image.asset or Icon
+    required String label,
+    required int index,
+    required double iconSize,
+    required double fontSize,
+  }) {
     final bool isSelected = _selectedIndex == index;
-    final color = isSelected ? const Color(0xff34A853) : Colors.grey.shade600;
+    final Color activeColor = const Color(0xFF34A853);
+    final Color inactiveColor = Colors.grey.shade600;
+    final color = isSelected ? activeColor : inactiveColor;
+
+    // Build displayedIcon with tint if it's an Image.
+    Widget displayedIcon;
+    if (iconWidget is Image) {
+      // Wrap image in ColorFiltered so we can tint it to active/inactive.
+      // Use BlendMode.srcIn which works if the asset has transparency (white shape).
+      displayedIcon = SizedBox(
+        width: iconSize,
+        height: iconSize,
+        child: ColorFiltered(
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+          child: iconWidget,
+        ),
+      );
+    } else if (iconWidget is Icon) {
+      // If caller passed an Icon widget, tint it directly
+      displayedIcon = SizedBox(
+        width: iconSize,
+        height: iconSize,
+        child: Center(
+          child: Icon(
+            (iconWidget as Icon).icon,
+            size: iconSize,
+            color: color,
+          ),
+        ),
+      );
+    } else {
+      // Fallback: just size the widget and let it render
+      displayedIcon = SizedBox(width: iconSize, height: iconSize, child: Center(child: iconWidget));
+    }
+
     return InkWell(
       onTap: () async {
-        if (index == 1) {
-          // navigate to vouchers screen and refresh on return
-          await Navigator.push(context, MaterialPageRoute(builder: (context) => const UpiVouchersScreen()));
-          // ensure data updated after returning
+        if (index == 0) {
+          await Navigator.push(context, MaterialPageRoute(builder: (c) => const HomeScreen()));
           _loadInitialData();
         } else {
           setState(() {
@@ -182,34 +318,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           });
         }
       },
-      child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(isSelected ? selectedIcon : unselectedIcon, color: color, size: 24),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
-      ]),
+      borderRadius: BorderRadius.circular(10),
+      child: SizedBox(
+        width: width,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon (tinted via ColorFiltered if Image)
+            displayedIcon,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Open Sans',
+                fontSize: fontSize,
+                fontWeight: FontWeight.w400,
+                color: color,
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildFab() {
-    return FloatingActionButton(
-      onPressed: () async {
-        await Navigator.push(context, MaterialPageRoute(builder: (context) => const QrScannerScreen()));
-        // refresh when coming back from scanner
-        _loadInitialData();
-      },
-      backgroundColor: const Color(0xff34A853),
-      shape: const CircleBorder(),
-      child: Image.asset('assets/scan.png', width: 28, height: 28, color: Colors.white),
-    );
-  }
+
+
+
+
 }
-
-/* --------------------
-   HOME CONTENT (responsive improvements)
-   - Reduced spacing above "OFFERS ON VOUCHERS"
-   - More responsive font sizes/paddings
-   - Smarter initial child size for sheet
-   -------------------- */
 
 class HomeContent extends StatelessWidget {
   final String name;
@@ -238,8 +377,15 @@ class HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double statusBarHeight = MediaQuery.of(context).padding.top;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+   // final screenWidth = MediaQuery.of(context).size.width;
+   // final screenHeight = MediaQuery.of(context).size.height;
+
+    final double visibleHeight = 410.0; // fixed visible area (px)
+    final double visibleTop = 494.0; // (optional) if you want to position using absolute top
+    final Size screenSize = MediaQuery.of(context).size;
+    final double screenHeight = screenSize.height;
+    final double screenWidth = screenSize.width;
+
 
     // card width / carousel height (responsive)
     final double cardWidth = (screenWidth < 360)
@@ -248,32 +394,22 @@ class HomeContent extends StatelessWidget {
     final double carouselHeight = math.max(150, cardWidth * 0.85);
 
     // Estimate top area height so the draggable sheet starts below it.
-    // Reduced the extra buffer to allow the sheet to come up higher.
-    final double topAreaEstimatedHeight = statusBarHeight + 12 + // slightly smaller top padding
-        110 + // voucher balance card (reduced a bit)
-        carouselHeight + // carousel
-        16 + // spacing
-        88; // action buttons approx
+    final double topAreaEstimatedHeight = statusBarHeight + 12 + 110 + carouselHeight + 16 + 88;
 
-    // Convert to fraction for DraggableScrollableSheet initialChildSize
     final double initialSheetFraction = (screenHeight - topAreaEstimatedHeight) / screenHeight;
-    // allow smaller min so sheet can appear higher on larger screens; clamp sensibly
-    final double initialChildSize = initialSheetFraction.clamp(0.22, 0.78);
+    final double initialChildSize = (visibleHeight / screenHeight).clamp(0.05, 0.9);
 
     return Stack(
       children: [
-        // Background dark area (fills whole screen behind sheet)
         Container(color: const Color(0xff1C1C1E)),
-        // Column for fixed top area content
         SafeArea(
           bottom: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Top bar
-              Container(color: const Color(0xff1C1C1E), child: _buildTopBar(context)),
-              const SizedBox(height: 8), // slightly smaller
-              // Voucher balance card (future builder)
+              Container(color: const Color(0xff1C1C1E), child: _topBar(context)),
+              const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: FutureBuilder<List<dynamic>>(
@@ -289,12 +425,11 @@ class HomeContent extends StatelessWidget {
                       totalAmount = createdVouchers.fold(
                           0.0, (sum, item) => sum + ((item['amount'] as num?)?.toDouble() ?? 0.0));
                     }
-                    return _buildVoucherBalanceCard(count: activeVoucherCount, totalAmount: totalAmount);
+                    return _voucherBalanceCard(context, count: activeVoucherCount, totalAmount: totalAmount);
                   },
                 ),
               ),
               const SizedBox(height: 12),
-              // Carousel area (fixed height)
               SizedBox(
                 height: carouselHeight,
                 child: FutureBuilder<List<dynamic>>(
@@ -345,42 +480,48 @@ class HomeContent extends StatelessWidget {
                           final double rightPadding = (index == createdVouchers.length - 1) ? math.max(12, screenWidth * 0.04) : 16.0;
                           return Padding(
                               padding: EdgeInsets.only(right: rightPadding),
-                              child: _buildVoucherCard(context, voucherData: voucherData, cardWidth: cardWidth));
+                              child: _voucherCard(context, voucherData: voucherData, cardWidth: cardWidth));
                         });
                   },
                 ),
               ),
               const SizedBox(height: 14),
-              // Action buttons
-             // Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0), child: _buildActionButtons(screenWidth: screenWidth)),
-              const SizedBox(height: 8),
-              // Leave some space - sheet will overlap below
-              const SizedBox(height: 6),
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0), child: _actionButtons(screenWidth: screenWidth)),
+              const SizedBox(height: 14),
             ],
           ),
         ),
 
-        // Draggable/Scrollable white sheet for OFFERS
         DraggableScrollableSheet(
-          initialChildSize: initialChildSize, // responsive initial height
-          minChildSize: 0.18,
-          maxChildSize: 0.95,
+          initialChildSize: initialChildSize,
+          // user cannot collapse below visibleHeight
+          minChildSize: initialChildSize,
+          // allow user to expand up to 70% of screen
+          maxChildSize: 0.70,
           builder: (context, scrollController) {
             return Container(
-              decoration: const BoxDecoration(
+              // decoration + bottom border
+              decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)],
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20.0)),
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
+                border: const Border(bottom: BorderSide(width: 1.0, color: Color(0xFFE0E0E0))), // 1px bottom border
               ),
+              // content
               child: Column(
                 children: [
-                  const SizedBox(height: 8), // reduced from 12 -> 8
-                  // drag handle
+                  const SizedBox(height: 18),
                   Center(
-                      child: Container(
-                          width: 44, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2.5)))),
-                  const SizedBox(height: 6), // reduced spacing before title
-                  // Title (reduced top space as requested)
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Align(
@@ -389,7 +530,7 @@ class HomeContent extends StatelessWidget {
                         'OFFERS ON VOUCHERS',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: math.max(13, screenWidth * 0.036), // responsive font
+                          fontSize: math.max(13, screenWidth * 0.036),
                           color: Colors.black87,
                           letterSpacing: 0.4,
                         ),
@@ -397,7 +538,6 @@ class HomeContent extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // The scrollable offers list that uses the passed scrollController
                   Expanded(
                     child: ListView(
                       controller: scrollController,
@@ -416,127 +556,40 @@ class HomeContent extends StatelessWidget {
             );
           },
         ),
-
-
       ],
     );
   }
 
-  // Keep existing helper widgets as-is (copy from your original code)
-  Widget _buildTopBar(BuildContext context) {
+  // Small top bar inside HomeContent
+  Widget _topBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
       child: Row(
         children: [
           IconButton(
-              icon: const Icon(Icons.sort, color: Colors.white),
-              onPressed: () async {
-                await Navigator.push(context, MaterialPageRoute(builder: (context) => const AccountSettingsScreen()));
-                RefreshService.refresh();
-              }),
+            icon: const Icon(Icons.sort, color: Colors.white),
+            onPressed: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (context) => const AccountSettingsScreen()));
+              RefreshService.refresh();
+            },
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text('Hi, $name', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
           ),
           IconButton(
-              icon: const Icon(Icons.notifications_none, color: Colors.white),
-              onPressed: () async {
-                await Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
-                RefreshService.refresh();
-              }),
+            icon: const Icon(Icons.notifications_none, color: Colors.white),
+            onPressed: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+              RefreshService.refresh();
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildVoucherCard(BuildContext context, {required Map<String, dynamic> voucherData, required double cardWidth}) {
-    String title = voucherData['purposeDesc'] ?? 'N/A';
-    String bankIconBase64 = voucherData['bankIcon'] ?? '';
-    String redemptionType = voucherData['redemtionType'] ?? 'N/A';
-
-    DateTime? expiryDate = _parseDate(voucherData['expDate']);
-    String expiryText = expiryDate != null ? DateFormat('yyyy-MM-dd').format(expiryDate) : 'N/A';
-
-    double amount = (voucherData['amount'] as num?)?.toDouble() ?? 0.0;
-    String displayAmount = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(amount);
-
-    Widget bankIconWidget() {
-      if (bankIconBase64.isNotEmpty) {
-        try {
-          final imageBytes = base64Decode(bankIconBase64);
-          return Image.memory(imageBytes, width: 24, height: 24, fit: BoxFit.contain);
-        } catch (e) {
-          return const Icon(Icons.business, color: Colors.white, size: 24);
-        }
-      }
-      return const Icon(Icons.business, color: Colors.white, size: 24);
-    }
-
-    final double titleFont = math.max(12, cardWidth * 0.05);
-    final double amountFont = math.max(16, cardWidth * 0.075);
-
-    return GestureDetector(
-      onTap: () async {
-        await Navigator.push(context, MaterialPageRoute(builder: (context) => VoucherDetailScreen(voucherData: voucherData)));
-        RefreshService.refresh();
-      },
-      child: Container(
-        width: cardWidth,
-        decoration: BoxDecoration(color: const Color(0xff2C2C2E), borderRadius: BorderRadius.circular(20)),
-        padding: const EdgeInsets.all(14.0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(10)), child: bankIconWidget()),
-            const SizedBox(width: 12),
-            Expanded(child: Text(title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: titleFont), maxLines: 1, overflow: TextOverflow.ellipsis)),
-          ]),
-          const SizedBox(height: 10),
-          const Text('Amount', style: TextStyle(color: Colors.white70, fontSize: 11)),
-          Text(displayAmount, style: TextStyle(color: Colors.white, fontSize: amountFont, fontWeight: FontWeight.bold)),
-          const Spacer(),
-          Divider(color: Colors.white.withOpacity(0.2), height: 1, thickness: 0.5),
-          const SizedBox(height: 10),
-          Row(children: [
-            Icon(Icons.shield_outlined, color: Colors.white.withOpacity(0.9), size: 16),
-            const SizedBox(width: 6),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(redemptionType, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
-              Text('Expires on $expiryText', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10)),
-            ]),
-            const Spacer(),
-            const Icon(Icons.arrow_forward, color: Colors.white, size: 16),
-          ]),
-        ]),
-      ),
-    );
-  }
-
-  /*Widget _buildActionButtons({required double screenWidth}) {
-    // Calculate that 3 buttons fit gracefully on narrow screens by allowing wrap
-    final double effectiveSpacing = 8;
-    final double totalHorizontalPadding = 32; // left+right from parent padding
-    final double available = screenWidth - totalHorizontalPadding - (effectiveSpacing * 2);
-    final buttonWidth = (available / 3).clamp(88.0, 160.0);
-    return Wrap(spacing: 8, runSpacing: 8, children: [
-      SizedBox(width: buttonWidth, child: _actionButton(imagePath: 'assets/issue_icon.png', label: 'Issue')),
-      SizedBox(width: buttonWidth, child: _actionButton(imagePath: 'assets/add_icon.png', label: 'Add Bill')),
-      SizedBox(width: buttonWidth, child: _actionButton(imagePath: 'assets/offer_icon.png', label: 'Rewards')),
-    ]);
-  }*/
-
-  Widget _actionButton({required String imagePath, required String label}) {
-    return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(color: const Color(0xff2C2C2E), borderRadius: BorderRadius.circular(12)),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Image.asset(imagePath, width: 18, height: 18, color: Colors.white),
-          const SizedBox(width: 8),
-          Flexible(child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
-        ]));
-  }
-
-  Widget _buildVoucherBalanceCard({required int count, required double totalAmount}) {
+  Widget _voucherBalanceCard(BuildContext context, {required int count, required double totalAmount}) {
     String displayAmount = NumberFormat.currency(
       locale: 'en_IN',
       symbol: '₹',
@@ -588,6 +641,203 @@ class HomeContent extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _voucherCard(BuildContext context, {required Map<String, dynamic> voucherData, required double cardWidth}) {
+    String title = voucherData['purposeDesc'] ?? 'N/A';
+    String bankIconBase64 = voucherData['bankIcon'] ?? '';
+    String redemptionType = voucherData['redemtionType'] ?? 'N/A';
+
+    DateTime? expiryDate = _parseDate(voucherData['expDate']);
+    String expiryText = expiryDate != null ? DateFormat('yyyy-MM-dd').format(expiryDate) : 'N/A';
+
+    double amount = (voucherData['amount'] as num?)?.toDouble() ?? 0.0;
+    String displayAmount = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(amount);
+
+    Widget bankIconWidget() {
+      if (bankIconBase64.isNotEmpty) {
+        try {
+          final imageBytes = base64Decode(bankIconBase64);
+          return Image.memory(imageBytes, width: 24, height: 24, fit: BoxFit.contain);
+        } catch (e) {
+          return const Icon(Icons.business, color: Colors.white, size: 24);
+        }
+      }
+      return const Icon(Icons.business, color: Colors.white, size: 24);
+    }
+
+    final double titleFont = math.max(12, cardWidth * 0.05);
+    final double amountFont = math.max(16, cardWidth * 0.075);
+
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.push(context, MaterialPageRoute(builder: (context) => VoucherDetailScreen(voucherData: voucherData)));
+        RefreshService.refresh();
+      },
+      child: Container(
+        width: 220,
+        height: 188,
+        decoration: BoxDecoration(color: const Color(0xff2C2C2E), borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.all(14.0),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(10)), child: bankIconWidget()),
+            const SizedBox(width: 12),
+            Expanded(child: Text(title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: titleFont), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          ]),
+          const SizedBox(height: 10),
+          const Text('Amount', style: TextStyle(color: Colors.white70, fontSize: 11)),
+          Text(displayAmount, style: TextStyle(color: Colors.white, fontSize: amountFont, fontWeight: FontWeight.bold)),
+          const Spacer(),
+          Divider(color: Colors.white.withOpacity(0.2), height: 1, thickness: 0.5),
+          const SizedBox(height: 10),
+          Row(children: [
+            Icon(Icons.shield_outlined, color: Colors.white.withOpacity(0.9), size: 16),
+            const SizedBox(width: 6),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(redemptionType, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
+              Text('Expires on $expiryText', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10)),
+            ]),
+            const Spacer(),
+            const Icon(Icons.arrow_forward, color: Colors.white, size: 16),
+          ]),
+        ]),
+      ),
+    );
+  }
+
+  // Put this where your other widget methods are (keep `import 'dart:math' as math;` at top)
+  Widget _actionButtons({required double screenWidth}) {
+    // Design reference
+    const double designButtonWidth = 125.0;
+    const double designButtonHeight = 52.0;
+    const double horizontalPadding = 16.0; // parent padding left/right
+    const double spacingBetweenButtons = 8.0;
+
+    // available width for 3 buttons
+    final double available = math.max(0.0, screenWidth - (horizontalPadding * 2) - (spacingBetweenButtons * 2));
+
+    // prefer design width but shrink if screen is small, expand slightly on large screens
+    final double candidateWidth = available / 3.0;
+    final double buttonWidth = candidateWidth.clamp(88.0, 160.0);
+
+    // scale based on how buttonWidth compares to design width
+    final double scale = (buttonWidth / designButtonWidth).clamp(0.7, 1.3);
+
+    // derived sizes (clamped for sensible ranges)
+    final double buttonHeight = (designButtonHeight * scale).clamp(44.0, 70.0);
+    final double iconSize = (22.0 * scale).clamp(16.0, 30.0);
+    final double fontSize = (14.0 * scale).clamp(12.0, 16.0);
+    final double gap = (8.0 * scale).clamp(6.0, 12.0);
+    final double radius = (10.0 * scale).clamp(8.0, 16.0);
+    final double padV = (16.0 * scale).clamp(10.0, 20.0);
+    final double padH = (10.0 * scale).clamp(8.0, 20.0);
+
+    return Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: spacingBetweenButtons,
+        runSpacing: spacingBetweenButtons,
+        children: [
+          SizedBox(
+            width: buttonWidth,
+            height: buttonHeight,
+            child: _actionButton(
+              imagePath: 'assets/issue_icon.png',
+              label: 'Issue',
+              iconSize: iconSize,
+              fontSize: fontSize,
+              gap: gap,
+              radius: radius,
+              padV: padV,
+              padH: padH,
+            ),
+          ),
+          SizedBox(
+            width: buttonWidth,
+            height: buttonHeight,
+            child: _actionButton(
+              imagePath: 'assets/add_icon.png',
+              label: 'Add Bill',
+              iconSize: iconSize,
+              fontSize: fontSize,
+              gap: gap,
+              radius: radius,
+              padV: padV,
+              padH: padH,
+            ),
+          ),
+          SizedBox(
+            width: buttonWidth,
+            height: buttonHeight,
+            child: _actionButton(
+              imagePath: 'assets/offer_icon.png',
+              label: 'Rewards',
+              iconSize: iconSize,
+              fontSize: fontSize,
+              gap: gap,
+              radius: radius,
+              padV: padV,
+              padH: padH,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton({
+    required String imagePath,
+    required String label,
+    double iconSize = 22.0,
+    double fontSize = 14.0,
+    double gap = 8.0,
+    double radius = 10.0,
+    double padV = 16.0,
+    double padH = 10.0,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap ?? () {},
+      borderRadius: BorderRadius.circular(radius),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: padV, horizontal: padH),
+        decoration: BoxDecoration(
+          color: const Color(0xff2C2C2E),
+          borderRadius: BorderRadius.circular(radius),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // If your assets are colored icons and you don't want them tinted, remove `color`.
+            // If they are monochrome png/svg and you want white, keep color: Colors.white.
+            Image.asset(
+              imagePath,
+              width: iconSize,
+              height: iconSize,
+              fit: BoxFit.contain,
+              color: Colors.white,
+            ),
+            SizedBox(width: gap),
+            Flexible(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                  fontSize: fontSize,
+                  height: 1.4,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

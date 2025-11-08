@@ -30,6 +30,7 @@ dependencies:
   asn1lib: ^1.1.1
   flutter_cashfree_pg_sdk: 2.2.9+47
 
+
   # Zaroori package
   connectivity_plus: ^6.0.3
   internet_connection_checker: ^1.0.0+1
@@ -38,7 +39,7 @@ dependencies:
 
   # UI package
   fluttertoast: ^8.2.12
-  permission_handler: ^11.3.1
+  permission_handler: ^11.3.0
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +69,11 @@ flutter:
     - assets/voucher_illustration.png
     - assets/images/info.png
     - assets/images/revoke.png
+    - assets/India.png
+    - assets/home_b.png
+    - assets/voucher_b.png
+    - assets/offer_b.png
+    - assets/his_b.png
 
 
 flutter_launcher_icons:

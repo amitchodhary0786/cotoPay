@@ -467,7 +467,8 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
 
                debugPrint('Role ID: $roleId');
 
-            if (roleId == 8 || roleId == 9) {
+
+          if (roleId == 8 || roleId == 9 || roleId == 99) {
               return Column(
                 children: [
                   Container(

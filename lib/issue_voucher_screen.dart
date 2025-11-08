@@ -151,11 +151,27 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
     debugPrint('[IssueVoucher] _loadVoucherCategories: fetching top categories');
     try {
-      final resp = await _api_serviceSafeGet(() => _apiService.getVoucherCategoryList());
+      final params = <String, dynamic>{};
+      final user = await SessionManager.getUserData();
+      final employerId = user?.employerid;
+      if (employerId == null) {
+        debugPrint('[IssueVoucher] _loadVoucherCategories: employerId not available in session');
+        setState(() {
+          _loadingCategories = false;
+        });
+        return;
+      }
+
+      params['flag'] = 'VC';
+      params['orgId'] = employerId;
+
+      debugPrint('[IssueVoucher] _loadVoucherCategories: calling POST getVoucherCategoryList with params: $params');
+
+      final resp = await _api_serviceSafeGet(() => _apiService.getVoucherSubCategoryList(params));
+
       debugPrint('[IssueVoucher] _loadVoucherCategories: raw resp => $resp');
 
       if (resp != null && (resp['status'] == true || resp['success'] == true)) {
-        // try multiple possible shapes
         final data = resp['data'] ?? resp['result'] ?? resp;
         List items = [];
         if (data is List) {
@@ -163,9 +179,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         } else if (data is Map && data['data'] is List) {
           items = data['data'];
         } else {
-          // if response contains an object with list under other keys, try best-effort
           if (resp is Map) {
-            // look for first List found in map values
             for (final v in resp.values) {
               if (v is List) {
                 items = v;
@@ -177,22 +191,29 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
         debugPrint('[IssueVoucher] _loadVoucherCategories: parsed ${items.length} categories');
 
-        // Map into internal structure expected by picker
+        // Normalize keys so UI/other code can rely on consistent field names.
         _voucherCategories = items.map<Map<String, dynamic>>((raw) {
-          final topId = raw['id'] ?? raw['topId'] ?? raw['categoryId'];
-          // IMPORTANT: use voucherName from API as category title (this is what you requested)
-          final voucherName = raw['voucherName'] ?? raw['name'] ?? raw['title'] ?? raw['label'] ?? 'Category';
-          final purposeCode = raw['purposeCode'] ?? raw['code'] ?? raw['id'];
-          final icon = raw['voucherIcon'] ?? raw['icon'];
+          // try multiple possible key names to be tolerant of API shapes
+          final topIdCandidate = raw['id'] ?? raw['cototopid'] ?? raw['topId'] ?? raw['categoryId'];
+          final voucherNameCandidate = raw['categoryname'] ?? raw['vouchername'] ?? raw['title'] ?? raw['name'];
+          final purposeCandidate = raw['purpose_code'] ?? raw['purposeCode'] ?? raw['purpose'];
+          final icon = raw['left_vouchericon'] ?? raw['icon'];
+
+          final topIdStr = topIdCandidate?.toString();
 
           return {
-            'topId': topId,
-            'purposeCode': purposeCode,
-            // store voucherName into title so we can use it for purposeDescription/voucherDesc
-            'title': voucherName?.toString() ?? 'Category',
+            // canonical keys used elsewhere in your code
+            'id': topIdStr, // primary id
+            'topId': topIdStr, // alias (some code expects topId)
+            'purposeCode': purposeCandidate?.toString(),
+            'title': voucherNameCandidate?.toString() ?? 'Category',
+            // keep older names too for backward compatibility
+            'vouchername': voucherNameCandidate?.toString() ?? 'Category',
             'icon': icon,
-            'children': <Map<String, dynamic>>[], // start empty; will be filled via subcategory API
+            // initialize children/loading flags so UI can rely on their presence
+            'children': <Map<String, dynamic>>[],
             'loadingChildren': false,
+            // keep raw in case you need original payload
             'raw': raw,
           };
         }).toList();
@@ -210,56 +231,56 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   }
 
   Future<void> _loadSubCategoriesForIndex(int topIndex) async {
-    if (topIndex < 0 || topIndex >= _voucherCategories.length) return;
-    final top = _voucherCategories[topIndex];
-    final purposeCode = top['purposeCode'];
-    final topId = top['topId'];
-    if (purposeCode == null && topId == null) {
-      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: both purposeCode and topId null for index=$topIndex');
+    // guard index
+    if (topIndex < 0 || topIndex >= _voucherCategories.length) {
+      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: invalid topIndex=$topIndex');
       return;
     }
-
-    // ensure children list exists
-    if (top['children'] == null) _voucherCategories[topIndex]['children'] = <Map<String, dynamic>>[];
-
-    // don't reload if children already present
-    final existingChildren = (top['children'] as List).cast<Map<String, dynamic>>();
-    if (existingChildren.isNotEmpty) {
-      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: children already loaded for topId=$topId');
-      return;
-    }
-
-    setState(() {
-      _voucherCategories[topIndex]['loadingChildren'] = true;
-    });
-
-    debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: fetching subcategories for topIndex=$topIndex (topId=$topId purposeCode=$purposeCode)');
 
     try {
       final params = <String, dynamic>{};
 
-      // Prefer sending the explicit topId as 'id' (this ensures getVoucherSubCategoryList receives category id)
-      if (topId != null) {
-        params['id'] = topId;
-      }
-      // Also include purposeCode if available (safe to provide both)
-      if (purposeCode != null) {
-        params['purposeCode'] = purposeCode;
+      final user = await SessionManager.getUserData();
+      final employerId = user?.employerid;
+      if (employerId == null) {
+        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: employerId not available in session');
+        setState(() {
+          _voucherCategories[topIndex]['loadingChildren'] = false;
+        });
+        return;
       }
 
+      params['orgId'] = employerId;
+
+      // send category ID (not the list index)
+      final topCat = _voucherCategories[topIndex];
+      final topCatId = (topCat['id'] ?? topCat['topId'])?.toString();
+      if (topCatId == null) {
+        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: top category id missing at index=$topIndex');
+        setState(() {
+          _voucherCategories[topIndex]['loadingChildren'] = false;
+        });
+        return;
+      }
+
+      params['cotocatid'] = topCatId;
+      params['flag'] = "VD";
+
       debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: calling getVoucherSubCategoryList with params: $params');
+
       final resp = await _api_serviceSafeGet(() => _apiService.getVoucherSubCategoryList(params));
       debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: raw resp => $resp');
 
       if (resp != null && (resp['status'] == true || resp['success'] == true)) {
-        final data = resp['data'];
+        final data = resp['data'] ?? resp['result'] ?? resp;
         List items = [];
-        if (data is List) items = data;
-        else if (data is Map && data['data'] is List) items = data['data'];
-        else {
-          // try to find first List in response map
-          if (data is Map) {
-            for (final v in data.values) {
+        if (data is List) {
+          items = data;
+        } else if (data is Map && data['data'] is List) {
+          items = data['data'];
+        } else {
+          if (resp is Map) {
+            for (final v in resp.values) {
               if (v is List) {
                 items = v;
                 break;
@@ -268,34 +289,63 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           }
         }
 
-        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: parsed ${items.length} children');
+        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: parsed ${items.length} raw children');
 
-        final children = items.map<Map<String, dynamic>>((raw) {
-          final cid = raw['id'];
-          final title = raw['mccDesc'];
-          return {
-            'id': cid,
-            'title': title?.toString() ?? 'mccDesc',
-            'raw': raw,
-          };
-        }).toList();
+        // build children list (tolerant to various API shapes)
+        final List<Map<String, dynamic>> built = [];
+        for (final raw in items) {
+          try {
+            final cidRaw = raw['cotocatid'] ?? raw['id'] ?? raw['childId'] ?? raw['categoryId'];
+            final cid = cidRaw?.toString();
+            final title = (raw['vouchername'] ?? raw['voucherName'] ?? raw['title'] ?? raw['name'])?.toString() ?? 'Sub';
+
+            // skip if id missing
+            if (cid == null || cid.isEmpty) continue;
+
+            // skip if child id equals parent id (this prevents parent appearing as its own child)
+            if (cid == topCatId) {
+              debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: skipping child because cid==parentId ($cid)');
+              continue;
+            }
+
+            built.add({'id': cid, 'title': title, 'raw': raw});
+          } catch (e) {
+            debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: skipping malformed child => $e');
+          }
+        }
+
+        // dedupe by id while preserving order
+        final seen = <String>{};
+        final children = <Map<String, dynamic>>[];
+        for (final c in built) {
+          final id = c['id']?.toString() ?? '';
+          if (id.isEmpty) continue;
+          if (seen.contains(id)) continue;
+          seen.add(id);
+          children.add(c);
+        }
+
+        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: final children count=${children.length} for parentId=$topCatId');
 
         setState(() {
           _voucherCategories[topIndex]['children'] = children;
         });
       } else {
         debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: response indicates failure or no children');
-        // leave children empty, caller will treat top category as selectable
+        // leave children as-is (empty) — caller will treat top category as selectable
       }
     } catch (e, st) {
       debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: error => $e\n$st');
     } finally {
-      setState(() {
-        _voucherCategories[topIndex]['loadingChildren'] = false;
-      });
+      try {
+        setState(() {
+          _voucherCategories[topIndex]['loadingChildren'] = false;
+        });
+      } catch (_) {}
       debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: finished for topIndex=$topIndex');
     }
   }
+
 
   // ---------------- employee search integration (use getVoucherNameSearchMobile) ----------------
 
@@ -646,8 +696,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                               // Set selectedVoucher to top title and also store top voucherName for payload fields
                                               _entries[forIndex].selectedVoucher = title;
                                               _entries[forIndex].selectedPurposeCode = cat['purposeCode']?.toString();
-                                              _entries[forIndex].selectedTopId = cat['topId']?.toString();
-
+                                           //   _entries[forIndex].selectedTopId = cat['topId']?.toString();
+                                              _entries[forIndex].selectedTopId = (cat['id'] ?? cat['topId'])?.toString();
                                               // store parent voucherName to be used as purposeDescription and voucherDesc in payload
                                               _entries[forIndex].selectedTopVoucherName = title;
 
