@@ -31,6 +31,32 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+
+        ndk {
+            abiFilters.clear()
+            abiFilters += listOf("arm64-v8a")
+        }
+    }
+
+
+
+    // ✅ Exclude all other ABIs
+    packaging {
+        jniLibs {
+            excludes += listOf(
+                "**/armeabi-v7a/**",
+                "**/x86/**",
+                "**/x86_64/**"
+            )
+        }
+    }
+
+    // ✅ Ensure bundle does not split ABIs
+    bundle {
+        abi {
+            enableSplit = false
+        }
     }
 
 

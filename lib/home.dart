@@ -160,11 +160,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  // -------------------------
-  // Responsive bottom bar (5 equal slots)
-  // -------------------------
-  Widget _buildBottomNavBarResponsive()
-  {
+  Widget _buildBottomNavBarResponsive() {
+    // keep fabDiameter same as the FAB sized box above
+    const double fabDiameter = 64.0;
+    // smaller notch padding so reserved center space doesn't consume too much width
+    const double notchPadding = 12.0;
+    final double reservedCenterWidth = fabDiameter + notchPadding;
+
+    // total height allocated to bottom bar (enough to hold icon + label)
+    const double bottomBarHeight = 68.0;
+
+    // This matches the Padding used below — we MUST subtract it from constraints
+    const double horizontalPadding = 8.0;
+    const double verticalPadding = 4.0;
+
     return BottomAppBar(
       color: Colors.white,
       elevation: 6,
@@ -172,179 +181,113 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       notchMargin: 6,
       child: SafeArea(
         top: false,
-        child: LayoutBuilder(builder: (context, constraints) {
-          const horizontalPadding = 12.0;
-          final availableWidth = constraints.maxWidth - (horizontalPadding * 2);
+        child: SizedBox(
+          height: bottomBarHeight,
+          child: LayoutBuilder(builder: (context, constraints) {
+            final totalWidth = constraints.maxWidth;
 
-          // 5 equal slots (4 menu + 1 center placeholder)
-          final slotWidth = availableWidth / 5.0;
+            // SUBTRACT the horizontal padding so the computed slot widths fit inside the padded Row.
+            final usableWidth = totalWidth - (horizontalPadding * 2);
 
-          // responsive icon size & font size (clamped)
-          final iconSize = (slotWidth * 0.34).clamp(18.0, 28.0);
-          final fontSize = (slotWidth * 0.16).clamp(10.0, 13.0);
+            // Now reserve center width and divide remaining for 4 slots.
+            final availableForSlots = usableWidth - reservedCenterWidth;
+            final double slotWidth = (availableForSlots / 4.0).clamp(56.0, 160.0);
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8.0),
-            child: Row(
-              children: [
-                // Slot 0 - Home
-                _navTile(
-                  width: slotWidth,
-                  iconWidget: Image.asset(
-                    'assets/home_b.png', // use your actual asset file
-                    fit: BoxFit.contain,
-                  ),
-                  label: 'Home',
-                  index: 0,
-                  iconSize: iconSize,
-                  fontSize: fontSize,
-                ),
+            // compute icon / font sizes once here so they are identical for all tiles
+            final double iconSize = (slotWidth * 0.42).clamp(18.0, 28.0);
+            final double fontSize = (slotWidth * 0.18).clamp(10.0, 13.0);
 
-                // Slot 1 - Vouchers
-                _navTile(
-                  width: slotWidth,
-                  iconWidget: Image.asset(
-                    'assets/voucher_b.png',
-                    fit: BoxFit.contain,
-                  ),
-                  label: 'Vouchers',
-                  index: 1,
-                  iconSize: iconSize,
-                  fontSize: fontSize,
-                ),
+            return Padding(
+              // must match horizontalPadding used above
+              padding: const EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // left slot 0
+                  _navTileFixed(width: slotWidth, iconPath: 'assets/home_b.png', label: 'Home', index: 0, iconSize: iconSize, fontSize: fontSize),
+                  // left slot 1
+                  _navTileFixed(width: slotWidth, iconPath: 'assets/voucher_b.png', label: 'Vouchers', index: 1, iconSize: iconSize, fontSize: fontSize),
 
+                  // center reserved area for FAB (in layout only, empty widget)
+                  SizedBox(width: reservedCenterWidth),
 
-                // Slot 2 - Center placeholder (keeps spacing equal)
-                SizedBox(
-                  width: slotWidth,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // reserve vertical space so labels align
-                      SizedBox(height: iconSize),
-                      const SizedBox(height: 4),
-                    ],
-                  ),
-                ),
-
-                // Slot 3 - Rewards
-                _navTile(
-                  width: slotWidth,
-                  iconWidget: Image.asset(
-                    'assets/offer_b.png',
-                    fit: BoxFit.contain,
-                  ),
-                  label: 'Rewards',
-                  index: 3,
-                  iconSize: iconSize,
-                  fontSize: fontSize,
-                ),
-
-                // Slot 4 - History
-                _navTile(
-                  width: slotWidth,
-                  iconWidget: Image.asset(
-                    'assets/his_b.png',
-                    fit: BoxFit.contain,
-                  ),
-                  label: 'History',
-                  index: 4,
-                  iconSize: iconSize,
-                  fontSize: fontSize,
-                ),
-              ],
-            ),
-          );
-        }),
+                  // right slot 3
+                  _navTileFixed(width: slotWidth, iconPath: 'assets/offer_b.png', label: 'Rewards', index: 3, iconSize: iconSize, fontSize: fontSize),
+                  // right slot 4
+                  _navTileFixed(width: slotWidth, iconPath: 'assets/his_b.png', label: 'History', index: 4, iconSize: iconSize, fontSize: fontSize),
+                ],
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
-
-
-
-
-    Widget _navTile({
+  Widget _navTileFixed({
     required double width,
-    required Widget iconWidget, // Image.asset or Icon
+    required String iconPath,
     required String label,
     required int index,
     required double iconSize,
     required double fontSize,
-  }) {
+  })
+  {
     final bool isSelected = _selectedIndex == index;
     final Color activeColor = const Color(0xFF34A853);
     final Color inactiveColor = Colors.grey.shade600;
     final color = isSelected ? activeColor : inactiveColor;
 
-    // Build displayedIcon with tint if it's an Image.
-    Widget displayedIcon;
-    if (iconWidget is Image) {
-      // Wrap image in ColorFiltered so we can tint it to active/inactive.
-      // Use BlendMode.srcIn which works if the asset has transparency (white shape).
-      displayedIcon = SizedBox(
-        width: iconSize,
-        height: iconSize,
-        child: ColorFiltered(
-          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-          child: iconWidget,
-        ),
-      );
-    } else if (iconWidget is Icon) {
-      // If caller passed an Icon widget, tint it directly
-      displayedIcon = SizedBox(
-        width: iconSize,
-        height: iconSize,
-        child: Center(
-          child: Icon(
-            (iconWidget as Icon).icon,
-            size: iconSize,
-            color: color,
-          ),
-        ),
-      );
-    } else {
-      // Fallback: just size the widget and let it render
-      displayedIcon = SizedBox(width: iconSize, height: iconSize, child: Center(child: iconWidget));
-    }
+    // Prefer ImageIcon for reliable tinting. If your PNGs aren't monochrome use the ImageIcon with AssetImage.
+    final Widget displayedIcon = SizedBox(
+      width: iconSize,
+      height: iconSize,
+      child: ImageIcon(
+        AssetImage(iconPath),
+        size: iconSize,
+        color: color,
+      ),
+    );
 
     return InkWell(
-      onTap: () async {
-        if (index == 0) {
-          await Navigator.push(context, MaterialPageRoute(builder: (c) => const HomeScreen()));
-          _loadInitialData();
-        } else {
-          setState(() {
-            _selectedIndex = index;
-          });
+      onTap: () {
+        if (!mounted) return;
+        if (_selectedIndex == index) {
+          if (index == 0) _loadInitialData();
+          return;
         }
+        setState(() {
+          _selectedIndex = index;
+        });
       },
       borderRadius: BorderRadius.circular(10),
       child: SizedBox(
         width: width,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icon (tinted via ColorFiltered if Image)
             displayedIcon,
             const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Open Sans',
-                fontSize: fontSize,
-                fontWeight: FontWeight.w400,
-                color: color,
-                height: 1.0,
+            // hide label on very small slots (avoid wrapping)
+            if (width >= 64)
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Open Sans',
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w400,
+                  color: color,
+                  height: 1.0,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
           ],
         ),
       ),
     );
   }
-
-
 
 
 
@@ -438,10 +381,10 @@ class HomeContent extends StatelessWidget {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator(color: Colors.white));
                     }
-                    if (snapshot.hasError) {
+                    /*if (snapshot.hasError) {
                       return Center(
                           child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
-                    }
+                    }*/
 
                     final createdVouchers =
                     snapshot.hasData ? snapshot.data!.where((voucher) => voucher['type'] == 'Active').toList() : [];

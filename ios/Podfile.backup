@@ -3,9 +3,7 @@ platform :ios, '13.0'
 
 # Use static linkage to avoid duplicate symbols
 use_frameworks! :linkage => :static
-# NOTE: use_modular_headers! is intentionally disabled because it often
-# breaks visibility of Flutter headers for some plugins.
-# use_modular_headers!
+use_modular_headers!
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -46,8 +44,6 @@ target 'Runner' do
 end
 
 # --- Post install configuration ---
-# This ensures proper deployment target, Swift version, and allows some non-modular includes
-# which can be necessary for certain plugin headers.
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
@@ -57,8 +53,6 @@ post_install do |installer|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       # Make sure Swift version is set
       config.build_settings['SWIFT_VERSION'] = '5.0'
-      # Allow non-modular includes in framework modules (helps some plugin headers)
-      config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
     end
   end
 end

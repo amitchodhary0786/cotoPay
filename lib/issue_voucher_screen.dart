@@ -7,7 +7,6 @@ import 'package:cotopay/voucher_verify_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-// Your existing project services (these must exist in your project)
 import 'api_service.dart';
 import 'package:cotopay/session_manager.dart';
 import 'package:flutter/services.dart';
@@ -34,6 +33,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   String _selectedBankId = '';
   double _availableBalance = 0.0;
   bool _loadingBalance = true;
+  bool get _isPositiveBalance => !_loadingBalance && (_availableBalance != null && _availableBalance > 0.0);
 
   // store full selected bank object (so we can read merchant/submerchant/payerva/etc)
   Map<String, dynamic>? _selectedBankFull;
@@ -61,7 +61,6 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     super.initState();
     _loadBanks();
     _loadVoucherCategories();
-    // Add initial entry BUT do not auto-focus/scroll when screen opens
     _addNewEntry(focus: false);
   }
 
@@ -127,7 +126,6 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     }
   }
 
-  // safe wrapper for API calls
   Future<Map<String, dynamic>?> _api_serviceSafeGet(Future<Map<String, dynamic>?> Function() fn) async {
     try {
       debugPrint('[IssueVoucher] _api_serviceSafeGet: calling API...');
@@ -142,7 +140,6 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
   // ---------------- voucher categories ----------------
 
-  /// Loads top-level voucher categories from API and builds internal model.
   Future<void> _loadVoucherCategories() async {
     setState(() {
       _loadingCategories = true;
@@ -164,10 +161,11 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
       params['flag'] = 'VC';
       params['orgId'] = employerId;
+    //  params['orgId'] = "101";
 
       debugPrint('[IssueVoucher] _loadVoucherCategories: calling POST getVoucherCategoryList with params: $params');
 
-      final resp = await _api_serviceSafeGet(() => _apiService.getVoucherSubCategoryList(params));
+      final resp = await _api_serviceSafeGet(() => _apiService.getVoucherCategoryList(params));
 
       debugPrint('[IssueVoucher] _loadVoucherCategories: raw resp => $resp');
 
@@ -231,117 +229,100 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   }
 
   Future<void> _loadSubCategoriesForIndex(int topIndex) async {
-    // guard index
     if (topIndex < 0 || topIndex >= _voucherCategories.length) {
       debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: invalid topIndex=$topIndex');
       return;
     }
 
     try {
-      final params = <String, dynamic>{};
+      setState(() => _voucherCategories[topIndex]['loadingChildren'] = true);
 
       final user = await SessionManager.getUserData();
       final employerId = user?.employerid;
       if (employerId == null) {
-        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: employerId not available in session');
-        setState(() {
-          _voucherCategories[topIndex]['loadingChildren'] = false;
-        });
+        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: employerId not available');
+        setState(() => _voucherCategories[topIndex]['loadingChildren'] = false);
         return;
       }
 
-      params['orgId'] = employerId;
-
-      // send category ID (not the list index)
       final topCat = _voucherCategories[topIndex];
-      final topCatId = (topCat['id'] ?? topCat['topId'])?.toString();
-      if (topCatId == null) {
-        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: top category id missing at index=$topIndex');
-        setState(() {
-          _voucherCategories[topIndex]['loadingChildren'] = false;
-        });
+      final topCatId = (topCat['id'] ?? topCat['topId'] ?? topCat['id_pk'])?.toString()?.trim();
+      if (topCatId == null || topCatId.isEmpty) {
+        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: missing topCatId');
+        setState(() => _voucherCategories[topIndex]['loadingChildren'] = false);
         return;
       }
 
-      params['cotocatid'] = topCatId;
-      params['flag'] = "VD";
+      final params = {
+        'orgId': employerId,
+        'cotocatid': int.tryParse(topCatId) ?? topCatId,
+        'flag': 'VD',
+      };
 
-      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: calling getVoucherSubCategoryList with params: $params');
+      debugPrint('Category Id: ${int.tryParse(topCatId) ?? topCatId}');
+      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: calling getVoucherSubCategoryList with params: ${jsonEncode(params)}');
 
-      final resp = await _api_serviceSafeGet(() => _apiService.getVoucherSubCategoryList(params));
+      final dynamic resp = await _api_serviceSafeGet(() => _apiService.getVoucherSubCategoryList(params));
       debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: raw resp => $resp');
 
-      if (resp != null && (resp['status'] == true || resp['success'] == true)) {
-        final data = resp['data'] ?? resp['result'] ?? resp;
-        List items = [];
-        if (data is List) {
-          items = data;
-        } else if (data is Map && data['data'] is List) {
-          items = data['data'];
+      // ✅ Extract list safely from response
+      List items = [];
+      try {
+        if (resp == null) {
+          items = [];
+        } else if (resp is Map && resp['data'] is Map && resp['data']['list'] is List) {
+          // your actual format
+          items = resp['data']['list'] as List;
+        } else if (resp is Map && resp['list'] is List) {
+          items = resp['list'] as List;
+        } else if (resp is List) {
+          items = resp;
         } else {
-          if (resp is Map) {
-            for (final v in resp.values) {
-              if (v is List) {
-                items = v;
-                break;
-              }
+          for (final v in resp.values) {
+            if (v is List) {
+              items = v;
+              break;
             }
           }
         }
-
-        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: parsed ${items.length} raw children');
-
-        // build children list (tolerant to various API shapes)
-        final List<Map<String, dynamic>> built = [];
-        for (final raw in items) {
-          try {
-            final cidRaw = raw['cotocatid'] ?? raw['id'] ?? raw['childId'] ?? raw['categoryId'];
-            final cid = cidRaw?.toString();
-            final title = (raw['vouchername'] ?? raw['voucherName'] ?? raw['title'] ?? raw['name'])?.toString() ?? 'Sub';
-
-            // skip if id missing
-            if (cid == null || cid.isEmpty) continue;
-
-            // skip if child id equals parent id (this prevents parent appearing as its own child)
-            if (cid == topCatId) {
-              debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: skipping child because cid==parentId ($cid)');
-              continue;
-            }
-
-            built.add({'id': cid, 'title': title, 'raw': raw});
-          } catch (e) {
-            debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: skipping malformed child => $e');
-          }
-        }
-
-        // dedupe by id while preserving order
-        final seen = <String>{};
-        final children = <Map<String, dynamic>>[];
-        for (final c in built) {
-          final id = c['id']?.toString() ?? '';
-          if (id.isEmpty) continue;
-          if (seen.contains(id)) continue;
-          seen.add(id);
-          children.add(c);
-        }
-
-        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: final children count=${children.length} for parentId=$topCatId');
-
-        setState(() {
-          _voucherCategories[topIndex]['children'] = children;
-        });
-      } else {
-        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: response indicates failure or no children');
-        // leave children as-is (empty) — caller will treat top category as selectable
+      } catch (e) {
+        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: error extracting list => $e');
+        items = [];
       }
+
+      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: found ${items.length} children');
+
+      // ✅ Build subcategories list
+      final children = <Map<String, dynamic>>[];
+      final seen = <String>{};
+
+      for (final raw in items) {
+        if (raw is! Map) continue;
+
+        final id = (raw['id_pk'] ?? raw['id'] ?? raw['cotocatid'])?.toString() ?? '';
+        if (id.isEmpty || seen.contains(id)) continue;
+        seen.add(id);
+
+        final name = (raw['vouchername'] ?? raw['purpose_desc'] ?? 'Subcategory').toString();
+        final icon = (raw['vouchericon'] ?? raw['left_vouchericon'])?.toString();
+
+        children.add({
+          'id': id,
+          'title': name,
+          'left_vouchericon': icon,
+          'raw': raw,
+        });
+      }
+
+      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: built ${children.length} children for parent=$topCatId');
+
+      setState(() {
+        _voucherCategories[topIndex]['children'] = children;
+      });
     } catch (e, st) {
       debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: error => $e\n$st');
     } finally {
-      try {
-        setState(() {
-          _voucherCategories[topIndex]['loadingChildren'] = false;
-        });
-      } catch (_) {}
+      setState(() => _voucherCategories[topIndex]['loadingChildren'] = false);
       debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: finished for topIndex=$topIndex');
     }
   }
@@ -877,86 +858,351 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   // ---------------- UI helpers ----------------
   double _clamp(double v, double a, double b) => v.clamp(a, b);
 
-  Widget _bankSelectorBox(double iconSize, double innerPadding) {
-    return GestureDetector(
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-          builder: (ctx) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8.0, bottom: 12.0),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 10), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4))),
-                  const Padding(padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8), child: Align(alignment: Alignment.centerLeft, child: Text('SELECT ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)))),
-                  if (_loadingBanks)
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 32.0), child: Center(child: CircularProgressIndicator()))
-                  else if (_banks.isEmpty)
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 24.0), child: Text('No accounts available'))
-                  else
-                    Flexible(
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: _banks.length,
-                        separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
-                        itemBuilder: (context, index) {
-                          final bank = _banks[index];
-                          final bankName = (bank['bankName'] ?? bank['name'] ?? 'Bank').toString();
-                          final account = (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '').toString();
-                          final masked = _maskAccount(account);
-                          final bankIconBase64 = bank['bankIcon']?.toString();
-                          return ListTile(
-                            onTap: () {
-                              debugPrint('[IssueVoucher] bank list tapped index=$index, account=$account');
-                              _selectBankAtIndex(index);
-                              Navigator.of(ctx).pop();
-                            },
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                            leading: _bankIconWidget(bankIconBase64, size: 44),
-                            title: Text(bankName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: _formFontSize)),
-                            subtitle: Text(masked, style: const TextStyle(fontSize: _formFontSize)),
-                            trailing: const Icon(Icons.chevron_right),
-                          );
+  // Widget _bankSelectorBox(double iconSize, double innerPadding) {
+  //   return GestureDetector(
+  //     onTap: () {
+  //       showModalBottomSheet(
+  //         context: context,
+  //         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+  //         builder: (ctx) {
+  //           return SafeArea(
+  //             child: Padding(
+  //               padding: const EdgeInsets.only(top: 8.0, bottom: 12.0),
+  //               child: Column(mainAxisSize: MainAxisSize.min, children: [
+  //                 Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 10), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4))),
+  //                 const Padding(padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8), child: Align(alignment: Alignment.centerLeft, child: Text('SELECT ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)))),
+  //                 if (_loadingBanks)
+  //                   const Padding(padding: EdgeInsets.symmetric(vertical: 32.0), child: Center(child: CircularProgressIndicator()))
+  //                 else if (_banks.isEmpty)
+  //                   const Padding(padding: EdgeInsets.symmetric(vertical: 24.0), child: Text('No accounts available'))
+  //                 else
+  //                   Flexible(
+  //                     child: ListView.separated(
+  //                       shrinkWrap: true,
+  //                       padding: const EdgeInsets.symmetric(vertical: 8),
+  //                       itemCount: _banks.length,
+  //                       separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+  //                       itemBuilder: (context, index) {
+  //                         final bank = _banks[index];
+  //                         final bankName = (bank['bankName'] ?? bank['name'] ?? 'Bank').toString();
+  //                         final account = (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '').toString();
+  //                         final masked = _maskAccount(account);
+  //                         final bankIconBase64 = bank['bankIcon']?.toString();
+  //                         return ListTile(
+  //                           onTap: () {
+  //                             debugPrint('[IssueVoucher] bank list tapped index=$index, account=$account');
+  //                             _selectBankAtIndex(index);
+  //                             Navigator.of(ctx).pop();
+  //                           },
+  //                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+  //                           leading: _bankIconWidget(bankIconBase64, size: 44),
+  //                           title: Text(bankName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: _formFontSize)),
+  //                           subtitle: Text(masked, style: const TextStyle(fontSize: _formFontSize)),
+  //                           trailing: const Icon(Icons.chevron_right),
+  //                         );
+  //                       },
+  //                     ),
+  //                   ),
+  //               ]),
+  //             ),
+  //           );
+  //         },
+  //       );
+  //     },
+  //     child: Container(
+  //       padding: EdgeInsets.symmetric(horizontal: innerPadding, vertical: innerPadding * 0.6),
+  //       decoration: BoxDecoration(
+  //         color: const Color(0xFF26282C),
+  //         borderRadius: BorderRadius.circular(10),
+  //         border: Border.all(color: Colors.white.withOpacity(0.08)),
+  //       ),
+  //       child: Row(children: [
+  //         RichText(text: TextSpan(children: [
+  //           TextSpan(text: 'coto', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: _clamp(MediaQuery.of(context).size.width * 0.045, 14, 20))),
+  //           const WidgetSpan(child: SizedBox(width: 6)),
+  //           TextSpan(text: 'Balance', style: TextStyle(color: Colors.white.withOpacity(0.95), fontWeight: FontWeight.w500, fontSize: _clamp(MediaQuery.of(context).size.width * 0.04, 12, 16))),
+  //         ])),
+  //         const Spacer(),
+  //         Container(
+  //           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+  //           decoration: BoxDecoration(
+  //             color: const Color(0xFF26282C),
+  //             borderRadius: BorderRadius.circular(8),
+  //             border: Border.all(color: Colors.white.withOpacity(0.06)),
+  //           ),
+  //           child: Text(_SelectedBankMaskedOrDefault(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+  //         ),
+  //         const SizedBox(width: 8),
+  //         const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
+  //       ]),
+  //     ),
+  //   );
+  // }
+
+
+
+
+  // reuse the same modal-opening logic from _bankSelectorBox but in one place
+  void _openBankModal() {
+    debugPrint('[IssueVoucher] openBankModal called');
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8.0, bottom: 12.0),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 10), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4))),
+              const Padding(padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8), child: Align(alignment: Alignment.centerLeft, child: Text('SELECT ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)))),
+              if (_loadingBanks)
+                const Padding(padding: EdgeInsets.symmetric(vertical: 32.0), child: Center(child: CircularProgressIndicator()))
+              else if (_banks.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24.0),
+                  child: Column(
+                    children: [
+                      const Text('No accounts available'),
+                      const SizedBox(height: 8),
+                      ElevatedButton(onPressed: _loadBanks, child: const Text('Retry')),
+                    ],
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: _banks.length,
+                    separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+                    itemBuilder: (context, index) {
+                      final bank = _banks[index];
+                      final bankName = (bank['bankName'] ?? bank['name'] ?? 'Bank').toString();
+                      final account = (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '').toString();
+                      final masked = _maskAccount(account);
+                      final bankIconBase64 = bank['bankIcon']?.toString();
+                      return ListTile(
+                        onTap: () {
+                          debugPrint('[IssueVoucher] bank list tapped index=$index, account=$account');
+                          _selectBankAtIndex(index);
+                          Navigator.of(ctx).pop();
                         },
-                      ),
-                    ),
-                ]),
-              ),
-            );
-          },
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        leading: _bankIconWidget(bankIconBase64, size: 44),
+                        title: Text(bankName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: _formFontSize)),
+                        subtitle: Text(masked, style: const TextStyle(fontSize: _formFontSize)),
+                        trailing: const Icon(Icons.chevron_right),
+                      );
+                    },
+                  ),
+                ),
+            ]),
+          ),
         );
       },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: innerPadding, vertical: innerPadding * 0.6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF26282C),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
-        ),
-        child: Row(children: [
-          RichText(text: TextSpan(children: [
-            TextSpan(text: 'coto', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: _clamp(MediaQuery.of(context).size.width * 0.045, 14, 20))),
-            const WidgetSpan(child: SizedBox(width: 6)),
-            TextSpan(text: 'Balance', style: TextStyle(color: Colors.white.withOpacity(0.95), fontWeight: FontWeight.w500, fontSize: _clamp(MediaQuery.of(context).size.width * 0.04, 12, 16))),
-          ])),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF26282C),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white.withOpacity(0.06)),
-            ),
-            child: Text(_SelectedBankMaskedOrDefault(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+    );
+  }
+
+// New dark-style selector that shows "cotoBalance" on left and masked account on right.
+// Tappable and opens the same modal (via _openBankModal()).
+  Widget _bankSelectorDarkBox(double sw, double innerPadding) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => _openBankModal(),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: innerPadding, vertical: innerPadding * 0.6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF26282C),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white.withOpacity(0.06)),
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
-        ]),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // left: coto Balance text (rich text)
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'coto',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: _clamp(sw * 0.045, 14, 20),
+                      ),
+                    ),
+                    const WidgetSpan(child: SizedBox(width: 6)),
+                    TextSpan(
+                      text: 'Balance',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.95),
+                        fontWeight: FontWeight.w500,
+                        fontSize: _clamp(sw * 0.04, 12, 16),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Spacer(),
+
+              // masked account in a small rounded box (right side)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF26282C),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                ),
+                child: Text(
+                  _SelectedBankMaskedOrDefault(),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ),
+
+              const SizedBox(width: 8),
+              const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
+            ],
+          ),
+        ),
       ),
     );
   }
+
+
+  Widget _bankSelectorBox(double iconSize, double innerPadding) {
+    final bool dark = _isPositiveBalance;
+
+    // Build a small leading bank icon widget for the selector (use selected bank if available)
+    Widget leadingSelectorIcon() {
+      // check for bank icon from selectedBankFull, else fallback to default icon widget
+      try {
+        final rawIcon = _selectedBankFull != null
+            ? (_selectedBankFull!['bankIcon'] ?? _selectedBankFull!['bankicon'] ?? _selectedBankFull!['left_vouchericon'])
+            : null;
+        if (rawIcon != null && rawIcon.toString().trim().isNotEmpty) {
+          return _bankIconWidget(rawIcon.toString(), size: 36);
+        }
+      } catch (_) {}
+      // fallback default avatar/icon
+      return Container(width: 36, height: 36, decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)), child: Icon(Icons.account_balance, color: Colors.green, size: 20));
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () {
+          debugPrint('[IssueVoucher] bank selector tapped');
+          // open the same modal bank list as original code
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true, // allow taller modal if needed
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+            builder: (ctx) {
+              return SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8.0, bottom: 12.0),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 10), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4))),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8), child: Align(alignment: Alignment.centerLeft, child: Text('SELECT ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)))),
+                    if (_loadingBanks)
+                      const Padding(padding: EdgeInsets.symmetric(vertical: 32.0), child: Center(child: CircularProgressIndicator()))
+                    else if (_banks.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24.0),
+                        child: Column(
+                          children: [
+                            const Text('No accounts available'),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: _loadBanks,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Flexible(
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: _banks.length,
+                          separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+                          itemBuilder: (context, index) {
+                            final bank = _banks[index];
+                            final bankName = (bank['bankName'] ?? bank['name'] ?? 'Bank').toString();
+                            final account = (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '').toString();
+                            final masked = _maskAccount(account);
+                            final bankIconBase64 = bank['bankIcon']?.toString();
+                            return ListTile(
+                              onTap: () {
+                                debugPrint('[IssueVoucher] bank list tapped index=$index, account=$account');
+                                _selectBankAtIndex(index);
+                                Navigator.of(ctx).pop();
+                              },
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              leading: _bankIconWidget(bankIconBase64, size: 44),
+                              title: Text(bankName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: _formFontSize)),
+                              subtitle: Text(masked, style: const TextStyle(fontSize: _formFontSize)),
+                              trailing: const Icon(Icons.chevron_right),
+                            );
+                          },
+                        ),
+                      ),
+                  ]),
+                ),
+              );
+            },
+          );
+        },
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: innerPadding, vertical: innerPadding * 0.6),
+          decoration: BoxDecoration(
+            color: dark ? const Color(0xFF26282C) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: dark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+          ),
+          child: Row(children: [
+            // Leading bank icon inside selector (matches modal icon)
+            leadingSelectorIcon(),
+            const SizedBox(width: 12),
+
+            // Bank name and mask
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _selectedBankName,
+                    style: TextStyle(
+                      color: dark ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.w600,
+                      fontSize: _clamp(MediaQuery.of(context).size.width * 0.038, 13, 18),
+                    ),
+                  ),
+                  // show masked account inline (smaller / muted)
+                  Text(
+                    _SelectedBankMaskedOrDefault(),
+                    style: TextStyle(color: dark ? Colors.white70 : Colors.grey.shade600, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 8),
+            Icon(Icons.keyboard_arrow_down, color: dark ? Colors.white70 : Colors.black54),
+          ]),
+        ),
+      ),
+    );
+
+
+  }
+
 
   String _SelectedBankMaskedOrDefault() {
     return _selectedBankMasked.isNotEmpty ? _selectedBankMasked : 'xxxx1234';
@@ -1004,48 +1250,144 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           controller: _scroll_controller_safe(),
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: horizontalPadding),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Container(
+            //   width: double.infinity,
+            //   decoration: BoxDecoration(color: const Color(0xFF26282C), borderRadius: BorderRadius.circular(cardRadius)),
+            //   child: ClipRRect(
+            //     borderRadius: BorderRadius.circular(cardRadius),
+            //     child: Container(
+            //       padding: EdgeInsets.symmetric(horizontal: innerPadding, vertical: innerPadding),
+            //       color: const Color(0xFF26282C),
+            //       child: Column(
+            //         children: [
+            //           Row(
+            //             children: [
+            //               Expanded(child: _bankSelectorBox(_clamp(sw * 0.05, 18, 24), innerPadding)),
+            //             ],
+            //           ),
+            //           SizedBox(height: innerPadding),
+            //           Row(
+            //             children: [
+            //               const Spacer(),
+            //               if (_loadingBalance)
+            //                 SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            //               else
+            //                 Column(
+            //                   crossAxisAlignment: CrossAxisAlignment.end,
+            //                   children: [
+            //                     Text(
+            //                       NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(_availableBalance),
+            //                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: rightAmountFont),
+            //                     ),
+            //                     SizedBox(height: 6),
+            //                     Text('Available Balance', style: TextStyle(color: Colors.white70, fontSize: labelFont)),
+            //                   ],
+            //                 ),
+            //             ],
+            //           ),
+            //         ],
+            //       ),
+            //     ),
+            //   ),
+            // ),
+
+
+            // Top card: show dark design only when balance > 0, otherwise show light card
+            // Top card: dark view when positive balance, otherwise white card that contains
+// bank selector + disabled "Check Balance" button + info (all inside the same card)
             Container(
               width: double.infinity,
-              decoration: BoxDecoration(color: const Color(0xFF26282C), borderRadius: BorderRadius.circular(cardRadius)),
+              decoration: BoxDecoration(
+                color: _isPositiveBalance ? const Color(0xFF26282C) : Colors.white,
+                borderRadius: BorderRadius.circular(cardRadius),
+                border: _isPositiveBalance ? null : Border.all(color: Colors.grey.shade200),
+                boxShadow: _isPositiveBalance ? null : [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0,2))],
+              ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(cardRadius),
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: innerPadding, vertical: innerPadding),
-                  color: const Color(0xFF26282C),
+                  color: _isPositiveBalance ? const Color(0xFF26282C) : Colors.white,
                   child: Column(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(child: _bankSelectorBox(_clamp(sw * 0.05, 18, 24), innerPadding)),
-                        ],
-                      ),
+                      // Bank selector row (same widget but it adapts to dark / light)
+                      Row(children: [
+                        Expanded(
+                          child: _isPositiveBalance
+                              ? _bankSelectorDarkBox(sw, innerPadding) // new dark-style tappable selector (cotoBalance)
+                              : _bankSelectorBox(_clamp(sw * 0.05, 18, 24), innerPadding), // light bank header (existing)
+                        ),
+                      ]),
+
                       SizedBox(height: innerPadding),
-                      Row(
-                        children: [
-                          const Spacer(),
-                          if (_loadingBalance)
-                            SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          else
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(_availableBalance),
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: rightAmountFont),
+
+                      // If balance known and positive -> show amount block (dark style)
+                      if (_isPositiveBalance)
+                        Row(
+                          children: [
+                            const Spacer(),
+                            if (_loadingBalance)
+                              SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            else
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(_availableBalance),
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: rightAmountFont),
+                                  ),
+                                  SizedBox(height: 6),
+                                  Text('Available Balance', style: TextStyle(color: Colors.white70, fontSize: labelFont)),
+                                ],
+                              ),
+                          ],
+                        )
+                      else
+                      // non-positive balance: show disabled Check Balance CTA and info text inside same card
+                        Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton(
+                                onPressed: null, // keep disabled
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFEFF4FF), // light blue background like screenshot
+                                  foregroundColor: Colors.blue.shade200,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
-                                SizedBox(height: 6),
-                                Text('Available Balance', style: TextStyle(color: Colors.white70, fontSize: labelFont)),
+                                child: Text('Check Balance', style: TextStyle(color: Colors.blue.shade200, fontWeight: FontWeight.w600, fontSize: 16)),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(Icons.info_outline, size: 18, color: Colors.grey.shade600),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    "'Check Balance' has been disabled currently.",
+                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13.5),
+                                  ),
+                                ),
                               ],
                             ),
-                        ],
-                      ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
               ),
             ),
 
+
             SizedBox(height: horizontalPadding * 1.1),
+
+
+            // Show "Check Balance" disabled CTA + info when balance is not positive
+
 
             Text('Enter Details', style: TextStyle(fontSize: _clamp(sw * 0.045, 16, 20), fontWeight: FontWeight.bold)),
             SizedBox(height: horizontalPadding * 0.4),
@@ -1120,7 +1462,16 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text('Voucher ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-          InkWell(onTap: () => _removeEntry(index), child: const Icon(Icons.delete, color: Colors.red)),
+        //  InkWell(onTap: () => _removeEntry(index), child: const Icon(Icons.delete, color: Colors.red)),
+          InkWell(
+            onTap: () => _removeEntry(index),
+            child: Image.asset(
+              'assets/delete.png',
+              width: 20,   // adjust size if needed
+              height: 20,
+            ),
+          ),
+
         ]),
         const SizedBox(height: 12),
 
@@ -1541,6 +1892,10 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
   void _onSubmit() {
     // Use stored selected bank map if available
+
+
+
+
     final selectedBank = _selectedBankFull ?? <String, dynamic>{};
 
     // helper to safely read bank fields with multiple possible key names

@@ -70,11 +70,11 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Verify Details'),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        titleTextStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 16),
+        centerTitle: false,
+        title: const Text('Vouchers', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.black), onPressed: () => Navigator.pop(context)),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -253,27 +253,16 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
               if (total == 1) {
                 // confirm before deleting last voucher — then go back if user confirms
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (_) => AlertDialog(
-                    title: const Text('Delete Voucher?'),
-                    content: const Text('If you delete this voucher, you will need to create it again. Do you want to proceed?'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            widget.entries.remove(e);
-                          });
-                          Navigator.of(context).pop(); // close dialog
-                          Navigator.of(context).pop(); // navigate back
-                        },
-                        child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
-                );
+                // call like:
+ _showDeleteVoucherDialog(context, () {
+   setState(() { widget.entries.remove(e); });
+   Navigator.of(context).pop(); // close dialog
+   Navigator.of(context).pop(); // go back
+ });
+
+
+
+
               } else {
                 // remove directly when more than one
                 setState(() {
@@ -317,6 +306,149 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   // --------------------------
   // OTP / Login / Verify / Issue flows
   // --------------------------
+
+
+
+  Future<void> _showDeleteVoucherDialog(BuildContext context, VoidCallback onDelete) {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 350,
+                maxHeight: 226,
+                minWidth: 300,
+              ),
+              child: Container(
+                width: 350,
+                height: 226,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 6),
+
+                    // Green check icon
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF2F945A),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.check, color: Colors.white, size: 30),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Title — Delete Voucher
+                    const Text(
+                      'Delete Voucher',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'OpenSans',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        height: 1.4, // line-height 140%
+                        letterSpacing: 0,
+                        color: Color(0xFF1F1F23),
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Message
+                    const Text(
+                      'Are you sure you want to delete?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'OpenSans',
+                        fontWeight: FontWeight.w400,
+                        fontSize: 13,
+                        height: 1.4,
+                        letterSpacing: 0,
+                        color: Color(0xFF50535F),
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    // Buttons row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // DELETE (outlined red)
+                        SizedBox(
+                          width: 149,
+                          height: 46,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(width: 1, color: Color(0xFFEB5757)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
+                            onPressed: () {
+                              onDelete();
+                            },
+                            child: const Text(
+                              "Delete",
+                              style: TextStyle(
+                                fontFamily: 'OpenSans',
+                                fontWeight: FontWeight.w600,  // SemiBold
+                                fontSize: 16,
+                                height: 1.4,  // 140%
+                                letterSpacing: 0,
+                                color: Color(0xFFEB5757),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // CANCEL (filled blue)
+                        SizedBox(
+                          width: 149,
+                          height: 46,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF3B82F6),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              elevation: 0,
+                            ),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text(
+                              "Cancel",
+                              style: TextStyle(
+                                fontFamily: 'OpenSans',
+                                fontWeight: FontWeight.w600,   // SemiBold
+                                fontSize: 16,
+                                height: 1.4,   // 140%
+                                letterSpacing: 0,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )   ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 
   /// Called when user taps ISSUE VOUCHER button. Sends OTP and opens OTP dialog.
   Future<void> _handleLogin() async {

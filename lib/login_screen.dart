@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'otp_screen.dart';
 import 'api_service.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // for HapticFeedback
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -72,15 +74,15 @@ class _LoginScreenState extends State<LoginScreen> {
       if (match != null && match.groupCount >= 1) {
         final extractedMobile = match.group(1)!.trim();
         setState(() {
-          _phoneController.text = extractedMobile;
+      //    _phoneController.text = extractedMobile;
         });
 
-        await getCheckReg();
+        await getCheckReg(extractedMobile);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('QR se mobile number parse nahi hua.'),
+              content: Text('QR code does not contain a valid mobile number.'),
               backgroundColor: Colors.red,
             ),
           );
@@ -163,7 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // ----------------------
   // getCheckReg updated to use _phoneController.text
   // ----------------------
-  Future<void> getCheckReg() async {
+  Future<void> getCheckReg(String extractedMobile) async {
     if (_isLoading) return;
     FocusScope.of(context).unfocus();
     setState(() {
@@ -173,31 +175,45 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final userData = {
         // pass mobile from controller (this was the requested change)
-        'mobile': _phoneController.text,
+        'mobile': extractedMobile,
       };
 
       final response = await _apiService.getCheckRegistration(userData);
 
       if (mounted) {
         if (response['status'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content:
-                Text(response['message'] ?? 'An unknown error occurred'),
-                backgroundColor: Colors.red,
-              )
+          await showInteractiveDialog(
+            context,
+            title: 'Alert',
+            message: response['message'] ?? 'An unknown error occurred',
+            isError: true,
+            primaryLabel: 'Okay',
+            onPrimary: () {
+              // optional extra behavior when OK tapped
+
+            },
+            barrierDismissible: true,
           );
-        }
-        else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content:
-              Text(response['message'] ?? 'An unknown error occurred'),
-              backgroundColor: Colors.red,
-            ),
+        } else {
+          // If you were calling showErrorDialog before, you can replace it with interactive dialog:
+          await showInteractiveDialog(
+            context,
+            title: 'Alert',
+            message: response['message'] ?? 'An unknown error occurred',
+            isError: false,
+            primaryLabel: 'Okay',
+           // secondaryLabel: 'Okay',
+          /*  onPrimary: () {
+              // retry logic
+            },
+            onSecondary: () {
+              // secondary action
+            },*/
+            barrierDismissible: true,
           );
         }
       }
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -216,6 +232,179 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
   }
+
+
+
+
+  /// Shows an animated, interactive dialog.
+  /// Returns true when primary button pressed, false when secondary pressed, null if dismissed.
+  Future<bool?> showInteractiveDialog(
+      BuildContext context, {
+        required String title,
+        required String message,
+        bool isError = true,
+        String primaryLabel = 'OK',
+        VoidCallback? onPrimary,
+        String? secondaryLabel,
+        VoidCallback? onSecondary,
+        bool barrierDismissible = false,
+        double width = 320,
+      }) {
+    // small haptic on open
+    HapticFeedback.selectionClick();
+
+    return showGeneralDialog<bool?>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      barrierLabel: 'Dialog',
+      transitionDuration: const Duration(milliseconds: 360),
+      pageBuilder: (ctx, anim1, anim2) {
+        // pageBuilder must return widget, but the actual animation is in transitionBuilder
+        return const SizedBox.shrink();
+      },
+      transitionBuilder: (ctx, animation, secondaryAnimation, child) {
+        // scale + fade with a slight overshoot
+        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutBack);
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: curved,
+            child: Center(
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: width,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).dialogBackgroundColor,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.18),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // top icon
+                      Row(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: isError ? Colors.red.shade50 : Colors.green.shade50,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isError ? Icons.error_outline : Icons.check_circle_outline,
+                              color: isError ? Colors.red : Colors.green,
+                              size: 30,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: isError ? Colors.red.shade700 : Colors.green.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // message
+                      Text(
+                        message,
+                        style: const TextStyle(fontSize: 14.5, height: 1.4, color: Colors.black87),
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      // actions
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (secondaryLabel != null)
+                            TextButton(
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.of(context).pop(false);
+                                if (onSecondary != null) onSecondary();
+                              },
+                              child: Text(
+                                secondaryLabel,
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          const SizedBox(width: 6),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                              backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
+                            ),
+                            onPressed: () {
+                              HapticFeedback.mediumImpact();
+                              Navigator.of(context).pop(true);
+                              if (onPrimary != null) onPrimary();
+                            },
+                            child: Text(
+                              primaryLabel,
+                              style: const TextStyle(fontWeight: FontWeight.w700,color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+  Future<void> showErrorDialog(BuildContext context, String message) async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: const [
+              Icon(Icons.error_outline, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Error', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+          content: Text(message, style: const TextStyle(color: Colors.black87)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
   @override
   void dispose() {

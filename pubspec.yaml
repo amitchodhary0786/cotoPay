@@ -2,7 +2,7 @@ name: cotopay
 description: A new Flutter project.
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+5
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -31,7 +31,7 @@ dependencies:
   flutter_cashfree_pg_sdk: 2.2.9+47
 
 
-  # Zaroori package
+
   connectivity_plus: ^6.0.3
   internet_connection_checker: ^1.0.0+1
   lottie: ^3.1.2
@@ -74,6 +74,7 @@ flutter:
     - assets/voucher_b.png
     - assets/offer_b.png
     - assets/his_b.png
+    - assets/delete.png
 
 
 flutter_launcher_icons:
