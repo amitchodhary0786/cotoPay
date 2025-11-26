@@ -161,7 +161,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
       params['flag'] = 'VC';
       params['orgId'] = employerId;
-    //  params['orgId'] = "101";
+      params['cotocatid'] = '';
+      //params['orgId'] = "142";
 
       debugPrint('[IssueVoucher] _loadVoucherCategories: calling POST getVoucherCategoryList with params: $params');
 
