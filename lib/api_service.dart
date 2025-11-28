@@ -5,7 +5,6 @@
 
 
 
-/*
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -521,7 +520,6 @@ Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async 
   }
 
 }
-*/
 
 
 
@@ -534,6 +532,7 @@ Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async 
 
 //------------- Production Api---------------------
 
+/*
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -772,13 +771,13 @@ Future<Map<String, dynamic>> getCheckRegistration(Map<String, dynamic> userData)
     return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-linkMultipleAccountAmount', params);
   }
   Future<Map<String, dynamic>> getVoucherCategoryList(Map<String, dynamic> params) async   { //Preproduction
-    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/masterService-Api-get-voucherCategoryList', params);
-  }
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/masterService-api-vouchercat-fetch', params);
 
+    }
 
   Future<Map<String, dynamic>> getVoucherSubCategoryList(Map<String, dynamic> params) async {
-    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/masterService-Api-get-mccByCotoCatIdList', params);
-  }
+   return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/masterService-api-vouchercat-fetch', params);
+ }
 
   Future<Map<String, dynamic>> getVoucherNameSearchMobile(Map<String, dynamic> params) async {
     return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-employeeSearchWithMobile', params);
@@ -929,3 +928,4 @@ Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async 
   }
 
 }
+*/

@@ -826,7 +826,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         return {
           "name": e['name'] ?? '',
           "mobile": e['mobile'] ?? '',
-          "voucherType": e['voucherType'] ?? e['voucherType'] ?? e['voucherType'] ?? '',
+          "voucher": e['mccDescription'] ?? e['mccDescription'] ?? e['mccDescription'] ?? '',
           "mcc": e['mcc'] ?? '',
           "mccDescription": e['mccDescription'] ?? '',
           "purposeCode": e['purposeCode'] ?? e['voucherCode'] ?? '',
@@ -873,6 +873,10 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         "hash": hash,
         "erupiVoucherCreateDetails": details,
       };
+
+
+
+
 
 
 

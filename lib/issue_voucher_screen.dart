@@ -33,7 +33,17 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   String _selectedBankId = '';
   double _availableBalance = 0.0;
   bool _loadingBalance = true;
-  bool get _isPositiveBalance => !_loadingBalance && (_availableBalance != null && _availableBalance > 0.0);
+//  bool get _isPositiveBalance => !_loadingBalance && (_availableBalance != null && _availableBalance > 0.0);
+
+  bool get _isPositiveBalance {
+    // while loading show the light/white card
+    if (_loadingBalance) return false;
+    // show dark card only if numeric available balance > 0
+    return (_availableBalance != null) && _availableBalance > 0.0;
+  }
+
+
+
 
   // store full selected bank object (so we can read merchant/submerchant/payerva/etc)
   Map<String, dynamic>? _selectedBankFull;
@@ -461,10 +471,53 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       debugPrint('[IssueVoucher] _selectBankAtIndex: getBankBalance raw response => $balResp');
 
       if (balResp != null && (balResp['status'] == true || balResp['success'] == true)) {
-        final raw = balResp['balance'] ?? balResp['availableBalance'] ?? balResp['data'] ?? 0;
-        debugPrint('[IssueVoucher] _selectBankAtIndex: raw balance field => $raw');
-        final balanceValue = double.tryParse(raw?.toString() ?? '0') ?? 0.0;
+        // Robust extraction: try multiple possible locations/names for balance
+        dynamic balanceField;
+        try {
+          // common direct key
+          if (balResp.containsKey('balance')) {
+            balanceField = balResp['balance'];
+          }
+          // nested in data (example: {"data": {"balance": "23629.0"}})
+          else if (balResp['data'] is Map && (balResp['data'] as Map).containsKey('balance')) {
+            balanceField = (balResp['data'] as Map)['balance'];
+          }
+          // data itself might be numeric / string representing balance
+          else if (balResp.containsKey('data') && (balResp['data'] is String || balResp['data'] is num)) {
+            balanceField = balResp['data'];
+          }
+          // some APIs use availableBalance or balanceAmount
+          else if (balResp.containsKey('availableBalance')) {
+            balanceField = balResp['availableBalance'];
+          } else if (balResp.containsKey('balanceAmount')) {
+            balanceField = balResp['balanceAmount'];
+          } else {
+            // fallback: scan for first numeric-like value in map values
+            for (final v in balResp.values) {
+              if (v is num || (v is String && double.tryParse(v) != null)) {
+                balanceField = v;
+                break;
+              }
+              if (v is Map) {
+                for (final vv in v.values) {
+                  if (vv is num || (vv is String && double.tryParse(vv) != null)) {
+                    balanceField = vv;
+                    break;
+                  }
+                }
+                if (balanceField != null) break;
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('[IssueVoucher] _selectBankAtIndex: balance extraction error: $e');
+          balanceField = null;
+        }
+
+        debugPrint('[IssueVoucher] _selectBankAtIndex: raw balance field => $balanceField');
+        final balanceValue = double.tryParse(balanceField?.toString() ?? '0') ?? 0.0;
         debugPrint('[IssueVoucher] _selectBankAtIndex: parsed balance => $balanceValue');
+
         setState(() {
           _availableBalance = balanceValue;
           _loadingBalance = false;
@@ -479,7 +532,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         debugPrint('[IssueVoucher] _selectBankAtIndex: calling getBankSummary with params: $params');
         final summaryResp = await _api_serviceSafeGet(() => _apiService.getBankSummary(params));
         debugPrint('[IssueVoucher] _selectBankAtIndex: getBankSummary raw => $summaryResp');
-        if (summaryResp != null && (summaryResp['status'] == true || summaryResp['success'] == true || summaryResp.isNotEmpty)) {
+        if (summaryResp != null && (summaryResp['status'] == true || summaryResp['success'] == true || (summaryResp is Map && summaryResp.isNotEmpty))) {
           // try to normalize summary map
           if (summaryResp is Map<String, dynamic>) {
             setState(() {
@@ -512,7 +565,12 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         _loadingBankSummary = false;
       });
     }
+
+    debugPrint('[IssueVoucher] selected bank set => name=$_selectedBankName mask=$_selectedBankMasked id=$_selectedBankId loadingBalance=$_loadingBalance availableBalance=$_availableBalance bankSummaryLoaded=${_bankSummary != null}');
   }
+
+
+
 
   String _maskAccount(String account) {
     final cleaned = account.replaceAll(RegExp(r'\s+'), '');
@@ -675,22 +733,28 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                           if (updatedChildren.isEmpty) {
                                             debugPrint('[IssueVoucher] _openVoucherPicker: no children returned for index=$index, selecting top category "$title"');
                                             setState(() {
-                                              // Set selectedVoucher to top title and also store top voucherName for payload fields
                                               _entries[forIndex].selectedVoucher = title;
-                                              _entries[forIndex].selectedPurposeCode = cat['purposeCode']?.toString();
-                                           //   _entries[forIndex].selectedTopId = cat['topId']?.toString();
-                                              _entries[forIndex].selectedTopId = (cat['id'] ?? cat['topId'])?.toString();
-                                              // store parent voucherName to be used as purposeDescription and voucherDesc in payload
+                                              _entries[forIndex].selectedPurposeCode =
+                                                  (cat['purposeCode'] ??
+                                                      cat['purpose_code'] ??
+                                                      cat['voucherCode'] ??
+                                                      cat['voucher_code'] ??
+                                                      cat['code'])
+                                                      ?.toString();   _entries[forIndex].selectedTopId = (cat['id'] ?? cat['topId'])?.toString();
                                               _entries[forIndex].selectedTopVoucherName = title;
-
-                                              // clear any child/mcc
                                               _entries[forIndex].selectedChildId = null;
                                               _entries[forIndex].selectedMcc = null;
                                               _entries[forIndex].selectedMccDesc = null;
                                             });
                                             Navigator.of(ctx).pop();
+                                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                                              FocusScope.of(context).unfocus();
+                                            });
                                             return;
                                           }
+
+
+
                                         }
                                       },
                                       child: Container(
@@ -727,19 +791,27 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                   debugPrint('[IssueVoucher] _openVoucherPicker: selected top (no children)="$title" for index=$forIndex');
                                                   setState(() {
                                                     _entries[forIndex].selectedVoucher = title;
-                                                    _entries[forIndex].selectedPurposeCode = cat['purposeCode']?.toString();
-                                                    _entries[forIndex].selectedTopId = cat['topId']?.toString();
-
-                                                    // store top voucherName for payload fields
+                                                    _entries[forIndex].selectedPurposeCode =
+                                                        (cat['purposeCode'] ??
+                                                            cat['purpose_code'] ??
+                                                            cat['voucherCode'] ??
+                                                            cat['voucher_code'] ??
+                                                            cat['code'])
+                                                            ?.toString();       _entries[forIndex].selectedTopId = cat['topId']?.toString();
                                                     _entries[forIndex].selectedTopVoucherName = title;
-
-                                                    // clear child/mcc
                                                     _entries[forIndex].selectedChildId = null;
                                                     _entries[forIndex].selectedMcc = null;
                                                     _entries[forIndex].selectedMccDesc = null;
                                                   });
+
+                                                  // close sheet then ensure nothing gets focused (prevent keyboard jumping back)
                                                   Navigator.of(ctx).pop();
+                                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                    FocusScope.of(context).unfocus();
+                                                  });
                                                 },
+
+
                                               ),
                                               Divider(color: Colors.grey.shade200, height: 1),
                                             ])
@@ -757,35 +829,45 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                   onTap: () {
                                                     debugPrint('[IssueVoucher] _openVoucherPicker: selected sub="$childTitle" (id=$childId) for index=$forIndex');
 
-                                                    // extract mcc and mccDesc from child's raw map if present
+                                                    // robust extraction for child
                                                     String? extractedMcc;
                                                     String? extractedMccDesc;
+                                                    String? extractedVoucherCode;
+                                                    String? extractedPurposeCode;
+
                                                     try {
                                                       final raw = child['raw'];
                                                       if (raw is Map) {
-                                                        // common keys: mcc, mccDesc
-                                                        extractedMcc = (raw['mcc'] ?? raw['MCC'] ?? raw['mccCode'])?.toString();
-                                                        extractedMccDesc = (raw['mccDesc'] ?? raw['mcc_description'] ?? raw['mccDesc'])?.toString();
+                                                        extractedMcc = (raw['mcc'] ?? raw['MCC'] ?? raw['mccCode'] ?? raw['mcc_code'])?.toString();
+                                                        extractedMccDesc = (raw['mccDesc'] ?? raw['mcc_description'] ?? raw['purpose_desc'] ?? raw['voucherDesc'])?.toString();
+                                                        extractedVoucherCode = (raw['voucherCode'] ?? raw['voucher_code'] ?? raw['code'] ?? raw['cotocode'])?.toString();
+                                                        extractedPurposeCode = (raw['purposeCode'] ?? raw['purpose_code'] ?? raw['purpose'])?.toString();
                                                       }
                                                     } catch (_) {}
 
+                                                    // fallback to top-level category if needed
+                                                    extractedVoucherCode ??= (cat['voucherCode'] ?? cat['voucher_code'] ?? cat['purposeCode'] ?? cat['purpose_code'])?.toString();
+                                                    extractedPurposeCode ??= (cat['purposeCode'] ?? cat['purpose_code'])?.toString();
+
+                                                    // single setState + single pop/unfocus
                                                     setState(() {
-                                                      // UI: show child title in selectedVoucher (so user sees the specific mccDesc)
                                                       _entries[forIndex].selectedVoucher = childTitle.toString();
                                                       _entries[forIndex].selectedChildId = childId?.toString();
-                                                      _entries[forIndex].selectedPurposeCode = cat['purposeCode']?.toString();
-                                                      _entries[forIndex].selectedTopId = cat['topId']?.toString();
-
-                                                      // set extracted mcc fields (may be null if not present)
+                                                      _entries[forIndex].selectedPurposeCode = extractedVoucherCode?.isNotEmpty == true ? extractedVoucherCode : (extractedPurposeCode ?? (cat['purposeCode'] ?? cat['purpose_code'])?.toString());
+                                                      _entries[forIndex].selectedTopId = (cat['topId'] ?? cat['id'])?.toString();
                                                       _entries[forIndex].selectedMcc = extractedMcc;
                                                       _entries[forIndex].selectedMccDesc = extractedMccDesc;
-
-                                                      // VERY IMPORTANT: store the parent voucherName (from top category) into selectedTopVoucherName
-                                                      // This is what will be used to fill purposeDescription and voucherDesc in payload
                                                       _entries[forIndex].selectedTopVoucherName = (cat['title']?.toString() ?? null);
                                                     });
+
                                                     Navigator.of(ctx).pop();
+                                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                      FocusScope.of(context).unfocus();
+                                                    });
                                                   },
+
+
+
                                                 ),
                                                 Divider(color: Colors.grey.shade200, height: 1),
                                               ]);
@@ -857,7 +939,10 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   }
 
   // ---------------- UI helpers ----------------
-  double _clamp(double v, double a, double b) => v.clamp(a, b);
+ // double _clamp(double v, double a, double b) => v.clamp(a, b);
+  double _clamp(double v, double a, double b) => (v.clamp(a, b) as num).toDouble();
+
+
 
   // Widget _bankSelectorBox(double iconSize, double innerPadding) {
   //   return GestureDetector(
@@ -1251,51 +1336,6 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           controller: _scroll_controller_safe(),
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: horizontalPadding),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Container(
-            //   width: double.infinity,
-            //   decoration: BoxDecoration(color: const Color(0xFF26282C), borderRadius: BorderRadius.circular(cardRadius)),
-            //   child: ClipRRect(
-            //     borderRadius: BorderRadius.circular(cardRadius),
-            //     child: Container(
-            //       padding: EdgeInsets.symmetric(horizontal: innerPadding, vertical: innerPadding),
-            //       color: const Color(0xFF26282C),
-            //       child: Column(
-            //         children: [
-            //           Row(
-            //             children: [
-            //               Expanded(child: _bankSelectorBox(_clamp(sw * 0.05, 18, 24), innerPadding)),
-            //             ],
-            //           ),
-            //           SizedBox(height: innerPadding),
-            //           Row(
-            //             children: [
-            //               const Spacer(),
-            //               if (_loadingBalance)
-            //                 SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            //               else
-            //                 Column(
-            //                   crossAxisAlignment: CrossAxisAlignment.end,
-            //                   children: [
-            //                     Text(
-            //                       NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(_availableBalance),
-            //                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: rightAmountFont),
-            //                     ),
-            //                     SizedBox(height: 6),
-            //                     Text('Available Balance', style: TextStyle(color: Colors.white70, fontSize: labelFont)),
-            //                   ],
-            //                 ),
-            //             ],
-            //           ),
-            //         ],
-            //       ),
-            //     ),
-            //   ),
-            // ),
-
-
-            // Top card: show dark design only when balance > 0, otherwise show light card
-            // Top card: dark view when positive balance, otherwise white card that contains
-// bank selector + disabled "Check Balance" button + info (all inside the same card)
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -1382,7 +1422,6 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                 ),
               ),
             ),
-
 
             SizedBox(height: horizontalPadding * 1.1),
 
@@ -1891,11 +1930,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     );
   }
 
-  void _onSubmit() {
-    // Use stored selected bank map if available
-
-
-
+  Future<void> _onSubmit() async {    // Use stored selected bank map if available
 
     final selectedBank = _selectedBankFull ?? <String, dynamic>{};
 
@@ -1913,31 +1948,66 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     final accountNumberField = _bankField(['acNumber', 'accountNumber', 'acnumber', 'account']);
     final payerVaField = _bankField(['payerva', 'payerVA', 'payerVa']);
 
+    // final voucherDetails = _entries.map((e) {
+    //   return {
+    //     'name': e.nameController.text.trim(),
+    //     'mobile': e.mobileController.text.trim(),
+    //     'amount': e.amountController.text.trim(),
+    //     'startDate': DateFormat('yyyy-MM-dd').format(e.selectedDate),
+    //     'voucher':e.selectedMccDesc,
+    //     'purposeCode': e.selectedPurposeCode,
+    //     // now populate mcc and mccDescription from entry if selected
+    //     'mcc': e.selectedMcc,
+    //     'mccDescription': e.selectedMccDesc,
+    //     // IMPORTANT: use selectedTopVoucherName (which holds voucherName from getVoucherCategoryList) for these two fields
+    //     'purposeDescription': e.selectedTopVoucherName ?? e.selectedVoucher,
+    //     'type': null,
+    //     'bankcode': bankCodeField,
+    //     'voucherCode': e.selectedPurposeCode,
+    //     'voucherType': null,
+    //     'voucherDesc': e.selectedTopVoucherName ?? e.selectedVoucher,
+    //     'redemptionType': (e.redemptionType ?? '').toUpperCase(),
+    //     'validity': _validityToDays(e.validity),
+    //   };
+    // }).toList();
+
+
+
     final voucherDetails = _entries.map((e) {
       return {
-        'name': e.nameController.text.trim(),
-        'mobile': e.mobileController.text.trim(),
-        'amount': e.amountController.text.trim(),
+        'name': (e.nameController.text.trim() ?? '').toString(),
+        'mobile': (e.mobileController.text.trim() ?? '').toString(),
+        'amount': (e.amountController.text.trim() ?? '').toString(),
         'startDate': DateFormat('yyyy-MM-dd').format(e.selectedDate),
-        'voucher':e.selectedMccDesc,
-        'purposeCode': e.selectedPurposeCode,
-        // now populate mcc and mccDescription from entry if selected
-        'mcc': e.selectedMcc,
-        'mccDescription': e.selectedMccDesc,
-        // IMPORTANT: use selectedTopVoucherName (which holds voucherName from getVoucherCategoryList) for these two fields
-        'purposeDescription': e.selectedTopVoucherName ?? e.selectedVoucher,
-        'type': null,
-        'bankcode': bankCodeField,
-        'voucherCode': e.selectedPurposeCode,
-        'voucherType': null,
-        'voucherDesc': e.selectedTopVoucherName ?? e.selectedVoucher,
-        'redemptionType': (e.redemptionType ?? '').toUpperCase(),
+
+        // purpose / voucher code: prefer selectedPurposeCode (child-level or voucher-level)
+        'purposeCode': (e.selectedPurposeCode ?? '').toString(),
+        'voucherCode': (e.selectedPurposeCode ?? '').toString(),
+
+        // mcc info (may be empty string if not present)
+        'mcc': (e.selectedMcc ?? '').toString(),
+        'mccDescription': (e.selectedMccDesc ?? '').toString(),
+
+        // descriptions
+        'purposeDescription': (e.selectedTopVoucherName ?? e.selectedVoucher ?? '').toString(),
+        'voucherDesc': (e.selectedTopVoucherName ?? e.selectedVoucher ?? '').toString(),
+
+        // other fields (safe defaults)
+       // 'type': null,
+        'bankcode': (bankCodeField ?? '').toString(),
+        'voucherType': (e.selectedMccDesc ?? '').toString(),
+
+        'redemptionType': (e.redemptionType ?? '').toString().toUpperCase(),
         'validity': _validityToDays(e.validity),
       };
     }).toList();
 
+    final user = await SessionManager.getUserData();
+    final orgId = user?.employerid;
+
     // Build a concise payload for verification screen (include availableBalance and bankSummary)
     final verifyPayload = {
+
       'bank': {
         'name': _selectedBankName,
         'masked': _selectedBankMasked,
@@ -1952,7 +2022,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         'raw': selectedBank,
       },
       'entries': voucherDetails,
-      'orgId': null,
+      'orgId': orgId,
       'accountNumber': accountNumberField,
     };
 
