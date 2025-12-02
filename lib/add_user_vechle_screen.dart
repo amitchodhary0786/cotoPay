@@ -118,39 +118,196 @@ class _UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+    const labelStyle = TextStyle(color: Color(0xFF9FA3AC), fontSize: 12);
+    const valueStyle = TextStyle(color: Color(0xFF2E3340), fontWeight: FontWeight.w600);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFEBEEF1)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 6, offset: const Offset(0, 2))],
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          // top row: icon + name + menu
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // avatar box
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F8FA),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.person_outline, color: Color(0xFF9AA0A8)),
+              ),
+              const SizedBox(width: 12),
+
+              // name & label
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Name', style: TextStyle(color: Color(0xFF9FA3AC), fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Text(name, style: valueStyle),
+                  ],
+                ),
+              ),
+
+              // three dots
+              const Icon(Icons.more_vert, color: Color(0xFFBFC6D6)),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: Color(0xFFF1F3F6)),
+
+          const SizedBox(height: 12),
+          // bottom row: 2 columns
+          Row(
+            children: [
+              // left column
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('User Type', style: labelStyle),
+                    const SizedBox(height: 6),
+                    Text(userType, style: valueStyle),
+                  ],
+                ),
+              ),
+
+              // vertical divider
+              Container(width: 1, height: 36, color: const Color(0xFFF1F3F6)),
+
+              // right column
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Mobile Number', style: labelStyle),
+                      const SizedBox(height: 6),
+                      Text(mobile, style: valueStyle),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+class _VehicleCard extends StatelessWidget {
+  final String regNo;
+  final String vehicleType;
+  final String fuelType;
+  final String makeModel;
+  final String assignedDriver;
+  final String client;
+  final String history;
+
+  const _VehicleCard({
+    Key? key,
+    required this.regNo,
+    this.vehicleType = 'Truck',
+    this.fuelType = 'Diesel',
+    this.makeModel = 'Volkswagen (Virtus)',
+    this.assignedDriver = 'Driver not assigned',
+    this.client = 'Client not assigned',
+    this.history = 'No History',
+  }) : super(key: key);
+
+  static const Color labelColor = Color(0xFF9FA3AC); // light grey
+  static const Color valueColor = Color(0xFF4A4E69); // darker
+
+  Widget _smallLabel(String text) {
+    return Text(text, style: const TextStyle(color: labelColor, fontSize: 12));
+  }
+
+  Widget _valueText(String text) {
+    return Text(text, style: const TextStyle(color: valueColor, fontWeight: FontWeight.w600));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        // navigate to details if needed
+        Navigator.push(context, MaterialPageRoute(builder: (_) => VehicleDetailsScreen(regNo: regNo)));
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFECEFF2)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 3)),
+          ],
+        ),
+        padding: const EdgeInsets.all(14),
         child: Column(
           children: [
+            // Top row: icon + vehicle type & registration
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Color(0xFFEFEFEF),
-                  child: Icon(Icons.person, color: Colors.grey),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F8FA),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.local_shipping_outlined, color: Color(0xFF9AA0A8)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _smallLabel('Vehicle Type'),
+                      const SizedBox(height: 4),
+                      _valueText(vehicleType),
+                    ],
                   ),
                 ),
-                const Icon(Icons.more_vert, color: Colors.grey),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _smallLabel('Registration #'),
+                    const SizedBox(height: 4),
+                    _valueText(regNo),
+                  ],
+                ),
               ],
             ),
+
             const SizedBox(height: 12),
+
+            // Middle row: Fuel Type & Make & Model
             Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('User Type', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      Text(userType, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      _smallLabel('Fuel Type'),
+                      const SizedBox(height: 6),
+                      _valueText(fuelType),
                     ],
                   ),
                 ),
@@ -158,12 +315,56 @@ class _UserCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Mobile Number', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      Text(mobile, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      _smallLabel('Make & Model'),
+                      const SizedBox(height: 6),
+                      _valueText(makeModel),
                     ],
                   ),
                 ),
               ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Bottom row: Assigned Driver & Client
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _smallLabel('Assigned Driver'),
+                      const SizedBox(height: 6),
+                      Text(assignedDriver, style: const TextStyle(color: Color(0xFFB3B7BE))),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _smallLabel('Client'),
+                      const SizedBox(height: 6),
+                      Text(client, style: const TextStyle(color: Color(0xFFB3B7BE))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            // History line
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _smallLabel('History'),
+                  const SizedBox(height: 4),
+                  Text(history, style: const TextStyle(color: Color(0xFFB3B7BE))),
+                ],
+              ),
             ),
           ],
         ),
@@ -172,26 +373,7 @@ class _UserCard extends StatelessWidget {
   }
 }
 
-class _VehicleCard extends StatelessWidget {
-  final String regNo;
-  const _VehicleCard({Key? key, required this.regNo}) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        title: Text(regNo, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: const Text('Tap to view details'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => VehicleDetailsScreen(regNo: regNo)));
-        },
-      ),
-    );
-  }
-}
 
 /* ---------- Add User Quick Screen (opened by + on Add Users) ---------- */
 
