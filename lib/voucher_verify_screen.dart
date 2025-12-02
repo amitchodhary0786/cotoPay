@@ -469,8 +469,27 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       // Build payload - adapt keys if your backend needs different names
       final payload = {
         "mobile": employerMobile,
-        "template": "OTP Number Vouchers Issuance",
-        "value": rowcount,
+      //  "template": "OTP Number Vouchers Issuance",
+        //"value": rowcount,
+
+        "template": "OTP Vouchers Issuance CP",
+        "value": widget.entries.length.toString(),
+        "message":null,
+        "userName":null,
+        "password1":null,
+        "password1":null,
+        "password2":null,
+        "password3":null,
+        "password4":null,
+        "password5":null,
+        "password6":null,
+        "password":null,
+        "sresult":null,
+        "otp":null,
+        "orderId":null,
+        "countdown":null,
+
+
       };
 
       final response = await widget.apiService.getVoucherOtp(payload);
@@ -547,9 +566,27 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
               final employerMobile = user?.mobile?.toString() ?? '';
               final payload = {
                 "mobile": employerMobile,
-                "template": "OTP Number Vouchers Issuance",
+                "template": "OTP Vouchers Issuance CP",
                 "value": widget.entries.length.toString(),
+                "message":null,
+                "userName":null,
+                "password1":null,
+                "password1":null,
+                "password2":null,
+                "password3":null,
+                "password4":null,
+                "password5":null,
+                "password6":null,
+                "password":null,
+                "sresult":null,
+                "otp":null,
+                "orderId":null,
+                "countdown":null,
               };
+
+
+
+
               final resp = await widget.apiService.getVoucherOtp(payload);
               debugPrint('[resendOtp] => $resp');
               if (resp != null && resp['status'] == true) {
@@ -781,11 +818,30 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       final otpPayload = {
         'mobile': mobile,
         'otp': enteredOtp,
+        'userName': mobile,
+        'password1': 1,
+        'password2': 7,
+        'password3': 6,
+        'password4': 6,
+        'password5': 8,
+        'password6': 5,
+        'password': null,
+        'sresult': null,
+        'orderId': _orderId,
+        'countdown': null,
+
+
         if (_orderId != null) 'orderId': _orderId,
       };
 
+
+
+
+
+
       debugPrint('>>> _handleVerifyOtp: calling api.verifyOtp with payload: $otpPayload');
-      final resp = await widget.apiService.verifyOtp(otpPayload);
+      //final resp = await widget.apiService.verifyOtp(otpPayload);
+      final resp = await widget.apiService.verifyOtpVoucher(otpPayload);
       debugPrint('<<< _handleVerifyOtp: verifyOtp response: $resp');
 
       if (resp != null && resp['status'] == true) {
@@ -814,7 +870,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     try {
       final user = await SessionManager.getUserData();
       final orgId = user?.employerid?.toString() ?? '';
-      final createdBy = (user?.username ?? '').toString();
+      final createdBy = (user?.mobile ?? '').toString();
 
       final merchantId = widget.bankInfo?['merchantId']?.toString() ?? widget.bankInfo?['merchentIid']?.toString() ?? '610954';
       final subMerchantId = widget.bankInfo?['subMerchantId']?.toString() ?? widget.bankInfo?['submurchentid']?.toString() ?? merchantId;
@@ -826,24 +882,34 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         return {
           "name": e['name'] ?? '',
           "mobile": e['mobile'] ?? '',
-          "voucher": e['mccDescription'] ?? e['mccDescription'] ?? e['mccDescription'] ?? '',
+          "voucherType": e['mccDescription'],
           "mcc": e['mcc'] ?? '',
+          "voucherIdPk": e['voucherIdPk'] ?? '',
           "mccDescription": e['mccDescription'] ?? '',
-          "purposeCode": e['purposeCode'] ?? e['voucherCode'] ?? '',
-          "purposeDescription": e['purposeDescription'] ?? e['voucherDesc'] ?? '',
-          "voucherCode": e['voucherCode'] ?? e['purposeCode'] ?? '',
-          "voucherDesc": e['voucherDesc'] ?? e['purposeDescription'] ?? '',
+          "purposeCode": e['purposeCode']?? '',
+          "purposeDescription": e['purposeDescription'] ,
+          "voucherCode": e['voucherCode']  ?? '',
+          "voucherDesc": e['voucherDesc'] ?? '',
           "redemptionType": e['redemptionType'] ?? '',
           "amount": e['amount']?.toString() ?? '',
           "startDate": e['startDate'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
           "validity": e['validity']?.toString() ?? '',
+          "expenseType": "Cost Center",
+          "vehicleNo": null,
+          "remarks": "kk"
         };
+
       }).toList();
+
+
+
+
+
 
       final consent = _consentChecked ? 'yes' : 'no';
       final activeStatus = '';
 
-      final hashInput = consent +
+      final hashInput = "NO"+"NO"+"NO"+consent +
           createdBy +
           orgId +
           merchantId +
@@ -851,12 +917,34 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           accountNumber +
           payerVA +
           MANDATE_TYPE +
-          SECRET_KEY +
-          CLIENT_KEY;
+          CLIENT_KEY +
+          SECRET_KEY;
 
-      debugPrint("Hash Input: $hashInput");
+          debugPrint("Hash Input: $hashInput");
 
       final hash = _sha256Hex(hashInput);
+
+/*
+      final requestBody = {
+        "consent": consent,
+        "createdby": createdBy,
+        "orgId": orgId,
+        "merchantId": merchantId,
+        "subMerchantId": subMerchantId,
+        "activeStatus": activeStatus,
+        "bankcode": bankcode,
+        "accountNumber": accountNumber,
+        "payerVA": payerVA,
+        "mandateType": MANDATE_TYPE,
+        "clientKey": CLIENT_KEY,
+        "hash": hash,
+        "makerCheker": "NO",
+        "makerRole": "NO",
+        "chekerRole": "NO",
+        "erupiVoucherCreateDetails": details,
+      };
+*/
+
 
       final requestBody = {
         "consent": consent,
@@ -872,11 +960,11 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         "clientKey": CLIENT_KEY,
         "hash": hash,
         "erupiVoucherCreateDetails": details,
+        "makerCheker":"NO",
+        "makerRole":"NO",
+        "chekerRole":"NO",
+
       };
-
-
-
-
 
 
 

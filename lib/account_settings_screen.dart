@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:cotopay/add_user_vechle_screen.dart';
+import 'package:cotopay/experince_voucher_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -265,15 +267,87 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ),
 
           ListTile(
-            leading: const Icon(Icons.vpn_key_outlined, color: Colors.black87),
+           // leading: const Icon(Icons.vpn_key_outlined, color: Colors.black87),
+
+            leading: Image.asset(
+              'assets/coto_icon.png',
+              height: 20,
+              width: 20,
+              color: Colors.black,
+            ),
             title: const Text('Coto Balance', style: TextStyle(fontSize: 16)),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const CotoBalanceCard()));
             },
           ),
-          const Divider(height: 24, thickness: 1, indent: 16, endIndent: 16),
+
+
           ListTile(
+
+
+
+
+    leading: Image.asset(
+    'assets/magic_icon.png',
+    height: 20,
+    width: 20,
+    color: Colors.black,
+    ),
+            title: const Text('Experience a UPI Voucher', style: TextStyle(fontSize: 16)),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const ExperienceUpiVoucherScreen()));
+            },
+          ),
+
+
+          const Divider(height: 24, thickness: 1, indent: 16, endIndent: 16,color: Color(0xFFF1F1F1)),
+
+    ListTile(
+    leading: const Icon(Icons.add, color: Colors.black87),
+    title: const Text(
+    'Add Users & Vehicles',
+    style: TextStyle(fontSize: 16),
+    ),
+    trailing: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+    Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+    decoration: BoxDecoration(
+    color: Color(0xFFFFC500),
+    borderRadius: BorderRadius.circular(30),
+    ),
+    child: const Text(
+    'Admin',
+    style: TextStyle(
+    fontSize: 12,
+    color: Colors.black87,
+    ),
+    ),
+    ),
+
+
+    const SizedBox(width: 80),
+    const Icon(
+    Icons.arrow_forward_ios,
+    size: 16,
+    color: Colors.grey,
+    ),
+    ], // end children
+    ), // end trailing Row
+    onTap: () {
+    Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => const AddUsersVehiclesScreen()),
+    );
+    },
+    ),
+
+
+
+    ListTile(
             leading: const Icon(Icons.headset_mic_outlined, color: Colors.black87),
             title: const Text('Help and Support', style: TextStyle(fontSize: 16)),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),

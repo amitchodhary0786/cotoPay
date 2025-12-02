@@ -839,7 +839,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                       final raw = child['raw'];
                                                       if (raw is Map) {
                                                         extractedMcc = (raw['mcc'] ?? raw['MCC'] ?? raw['mccCode'] ?? raw['mcc_code'])?.toString();
-                                                        extractedMccDesc = (raw['mccDesc'] ?? raw['mcc_description'] ?? raw['purpose_desc'] ?? raw['voucherDesc'])?.toString();
+                                                        extractedMccDesc = (raw['vouchername'] ?? raw['mcc_description'] ?? raw['purpose_desc'] ?? raw['voucherDesc'])?.toString();
                                                         extractedVoucherCode = (raw['voucherCode'] ?? raw['voucher_code'] ?? raw['code'] ?? raw['cotocode'])?.toString();
                                                         extractedPurposeCode = (raw['purposeCode'] ?? raw['purpose_code'] ?? raw['purpose'])?.toString();
                                                       }
@@ -1975,31 +1975,29 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
     final voucherDetails = _entries.map((e) {
       return {
-        'name': (e.nameController.text.trim() ?? '').toString(),
-        'mobile': (e.mobileController.text.trim() ?? '').toString(),
-        'amount': (e.amountController.text.trim() ?? '').toString(),
+        'name': e.nameController.text.trim(),
+        'mobile': e.mobileController.text.trim(),
+        'voucher':e.selectedMccDesc,
+        'mcc': e.selectedMcc,
+        'voucherIdPk': e.selectedChildId,
+        'mccDescription': e.selectedMccDesc,
+        'purposeCode': e.selectedPurposeCode,
+        'purposeDescription': e.selectedTopVoucherName ?? e.selectedVoucher,
+        'voucherCode': e.selectedPurposeCode,
+        'voucherDesc': e.selectedTopVoucherName ?? e.selectedVoucher,
+        'redemptionType': (e.redemptionType ?? '').toUpperCase(),
+        'amount': e.amountController.text.trim(),
         'startDate': DateFormat('yyyy-MM-dd').format(e.selectedDate),
-
-        // purpose / voucher code: prefer selectedPurposeCode (child-level or voucher-level)
-        'purposeCode': (e.selectedPurposeCode ?? '').toString(),
-        'voucherCode': (e.selectedPurposeCode ?? '').toString(),
-
-        // mcc info (may be empty string if not present)
-        'mcc': (e.selectedMcc ?? '').toString(),
-        'mccDescription': (e.selectedMccDesc ?? '').toString(),
-
-        // descriptions
-        'purposeDescription': (e.selectedTopVoucherName ?? e.selectedVoucher ?? '').toString(),
-        'voucherDesc': (e.selectedTopVoucherName ?? e.selectedVoucher ?? '').toString(),
-
-        // other fields (safe defaults)
-       // 'type': null,
-        'bankcode': (bankCodeField ?? '').toString(),
-        'voucherType': (e.selectedMccDesc ?? '').toString(),
-
-        'redemptionType': (e.redemptionType ?? '').toString().toUpperCase(),
         'validity': _validityToDays(e.validity),
+
+//        'type': null,
+  //      'bankcode': bankCodeField,
+    //    'voucherType': null,
+        "expenseType": "",
+        "vehicleNo": "",
+        "remarks": ""
       };
+
     }).toList();
 
     final user = await SessionManager.getUserData();
@@ -2007,7 +2005,6 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
     // Build a concise payload for verification screen (include availableBalance and bankSummary)
     final verifyPayload = {
-
       'bank': {
         'name': _selectedBankName,
         'masked': _selectedBankMasked,
@@ -2025,6 +2022,16 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       'orgId': orgId,
       'accountNumber': accountNumberField,
     };
+
+
+
+
+
+
+
+
+
+
 
     // navigate to verification screen (cast bank map to correct type)
     Navigator.of(context).push(

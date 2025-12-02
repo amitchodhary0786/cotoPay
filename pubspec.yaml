@@ -75,6 +75,10 @@ flutter:
     - assets/offer_b.png
     - assets/his_b.png
     - assets/delete.png
+    - assets/coto_icon.png
+    - assets/magic_icon.png
+    - assets/coto_logo_top.png
+    - assets/img_back_fram.png
 
 
 flutter_launcher_icons:

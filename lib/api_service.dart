@@ -35,11 +35,6 @@ class ApiService {
 
 
 
-
-
-
-
-
   final String _clientKey = "client-secret-key";       // TODO:  CLIENT KEY
   final String _clientSecretKey = "0123456789012345"; // TODO:  SECRET KEY
   //final String _salt = "0123456789012345";
@@ -224,6 +219,15 @@ Future<void> _ensureTokenProduction() async {
     //return _callApiEndpoint('$_baseServiceUrl/verifyOtpNew', otpData);
     return _callApiEndpoint('$_baseServiceUrl/verifyOtp2Factor', otpData);
   }
+
+
+
+  Future<Map<String, dynamic>> verifyOtpVoucher(Map<String, dynamic> otpData) async {
+    //return _callApiEndpoint('$_baseServiceUrl/verifyOtpNew', otpData);
+    return _callApiEndpoint('$_baseServiceUrl/get/verifyOtp', otpData);
+  }
+
+
   Future<Map<String, dynamic>> resendOtp(Map<String, dynamic> resendData) async {
     return _callApiEndpoint('$_baseServiceUrl/getOtpResend', resendData);
   }
