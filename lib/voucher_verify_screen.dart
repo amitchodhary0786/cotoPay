@@ -24,6 +24,8 @@ class VoucherVerifyScreen extends StatefulWidget {
 }
 
 class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
+  final ApiService _apiService = ApiService();
+
   bool _consentChecked = false;
   bool _loading = false; // main button loading / disabled
   String _statusMessage = '';
@@ -861,22 +863,71 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     }
   }
 
-
-  /// ISSUE VOUCHER — responsive congrats dialog and full request body
+  Future<Map<String, dynamic>?> _api_serviceSafeGet(Future<Map<String, dynamic>?> Function() fn) async {
+    try {
+      debugPrint('[IssueVoucher] _api_serviceSafeGet: calling API...');
+      final resp = await fn();
+      debugPrint('[IssueVoucher] _api_serviceSafeGet: response => $resp');
+      return resp;
+    } catch (e, st) {
+      debugPrint('[IssueVoucher] _api_serviceSafeGet: API error => $e\n$st');
+      return null;
+    }
+  }
+  // ISSUE VOUCHER — responsive congrats dialog and full request body
   Future<void> _issueVoucher() async {
     debugPrint('>>> _issueVoucher: starting');
     setState(() { _loading = true; _statusMessage = ''; });
 
     try {
       final user = await SessionManager.getUserData();
+
+      debugPrint("User Data: ${jsonEncode(user)}");
+
       final orgId = user?.employerid?.toString() ?? '';
       final createdBy = (user?.mobile ?? '').toString();
 
-      final merchantId = widget.bankInfo?['merchantId']?.toString() ?? widget.bankInfo?['merchentIid']?.toString() ?? '610954';
-      final subMerchantId = widget.bankInfo?['subMerchantId']?.toString() ?? widget.bankInfo?['submurchentid']?.toString() ?? merchantId;
-      final accountNumber = widget.bankInfo?['accountNumber']?.toString() ?? widget.bankInfo?['acNumber']?.toString() ?? '';
-      final payerVA = widget.bankInfo?['payerVA']?.toString() ?? widget.bankInfo?['payeeVPA']?.toString() ?? widget.bankInfo?['payerva']?.toString() ?? 'merchant@icici';
-      final bankcode = widget.bankInfo?['bankCode']?.toString() ?? widget.bankInfo?['bankcode']?.toString() ?? widget.bankInfo?['bankName']?.toString() ?? '';
+
+
+      //final user = await SessionManager.getUserData();
+      debugPrint('[IssueVoucher] _loadBanks: user => $user');
+      if (user == null || user.employerid == null) throw Exception('User not available');
+
+      final bankParams = {'orgId': user.employerid};
+      debugPrint('[IssueVoucher] _loadBanks: calling getBankList with params: $bankParams');
+      final response = await _api_serviceSafeGet(() => _apiService.getBankList(bankParams));
+
+      final list = (response?['data'] as List<dynamic>?) ?? [];
+
+
+      final selfBank = list.firstWhere(
+            (e) => (e['accountSeltWallet']?.toString() ?? '') == 'Self',
+        orElse: () => null,
+      );
+
+      String merchantId = '';
+      String subMerchantId = '';
+      String accountNumber = '';
+      String payerVA = '';
+      String bankCode = '';
+
+      if (selfBank != null) {
+        merchantId = selfBank['merchentIid']?.toString() ?? '';
+        subMerchantId = selfBank['submurchentid']?.toString() ?? '';
+        accountNumber = selfBank['acNumber']?.toString() ?? '';
+        payerVA = selfBank['payerva']?.toString() ?? '';
+        bankCode = selfBank['bankCode']?.toString() ?? '';
+      }
+
+
+
+      // final merchantId = widget.bankInfo?['merchantId']?.toString() ?? widget.bankInfo?['merchentIid']?.toString() ?? '610954';
+      // final subMerchantId = widget.bankInfo?['subMerchantId']?.toString() ?? widget.bankInfo?['submurchentid']?.toString() ?? merchantId;
+      // final accountNumber = widget.bankInfo?['accountNumber']?.toString() ?? widget.bankInfo?['acNumber']?.toString() ?? '';
+      // final payerVA = widget.bankInfo?['payerVA']?.toString() ?? widget.bankInfo?['payeeVPA']?.toString() ?? widget.bankInfo?['payerva']?.toString() ?? 'merchant@icici';
+      // final bankcode = widget.bankInfo?['bankCode']?.toString() ?? widget.bankInfo?['bankcode']?.toString() ?? widget.bankInfo?['bankName']?.toString() ?? '';
+
+
 
       final List<Map<String, dynamic>> details = widget.entries.map((e) {
         return {
@@ -953,7 +1004,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         "merchantId": merchantId,
         "subMerchantId": subMerchantId,
         "activeStatus": activeStatus,
-        "bankcode": bankcode,
+        "bankcode": bankCode,
         "accountNumber": accountNumber,
         "payerVA": payerVA,
         "mandateType": MANDATE_TYPE,

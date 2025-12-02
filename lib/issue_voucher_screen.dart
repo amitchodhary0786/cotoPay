@@ -35,13 +35,12 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   bool _loadingBalance = true;
 //  bool get _isPositiveBalance => !_loadingBalance && (_availableBalance != null && _availableBalance > 0.0);
 
-  bool get _isPositiveBalance {
-    // while loading show the light/white card
-    if (_loadingBalance) return false;
-    // show dark card only if numeric available balance > 0
-    return (_availableBalance != null) && _availableBalance > 0.0;
+  bool get _isWalletAccount {
+    // if no bank selected yet, follow default behaviour (show Wallet/dark)
+    if (_selectedBankFull == null) return true;
+    final val = (_selectedBankFull?['accountSeltWallet']?.toString() ?? 'Wallet').toLowerCase();
+    return val == 'wallet';
   }
-
 
 
 
@@ -108,18 +107,72 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       final bankParams = {'orgId': user.employerid};
       debugPrint('[IssueVoucher] _loadBanks: calling getBankList with params: $bankParams');
       final bankResp = await _api_serviceSafeGet(() => _apiService.getBankList(bankParams));
+
+
       debugPrint('[IssueVoucher] _loadBanks: getBankList response: $bankResp');
 
       if (bankResp != null && bankResp['status'] == true && bankResp['data'] is List) {
-        _banks = List<dynamic>.from(bankResp['data']);
+     //   _banks = List<dynamic>.from(bankResp['data']);
+
+        _banks = List<dynamic>.from(bankResp['data']).map((raw) {
+          if (raw is Map) {
+            final Map<String, dynamic> original = Map<String, dynamic>.from(raw as Map);
+            // pick value or default
+            final String walletVal = (original['accountSeltWallet']?.toString().trim().isNotEmpty == true)
+                ? original['accountSeltWallet'].toString()
+                : 'Wallet';
+
+            // create a new LinkedHashMap so insertion order is preserved
+            final Map<String, dynamic> normalized = <String, dynamic>{};
+
+            // insert accountSeltWallet first
+            normalized['accountSeltWallet'] = walletVal;
+
+            // then insert remaining keys from original (skip if key is accountSeltWallet to avoid duplicate)
+            for (final k in original.keys) {
+              if (k == 'accountSeltWallet') continue;
+              normalized[k] = original[k];
+            }
+
+            return normalized;
+          }
+          return raw;
+        }).toList();
+
         debugPrint('[IssueVoucher] _loadBanks: loaded ${_banks.length} banks');
+        // --- after building _banks list (replace existing selection logic) ---
+        debugPrint('[IssueVoucher] _loadBanks: loaded ${_banks.length} banks');
+
         if (_banks.isNotEmpty) {
-          // select first bank and fetch its balance and summary
-          _selectBankAtIndex(0);
+          // Try to find first bank which explicitly marks accountSeltWallet == 'Wallet'
+          final int walletIndex = _banks.indexWhere((b) {
+            try {
+              final val = (b is Map && b.containsKey('accountSeltWallet')) ? (b['accountSeltWallet']?.toString() ?? '') : '';
+              return val.toLowerCase().trim() == 'wallet';
+            } catch (_) {
+              return false;
+            }
+          });
+
+          if (walletIndex != -1) {
+            debugPrint('[IssueVoucher] _loadBanks: found wallet bank at index $walletIndex — selecting it');
+            _selectBankAtIndex(walletIndex);
+          } else {
+            // No explicit wallet marked — do NOT auto-select the first bank.
+            // Keep _selectedBankFull as null so _isWalletAccount == true and black card is shown by default.
+            debugPrint('[IssueVoucher] _loadBanks: no wallet bank found — leaving selection empty to show default Wallet view');
+            setState(() {
+              _loadingBalance = false; // we don't have a selected bank so no balance to load
+              // preserve _selectedBankFull == null so UI shows wallet style by default
+            });
+          }
         } else {
           // no banks - stop loading balance
           setState(() => _loadingBalance = false);
         }
+
+
+
       } else {
         _banks = [];
         setState(() => _loadingBalance = false);
@@ -438,7 +491,27 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     debugPrint('[IssueVoucher] _selectBankAtIndex: selected bank index=$idx name=$bankName account=$account id=${bank['id'] ?? bank['bankId']}');
 
     setState(() {
-      _selectedBankFull = Map<String, dynamic>.from(bank as Map);
+// ensure selected bank map also has accountSeltWallet at first position (default "Wallet")
+      final Map<String, dynamic> rawMap = Map<String, dynamic>.from(bank as Map);
+
+// compute wallet value (use existing if present else default)
+      final String walletValue = (rawMap['accountSeltWallet']?.toString().trim().isNotEmpty == true)
+          ? rawMap['accountSeltWallet'].toString()
+          : 'Wallet';
+
+// rebuild with accountSeltWallet first
+      final Map<String, dynamic> normalizedSelected = <String, dynamic>{};
+      normalizedSelected['accountSeltWallet'] = walletValue;
+      for (final k in rawMap.keys) {
+        if (k == 'accountSeltWallet') continue;
+        normalizedSelected[k] = rawMap[k];
+      }
+
+      _selectedBankFull = normalizedSelected;
+
+      if (_selectedBankFull!['accountSeltWallet'] == null || _selectedBankFull!['accountSeltWallet'].toString().trim().isEmpty) {
+        _selectedBankFull!['accountSeltWallet'] = 'Wallet';
+      }
       _selectedBankName = bankName;
       _selectedBankMasked = masked;
       _selectedBankId = (bank['id']?.toString() ?? bank['bankId']?.toString() ?? '');
@@ -1160,8 +1233,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
 
   Widget _bankSelectorBox(double iconSize, double innerPadding) {
-    final bool dark = _isPositiveBalance;
-
+  // final bool dark = _isPositiveBalance;
+    final bool dark = _isWalletAccount;
     // Build a small leading bank icon widget for the selector (use selected bank if available)
     Widget leadingSelectorIcon() {
       // check for bank icon from selectedBankFull, else fallback to default icon widget
@@ -1339,22 +1412,23 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: _isPositiveBalance ? const Color(0xFF26282C) : Colors.white,
+                color: _isWalletAccount ? const Color(0xFF26282C) : Colors.white,
                 borderRadius: BorderRadius.circular(cardRadius),
-                border: _isPositiveBalance ? null : Border.all(color: Colors.grey.shade200),
-                boxShadow: _isPositiveBalance ? null : [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0,2))],
+                border: _isWalletAccount ? null : Border.all(color: Colors.grey.shade200),
+                boxShadow: _isWalletAccount ? null : [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0,2))],
               ),
+
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(cardRadius),
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: innerPadding, vertical: innerPadding),
-                  color: _isPositiveBalance ? const Color(0xFF26282C) : Colors.white,
+                  color: _isWalletAccount ? const Color(0xFF26282C) : Colors.white,
                   child: Column(
                     children: [
                       // Bank selector row (same widget but it adapts to dark / light)
                       Row(children: [
                         Expanded(
-                          child: _isPositiveBalance
+                          child: _isWalletAccount
                               ? _bankSelectorDarkBox(sw, innerPadding) // new dark-style tappable selector (cotoBalance)
                               : _bankSelectorBox(_clamp(sw * 0.05, 18, 24), innerPadding), // light bank header (existing)
                         ),
@@ -1363,7 +1437,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                       SizedBox(height: innerPadding),
 
                       // If balance known and positive -> show amount block (dark style)
-                      if (_isPositiveBalance)
+                      if (_isWalletAccount)
                         Row(
                           children: [
                             const Spacer(),
