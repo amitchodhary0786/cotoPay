@@ -79,7 +79,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final params = {
         "orgId": userData.employerid,
         "timePeriod": "AH",
-        "mobile": userData.mobile
+        "mobile":""
+        // "mobile": userData.mobile
       };
 
       // Reassign future so FutureBuilder re-runs (and API is hit)
@@ -114,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           children: [
             HomeContent(name: _name, voucherListFuture: _voucherListFuture),
             const SafeArea(child: UpiVouchersScreen()),
-         //   const SafeArea(child: DecryptDemoScreen()),
+            //   const SafeArea(child: DecryptDemoScreen()),
 
             Container(),
             const SafeArea(child: RewardsScreen()),
@@ -323,8 +324,8 @@ class HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double statusBarHeight = MediaQuery.of(context).padding.top;
-   // final screenWidth = MediaQuery.of(context).size.width;
-   // final screenHeight = MediaQuery.of(context).size.height;
+    // final screenWidth = MediaQuery.of(context).size.width;
+    // final screenHeight = MediaQuery.of(context).size.height;
 
     final double visibleHeight = 410.0; // fixed visible area (px)
     final double visibleTop = 494.0; // (optional) if you want to position using absolute top

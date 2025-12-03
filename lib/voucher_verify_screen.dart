@@ -256,11 +256,11 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
               if (total == 1) {
                 // confirm before deleting last voucher — then go back if user confirms
                 // call like:
- _showDeleteVoucherDialog(context, () {
-   setState(() { widget.entries.remove(e); });
-   Navigator.of(context).pop(); // close dialog
-   Navigator.of(context).pop(); // go back
- });
+                _showDeleteVoucherDialog(context, () {
+                  setState(() { widget.entries.remove(e); });
+                  Navigator.of(context).pop(); // close dialog
+                  Navigator.of(context).pop(); // go back
+                });
 
 
 
@@ -471,7 +471,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       // Build payload - adapt keys if your backend needs different names
       final payload = {
         "mobile": employerMobile,
-      //  "template": "OTP Number Vouchers Issuance",
+        //  "template": "OTP Number Vouchers Issuance",
         //"value": rowcount,
 
         "template": "OTP Vouchers Issuance CP",
@@ -842,7 +842,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
 
       debugPrint('>>> _handleVerifyOtp: calling api.verifyOtp with payload: $otpPayload');
-      //final resp = await widget.apiService.verifyOtp(otpPayload);
+      // final resp = await widget.apiService.verifyOtp(otpPayload);
       final resp = await widget.apiService.verifyOtpVoucher(otpPayload);
       debugPrint('<<< _handleVerifyOtp: verifyOtp response: $resp');
 
@@ -947,7 +947,8 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           "validity": e['validity']?.toString() ?? '',
           "expenseType": "Cost Center",
           "vehicleNo": null,
-          "remarks": "kk"
+          "remarks": "kk",
+          "extra1":"mobile"
         };
 
       }).toList();
@@ -971,7 +972,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           CLIENT_KEY +
           SECRET_KEY;
 
-          debugPrint("Hash Input: $hashInput");
+      debugPrint("Hash Input: $hashInput");
 
       final hash = _sha256Hex(hashInput);
 

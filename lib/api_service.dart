@@ -4,7 +4,7 @@
 // Pre Production
 
 
-
+/*
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -526,7 +526,7 @@ Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async 
 }
 
 
-
+*/
 
 
 
@@ -536,7 +536,7 @@ Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async 
 
 //------------- Production Api---------------------
 
-/*
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -728,7 +728,7 @@ class ApiService {
     return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-Api-getOtp2Factor', userData);
   }
 
-Future<Map<String, dynamic>> getCheckRegistration(Map<String, dynamic> userData) async {
+  Future<Map<String, dynamic>> getCheckRegistration(Map<String, dynamic> userData) async {
     return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-api-validateRegistration', userData);
   }
 
@@ -777,11 +777,11 @@ Future<Map<String, dynamic>> getCheckRegistration(Map<String, dynamic> userData)
   Future<Map<String, dynamic>> getVoucherCategoryList(Map<String, dynamic> params) async   { //Preproduction
     return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/masterService-api-vouchercat-fetch', params);
 
-    }
+  }
 
   Future<Map<String, dynamic>> getVoucherSubCategoryList(Map<String, dynamic> params) async {
-   return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/masterService-api-vouchercat-fetch', params);
- }
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/masterService-api-vouchercat-fetch', params);
+  }
 
   Future<Map<String, dynamic>> getVoucherNameSearchMobile(Map<String, dynamic> params) async {
     return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/empService-Api-get-employeeSearchWithMobile', params);
@@ -791,14 +791,14 @@ Future<Map<String, dynamic>> getCheckRegistration(Map<String, dynamic> userData)
     return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first//cashFree-Api-get-cashFreeOrderId', params);
   }
 
-Future<Map<String, dynamic>> getCotoBalanceTransactionList(Map<String, dynamic> params) async {
+  Future<Map<String, dynamic>> getCotoBalanceTransactionList(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrderIdList', params);
-   }
+  }
 
 
-Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async {
+  Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrder', params);
-   }
+  }
 
 
 
@@ -838,6 +838,11 @@ Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async 
   Future<Map<String, dynamic>> updateUserProfile({required int userId, required Map<String, dynamic> profileData}) async {
     final url = 'https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-api-update-userprofile1/$userId';
     return _callApiEndpoint(url, profileData, method: 'POST');
+  }
+
+  Future<Map<String, dynamic>> verifyOtpVoucher(Map<String, dynamic> otpData) async {
+    //return _callApiEndpoint('$_baseServiceUrl/verifyOtpNew', otpData);
+    return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-Api-get-verifyOtp', otpData);
   }
 
   Future<Map<String, dynamic>> _callApiEndpoint(String url, Map<String, dynamic> data, {String method = 'POST'}) async {
@@ -932,4 +937,4 @@ Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async 
   }
 
 }
-*/
+
