@@ -4,6 +4,7 @@ import 'package:cotopay/add_user_vechle_screen.dart';
 import 'package:cotopay/experince_voucher_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'session_manager.dart';
 import 'edit_profile_screen.dart';
@@ -71,7 +72,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirm Delete'),
-        content: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to delete your account? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -79,7 +81,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Yes, Delete', style: TextStyle(color: Colors.red)),
+            child:
+                const Text('Yes, Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -118,11 +121,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           // Clear stored session/user data
 
           // Navigate to app root (or login) - adjust as per your routing
-       //   if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
-            if (mounted) { await SessionManager.logout(context);}}
-
+          //   if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+          if (mounted) {
+            await SessionManager.logout(context);
+          }
+        }
       } else {
-        final msg = response['message']?.toString() ?? 'Failed to delete account';
+        final msg =
+            response['message']?.toString() ?? 'Failed to delete account';
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('❌ $msg')),
@@ -155,251 +161,386 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('Account & Settings', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+        title: const Text('Account & Settings',
+            style: TextStyle(
+                color: Colors.black,
+                fontSize: 18,
+                fontWeight: FontWeight.bold)),
         centerTitle: false,
       ),
-      body: Column(
-        children: [
-          // Profile Card
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+
+
+
+// put this inside your Scaffold: body: <paste this widget>
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  Container(height: 94, color: const Color(0xff34A853)),
-                  Positioned.fill(child: CustomPaint(painter: DotPatternPainter())),
-                  SizedBox(
-                    height: 94,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                  // ------------------ PROFILE CARD -------------------
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: SizedBox(
+                      height: 162,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // background
+                          SvgPicture.asset(
+                            'assets/profile_card.svg',
+                            fit: BoxFit.cover,
+                          ),
+
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // LEFT: avatar above name & phone
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // avatar (top)
+                                    CircleAvatar(
+                                      radius: 32,
+                                      backgroundColor: Colors.white,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4.0),
+                                        child: ClipOval(
+                                          child: Image.asset('assets/avatar.png', fit: BoxFit.cover),
+                                        ),
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 12),
+
+                                    // name (below avatar)
+                                    SizedBox(
+                                   //   width: 200, // limit width so long names wrap/ellipsis sensibly
+                                      child: Text(
+                                        _name,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w600, // Semi Bold (600)
+                                          fontSize: 16.0,
+                                          height: 1.4, // 140%
+                                          letterSpacing: 0.0,
+                                          color: Colors.white,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+
+                                    ),
+
+                                    const SizedBox(height: 6),
+
+                                    // phone (below name)
+                                    Text(
+                                      'Phone: $_mobile',
+                                      style: const TextStyle(
+                                        fontFamily: 'Open Sans',
+                                        fontWeight: FontWeight.w400, // Regular
+                                        fontSize: 13.0,
+                                        height: 1.4,                 // 140%
+                                        letterSpacing: 0.0,
+                                        color: Color(0xFFBFDECC),    // #BFDECC
+                                      ),
+                                    ),
+
+                                  ],
+                                ),
+
+                                // push edit icon to right
+                                const Spacer(),
+
+                                // EDIT ICON TOP RIGHT
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0, right: 4.0),
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: SvgPicture.asset(
+                                      'assets/edit.svg',
+                                      width: 24,
+                                      height: 24,
+
+                                    ),                                    onPressed: () async {
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+                                      );
+                                      _loadUserData();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // ------------------ EMAIL PROMPT -------------------
+                  if (_email == null || _email!.isEmpty)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: -45,
+                      child: Container(
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: const Color(0xffE8F0FE),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                              child: const Center(
+                                  child: Icon(Icons.info_outline, color: Color(0xff1967D2), size: 20)),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                'Please link your email address!',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                  color: Color(0xff1967D2),
+                                ),
+                              ),
+                            ),
+                            SvgPicture.asset(
+                              'assets/arro_side.svg',
+                              width: 20,
+                              height: 20,
+                              colorFilter: const ColorFilter.mode(Color(0xff1967D2), BlendMode.srcIn),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+
+            const SizedBox(height: 30), // space below overlapping prompt
+
+
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0),
+              child: Column(
+                children: [
+                  ListTile(
+                    tileColor: Colors.white,
+                    leading: SvgPicture.asset('assets/link_side.svg', width: 24, height: 24),
+                    title: const Text(
+                      'Linked Workplace',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Color(0xFF0A0A0A),
+                      ),
+                    ),
+                    trailing: SvgPicture.asset('assets/arro_side.svg', width: 24, height: 24),
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const BusinessBenefitsScreen()));
+                    },
+                  ),
+
+                  ListTile(
+                    tileColor: Colors.white,
+                    leading: SvgPicture.asset('assets/key.svg', width: 24, height: 24),
+                    title: const Text(
+                      'App Permissions',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Color(0xFF0A0A0A),
+                      ),
+                    ),
+                    trailing: SvgPicture.asset('assets/arro_side.svg', width: 24, height: 24),
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AppPermissionsScreen()));
+                    },
+                  ),
+
+                  ListTile(
+                    tileColor: Colors.white,
+                    leading: SvgPicture.asset('assets/key.svg', width: 24, height: 24),
+                    title: const Text(
+                      'Coto Balance',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Color(0xFF0A0A0A),
+                      ),
+                    ),
+                    trailing: SvgPicture.asset('assets/arro_side.svg', width: 24, height: 24),
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const CotoBalanceCard()));
+                    },
+                  ),
+
+                  ListTile(
+                    tileColor: Colors.white,
+                    leading: Image.asset('assets/magic_icon.png', width: 24, height: 24),
+                    title: const Text(
+                      'Experience a UPI Voucher',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Color(0xFF0A0A0A),
+                      ),
+                    ),
+                    trailing: SvgPicture.asset('assets/arro_side.svg', width: 24, height: 24),
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ExperienceUpiVoucherScreen()));
+                    },
+                  ),
+
+                  const Divider(height: 24, thickness: 1, indent: 16, endIndent: 16, color: Color(0xFFF1F1F1)),
+
+                  ListTile(
+                    leading: const Icon(Icons.add, color: Color(0xFF0A0A0A)),
+                    title: const Text(
+                      'Add Users & Vehicles',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Color(0xFF0A0A0A),
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Padding(
-                          padding: EdgeInsets.only(left: 16.0),
-                          child: CircleAvatar(
-                            radius: 28,
-                            backgroundColor: Colors.white,
-                            child: Padding(
-                              padding: EdgeInsets.all(4.0),
-                              child: ClipOval(child: Image(image: AssetImage('assets/avatar.png'))),
+                        Container(
+                          width: 56,
+                          height: 21,
+                          padding: const EdgeInsets.fromLTRB(7, 2, 10, 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFC500),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Admin',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w400,
+                                fontSize: 12,
+                                height: 1.4,
+                                color: Color(0xFF1F212C),
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _name,
-                                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Phone: $_mobile',
-                                style: const TextStyle(color: Colors.white, fontSize: 14),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          padding: const EdgeInsets.only(right: 16.0),
-                          constraints: const BoxConstraints(),
-                          icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                          onPressed: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const EditProfileScreen()),
-                            );
-                            _loadUserData();
-                          },
-                        ),
+                        const SizedBox(width: 80),
+                        SvgPicture.asset('assets/arro_side.svg', width: 20, height: 20, colorFilter: const ColorFilter.mode(Color(0xFF8A8A8A), BlendMode.srcIn)),
                       ],
                     ),
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AddUsersVehiclesScreen()));
+                    },
+                  ),
+
+                  ListTile(
+                    leading: const Icon(Icons.headset_mic_outlined, color: Color(0xFF0A0A0A)),
+                    title: const Text(
+                      'Help and Support',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Color(0xFF0A0A0A),
+                      ),
+                    ),
+                    trailing: SvgPicture.asset('assets/arro_side.svg', width: 24, height: 24),
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpAndSupportScreen()));
+                    },
+                  ),
+
+                  ListTile(
+                    tileColor: Colors.white,
+                    leading: SvgPicture.asset('assets/about.svg', width: 24, height: 24),
+                    title: const Text(
+                      'About Us',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Color(0xFF0A0A0A),
+                      ),
+                    ),
+                    trailing: SvgPicture.asset('assets/arro_side.svg', width: 24, height: 24),
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutUsScreen()));
+                    },
+                  ),
+
+                  ListTile(
+                    tileColor: Colors.white,
+                    leading: SvgPicture.asset('assets/terms.svg', width: 24, height: 24),
+                    title: const Text(
+                      'Terms & Conditions',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Color(0xFF0A0A0A),
+                      ),
+                    ),
+                    trailing: SvgPicture.asset('assets/arro_side.svg', width: 24, height: 24),
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const TermsAndConditionsScreen()));
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 24),
+                    child: Text('CotoPay v1.1.2  •  Copyright 2025', style: TextStyle(color: Colors.grey, fontSize: 12)),
                   ),
                 ],
               ),
             ),
-          ),
-
-          if (_email == null || _email!.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xffE8F0FE),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Color(0xff1967D2)),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text('Please link your email address!', style: TextStyle(color: Color(0xff1967D2), fontWeight: FontWeight.w500)),
-                    ),
-                    Icon(Icons.arrow_forward, color: Color(0xff1967D2)),
-                  ],
-                ),
-              ),
-            ),
-
-          const SizedBox(height: 10),
-
-          // Menu Items
-          ListTile(
-            leading: const Icon(Icons.work_outline, color: Colors.black87),
-            title: const Text('Linked Workplace', style: TextStyle(fontSize: 16)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const BusinessBenefitsScreen()));
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.vpn_key_outlined, color: Colors.black87),
-            title: const Text('App Permissions', style: TextStyle(fontSize: 16)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const AppPermissionsScreen()));
-            },
-          ),
-
-          ListTile(
-           // leading: const Icon(Icons.vpn_key_outlined, color: Colors.black87),
-
-            leading: Image.asset(
-              'assets/coto_icon.png',
-              height: 20,
-              width: 20,
-              color: Colors.black,
-            ),
-            title: const Text('Coto Balance', style: TextStyle(fontSize: 16)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const CotoBalanceCard()));
-            },
-          ),
-
-
-          ListTile(
-
-
-
-
-    leading: Image.asset(
-    'assets/magic_icon.png',
-    height: 20,
-    width: 20,
-    color: Colors.black,
-    ),
-            title: const Text('Experience a UPI Voucher', style: TextStyle(fontSize: 16)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ExperienceUpiVoucherScreen()));
-            },
-          ),
-
-
-          const Divider(height: 24, thickness: 1, indent: 16, endIndent: 16,color: Color(0xFFF1F1F1)),
-
-    ListTile(
-    leading: const Icon(Icons.add, color: Colors.black87),
-    title: const Text(
-    'Add Users & Vehicles',
-    style: TextStyle(fontSize: 16),
-    ),
-    trailing: Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-    Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-    decoration: BoxDecoration(
-    color: Color(0xFFFFC500),
-    borderRadius: BorderRadius.circular(30),
-    ),
-    child: const Text(
-    'Admin',
-    style: TextStyle(
-    fontSize: 12,
-    color: Colors.black87,
-    ),
-    ),
-    ),
-
-
-    const SizedBox(width: 80),
-    const Icon(
-    Icons.arrow_forward_ios,
-    size: 16,
-    color: Colors.grey,
-    ),
-    ], // end children
-    ), // end trailing Row
-    onTap: () {
-    Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => const AddUsersVehiclesScreen()),
-    );
-    },
-    ),
-
-
-
-    ListTile(
-            leading: const Icon(Icons.headset_mic_outlined, color: Colors.black87),
-            title: const Text('Help and Support', style: TextStyle(fontSize: 16)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpAndSupportScreen()));
-            },
-          ),
-          ListTile(
-            leading: const CircleAvatar(
-              radius: 14,
-              backgroundColor: Colors.black,
-              child: Text('C', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-            title: const Text('About Us'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutUsScreen()));
-            },
-          ),
-          ListTile(
-            leading: const Icon(IconData(0xe1de, fontFamily: 'MaterialIcons'), color: Colors.black87),
-            title: const Text('Terms & Conditions', style: TextStyle(fontSize: 16)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const TermsAndConditionsScreen()));
-            },
-          ),
-          const Spacer(),
-
-          // Delete Account text
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: GestureDetector(
-              onTap: _deleting ? null : _confirmAndDelete,
-              child: Text(
-                _deleting ? 'Deleting...' : 'Delete Account',
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-          ),
-
-          const Padding(
-            padding: EdgeInsets.only(bottom: 24),
-            child: Text('CotoPay v1.1.2  •  Copyright 2025', style: TextStyle(color: Colors.grey, fontSize: 12)),
-          ),
-        ],
+          ],
+        ),
       ),
+
+
+
+
+
     );
   }
 }

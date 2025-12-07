@@ -29,6 +29,7 @@ dependencies:
   pointycastle: ^3.6.2
   asn1lib: ^1.1.1
   flutter_cashfree_pg_sdk: 2.2.9+47
+  flutter_svg: ^2.0.0
 
 
 
@@ -65,13 +66,12 @@ flutter:
     - assets/no_vouchers.webp
     - assets/offer_icon.png
     - assets/scan.png
-    - assets/upi_logo.png
+    - assets/upi_logo.svg
     - assets/voucher_illustration.png
     - assets/images/info.png
     - assets/images/revoke.png
     - assets/India.png
     - assets/home_b.png
-    - assets/voucher_b.png
     - assets/offer_b.png
     - assets/his_b.png
     - assets/delete.png
@@ -79,6 +79,28 @@ flutter:
     - assets/magic_icon.png
     - assets/coto_logo_top.png
     - assets/img_back_fram.png
+    - assets/info.svg
+    - assets/revoke.svg
+    - assets/scan.svg
+    - assets/home_b.svg
+    - assets/voucher_b.svg
+    - assets/offer_b.svg
+    - assets/his_b.svg
+    - assets/issue_icon.svg
+    - assets/add_icon.svg
+    - assets/offer_icon.svg
+    - assets/arrow.svg
+    - assets/arr.svg
+    - assets/single.svg
+    - assets/multiple.svg
+    - assets/left_line.svg
+    - assets/link_side.svg
+    - assets/arro_side.svg
+    - assets/key.svg
+    - assets/about.svg
+    - assets/terms.svg
+    - assets/profile_card.svg
+    - assets/edit.svg
 
 
 flutter_launcher_icons:
