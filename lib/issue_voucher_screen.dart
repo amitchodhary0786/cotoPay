@@ -755,7 +755,22 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                       padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
                       child: Row(
                         children: [
-                          const Expanded(child: Text('UPI VOUCHER CATEGORIES', style: TextStyle(fontWeight: FontWeight.w700))),
+
+                          const Expanded(
+                            child: Text(
+                              'UPI VOUCHER CATEGORIES',
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w500,    // Medium
+                                fontSize: 12,
+                                height: 1.4,                    // 140% line-height
+                                letterSpacing: 0.04,            // 4% (approx)
+                                color: Color(0xFF1F212C),
+                              ),
+                            ),
+                          ),
+
                           IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(ctx).pop()),
                         ],
                       ),
@@ -837,10 +852,44 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                         decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade200)),
                                         child: Row(
                                           children: [
-                                            Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(44)), child: Icon(displayIcon, color: Colors.green, size: 22)),
+                                      //      Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(44)), child: Icon(displayIcon, color: Colors.green, size: 22)),
+                                Container(
+                                width: 44,
+                                height: 44,
+                                padding: const EdgeInsets.all(10),       // padding: 10px
+                                decoration: BoxDecoration(
+                               // color: const Color(0xFFF0F8F4),        // approx to green.shade50 but exact Figma look
+                                borderRadius: BorderRadius.circular(40), // radius: 40px
+                                border: Border.all(
+                                color: const Color(0xFFBFDECC),      // #BFDECC
+                                width: 1,                             // border-width: 1px
+                                ),
+                                ),
+                                child: Icon(
+                                displayIcon,
+                                color: const Color(0xFF2F945A),         // Use consistent Cotopay green
+                                size: 22,
+                                ),
+                                ),
+
                                             const SizedBox(width: 12),
-                                            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
-                                            Transform.rotate(angle: isExpanded ? pi / 2 : 0, child: const Icon(Icons.keyboard_arrow_down, color: Colors.black54)),
+                                          // Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+
+                                Expanded(
+                                child: Text(
+                                title,
+                                style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w400,     // Regular
+                                fontSize: 14,
+                                height: 1.4,                     // 140% line height
+                                letterSpacing: 0,
+                                color: Color(0xFF2F945A),        // #2F945A
+                                ),
+                                ),
+                                ),
+
+                                Transform.rotate(angle: isExpanded ? pi / 2 : 0, child: const Icon(Icons.keyboard_arrow_down, color: Colors.black54)),
                                           ],
                                         ),
                                       ),
