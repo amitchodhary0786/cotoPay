@@ -101,6 +101,7 @@ flutter:
     - assets/terms.svg
     - assets/profile_card.svg
     - assets/edit.svg
+    - assets/app_bar_back.svg
 
 
 flutter_launcher_icons:

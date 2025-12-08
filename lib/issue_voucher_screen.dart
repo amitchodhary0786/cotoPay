@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:cotopay/voucher_verify_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 
 import 'api_service.dart';
@@ -1400,8 +1401,28 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         elevation: 0,
         centerTitle: false,
         titleSpacing: horizontalPadding,
-        title: const Text('Vouchers', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.black), onPressed: () => Navigator.pop(context)),
+        title: const Text(
+          'Vouchers',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600, // Semi Bold
+            fontSize: 16,
+            height: 1.4,                 // 140% line-height
+            letterSpacing: 0,            // 0%
+            color: Color(0xFF4A4E69),    // Text color
+          ),
+        ),
+
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: SvgPicture.asset(
+            'assets/app_bar_back.svg', // your SVG path
+            width: 20,
+            height: 20,
+            color: Colors.black, // if you want tint
+          ),
+        ),
+
       ),
       body: Container(
         color: Colors.white,
@@ -1448,11 +1469,35 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(_availableBalance),
-                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: rightAmountFont),
+                                    NumberFormat.currency(
+                                      locale: 'en_IN',
+                                      symbol: '₹',
+                                      decimalDigits: 2,
+                                    ).format(_availableBalance),
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,   // Semi Bold
+                                      fontSize: 16,
+                                      height: 1.4,                   // 140% line height
+                                      letterSpacing: 0,
+                                      color: Color(0xFFFFFFFF),      // White
+                                    ),
                                   ),
+
                                   SizedBox(height: 6),
-                                  Text('Available Balance', style: TextStyle(color: Colors.white70, fontSize: labelFont)),
+                                  Text(
+                                    'Available Balance',
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w400,     // Regular
+                                      fontSize: 12,
+                                      height: 1.4,                      // 140% line height
+                                      letterSpacing: 0,
+                                      color: Color(0xFF86889B),         // #86889B
+                                    ),
+                                  ),
                                 ],
                               ),
                           ],
@@ -1535,19 +1580,47 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
             SizedBox(height: horizontalPadding * 1.0),
 
             SizedBox(
-              width: double.infinity,
-              height: 52,
+              width: 390,
+              height: 46,
               child: ElevatedButton(
                 onPressed: _allEntriesValid ? _onSubmit : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _allEntriesValid ? const Color(0xFF3366FF) : const Color(0xFFDFEAFE),
-                  foregroundColor: _allEntriesValid ? Colors.white : Colors.blue.shade200,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  elevation: 0,
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                    if (states.contains(MaterialState.disabled)) {
+                      return const Color(0xFFEBF2FF); // Inactive BG (#EBF2FF)
+                    }
+                    return const Color(0xFF367AFF);   // Active BG (#367AFF)
+                  }),
+                  foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                    if (states.contains(MaterialState.disabled)) {
+                      return const Color(0xFFA3C2FF); // Inactive Text (#A3C2FF)
+                    }
+                    return Colors.white;              // Active Text (#FFFFFF)
+                  }),
+                  padding: MaterialStateProperty.all(
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  shape: MaterialStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  elevation: MaterialStateProperty.all(0),
                 ),
-                child: Text('Continue', style: TextStyle(fontSize: _clamp(sw * 0.042, 14, 16), fontWeight: FontWeight.w600)),
+                child: const Text(
+                  'Continue',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Open Sans',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    height: 1.4,
+                    letterSpacing: 0,
+                  ),
+                ),
               ),
             ),
+
             SizedBox(height: horizontalPadding),
           ]),
         ),

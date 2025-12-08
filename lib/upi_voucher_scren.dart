@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:cotopay/util/decrypt_screen.dart';
 import 'package:cotopay/vouchers_history.dart';
 import 'package:flutter/material.dart';
 import 'approve_vouchers_screen.dart';
