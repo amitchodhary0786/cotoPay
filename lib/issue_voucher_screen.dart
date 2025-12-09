@@ -34,16 +34,17 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   String _selectedBankId = '';
   double _availableBalance = 0.0;
   bool _loadingBalance = true;
+
 //  bool get _isPositiveBalance => !_loadingBalance && (_availableBalance != null && _availableBalance > 0.0);
 
   bool get _isWalletAccount {
     // if no bank selected yet, follow default behaviour (show Wallet/dark)
     if (_selectedBankFull == null) return true;
-    final val = (_selectedBankFull?['accountSeltWallet']?.toString() ?? 'Wallet').toLowerCase();
+    final val =
+        (_selectedBankFull?['accountSeltWallet']?.toString() ?? 'Wallet')
+            .toLowerCase();
     return val == 'wallet';
   }
-
-
 
   // store full selected bank object (so we can read merchant/submerchant/payerva/etc)
   Map<String, dynamic>? _selectedBankFull;
@@ -103,25 +104,32 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     try {
       final user = await SessionManager.getUserData();
       debugPrint('[IssueVoucher] _loadBanks: user => $user');
-      if (user == null || user.employerid == null) throw Exception('User not available');
+      if (user == null || user.employerid == null)
+        throw Exception('User not available');
 
       final bankParams = {'orgId': user.employerid};
-      debugPrint('[IssueVoucher] _loadBanks: calling getBankList with params: $bankParams');
-      final bankResp = await _api_serviceSafeGet(() => _apiService.getBankList(bankParams));
-
+      debugPrint(
+          '[IssueVoucher] _loadBanks: calling getBankList with params: $bankParams');
+      final bankResp =
+          await _api_serviceSafeGet(() => _apiService.getBankList(bankParams));
 
       debugPrint('[IssueVoucher] _loadBanks: getBankList response: $bankResp');
 
-      if (bankResp != null && bankResp['status'] == true && bankResp['data'] is List) {
-     //   _banks = List<dynamic>.from(bankResp['data']);
+      if (bankResp != null &&
+          bankResp['status'] == true &&
+          bankResp['data'] is List) {
+        //   _banks = List<dynamic>.from(bankResp['data']);
 
         _banks = List<dynamic>.from(bankResp['data']).map((raw) {
           if (raw is Map) {
-            final Map<String, dynamic> original = Map<String, dynamic>.from(raw as Map);
+            final Map<String, dynamic> original =
+                Map<String, dynamic>.from(raw as Map);
             // pick value or default
-            final String walletVal = (original['accountSeltWallet']?.toString().trim().isNotEmpty == true)
-                ? original['accountSeltWallet'].toString()
-                : 'Wallet';
+            final String walletVal =
+                (original['accountSeltWallet']?.toString().trim().isNotEmpty ==
+                        true)
+                    ? original['accountSeltWallet'].toString()
+                    : 'Wallet';
 
             // create a new LinkedHashMap so insertion order is preserved
             final Map<String, dynamic> normalized = <String, dynamic>{};
@@ -148,7 +156,9 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           // Try to find first bank which explicitly marks accountSeltWallet == 'Wallet'
           final int walletIndex = _banks.indexWhere((b) {
             try {
-              final val = (b is Map && b.containsKey('accountSeltWallet')) ? (b['accountSeltWallet']?.toString() ?? '') : '';
+              final val = (b is Map && b.containsKey('accountSeltWallet'))
+                  ? (b['accountSeltWallet']?.toString() ?? '')
+                  : '';
               return val.toLowerCase().trim() == 'wallet';
             } catch (_) {
               return false;
@@ -156,14 +166,17 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           });
 
           if (walletIndex != -1) {
-            debugPrint('[IssueVoucher] _loadBanks: found wallet bank at index $walletIndex — selecting it');
+            debugPrint(
+                '[IssueVoucher] _loadBanks: found wallet bank at index $walletIndex — selecting it');
             _selectBankAtIndex(walletIndex);
           } else {
             // No explicit wallet marked — do NOT auto-select the first bank.
             // Keep _selectedBankFull as null so _isWalletAccount == true and black card is shown by default.
-            debugPrint('[IssueVoucher] _loadBanks: no wallet bank found — leaving selection empty to show default Wallet view');
+            debugPrint(
+                '[IssueVoucher] _loadBanks: no wallet bank found — leaving selection empty to show default Wallet view');
             setState(() {
-              _loadingBalance = false; // we don't have a selected bank so no balance to load
+              _loadingBalance =
+                  false; // we don't have a selected bank so no balance to load
               // preserve _selectedBankFull == null so UI shows wallet style by default
             });
           }
@@ -171,9 +184,6 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           // no banks - stop loading balance
           setState(() => _loadingBalance = false);
         }
-
-
-
       } else {
         _banks = [];
         setState(() => _loadingBalance = false);
@@ -186,11 +196,13 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       });
     } finally {
       setState(() => _loadingBanks = false);
-      debugPrint('[IssueVoucher] _loadBanks: finished (loadingBanks=$_loadingBanks, loadingBalance=$_loadingBalance)');
+      debugPrint(
+          '[IssueVoucher] _loadBanks: finished (loadingBanks=$_loadingBanks, loadingBalance=$_loadingBalance)');
     }
   }
 
-  Future<Map<String, dynamic>?> _api_serviceSafeGet(Future<Map<String, dynamic>?> Function() fn) async {
+  Future<Map<String, dynamic>?> _api_serviceSafeGet(
+      Future<Map<String, dynamic>?> Function() fn) async {
     try {
       debugPrint('[IssueVoucher] _api_serviceSafeGet: calling API...');
       final resp = await fn();
@@ -210,13 +222,15 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       _voucherCategories = [];
     });
 
-    debugPrint('[IssueVoucher] _loadVoucherCategories: fetching top categories');
+    debugPrint(
+        '[IssueVoucher] _loadVoucherCategories: fetching top categories');
     try {
       final params = <String, dynamic>{};
       final user = await SessionManager.getUserData();
       final employerId = user?.employerid;
       if (employerId == null) {
-        debugPrint('[IssueVoucher] _loadVoucherCategories: employerId not available in session');
+        debugPrint(
+            '[IssueVoucher] _loadVoucherCategories: employerId not available in session');
         setState(() {
           _loadingCategories = false;
         });
@@ -228,9 +242,11 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       params['cotocatid'] = '';
       //params['orgId'] = "142";
 
-      debugPrint('[IssueVoucher] _loadVoucherCategories: calling POST getVoucherCategoryList with params: $params');
+      debugPrint(
+          '[IssueVoucher] _loadVoucherCategories: calling POST getVoucherCategoryList with params: $params');
 
-      final resp = await _api_serviceSafeGet(() => _apiService.getVoucherCategoryList(params));
+      final resp = await _api_serviceSafeGet(
+          () => _apiService.getVoucherCategoryList(params));
 
       debugPrint('[IssueVoucher] _loadVoucherCategories: raw resp => $resp');
 
@@ -252,22 +268,32 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           }
         }
 
-        debugPrint('[IssueVoucher] _loadVoucherCategories: parsed ${items.length} categories');
+        debugPrint(
+            '[IssueVoucher] _loadVoucherCategories: parsed ${items.length} categories');
 
         // Normalize keys so UI/other code can rely on consistent field names.
         _voucherCategories = items.map<Map<String, dynamic>>((raw) {
           // try multiple possible key names to be tolerant of API shapes
-          final topIdCandidate = raw['id'] ?? raw['cototopid'] ?? raw['topId'] ?? raw['categoryId'];
-          final voucherNameCandidate = raw['categoryname'] ?? raw['vouchername'] ?? raw['title'] ?? raw['name'];
-          final purposeCandidate = raw['purpose_code'] ?? raw['purposeCode'] ?? raw['purpose'];
+          final topIdCandidate = raw['id'] ??
+              raw['cototopid'] ??
+              raw['topId'] ??
+              raw['categoryId'];
+          final voucherNameCandidate = raw['categoryname'] ??
+              raw['vouchername'] ??
+              raw['title'] ??
+              raw['name'];
+          final purposeCandidate =
+              raw['purpose_code'] ?? raw['purposeCode'] ?? raw['purpose'];
           final icon = raw['left_vouchericon'] ?? raw['icon'];
 
           final topIdStr = topIdCandidate?.toString();
 
           return {
             // canonical keys used elsewhere in your code
-            'id': topIdStr, // primary id
-            'topId': topIdStr, // alias (some code expects topId)
+            'id': topIdStr,
+            // primary id
+            'topId': topIdStr,
+            // alias (some code expects topId)
             'purposeCode': purposeCandidate?.toString(),
             'title': voucherNameCandidate?.toString() ?? 'Category',
             // keep older names too for backward compatibility
@@ -281,7 +307,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           };
         }).toList();
       } else {
-        debugPrint('[IssueVoucher] _loadVoucherCategories: got failure or empty resp');
+        debugPrint(
+            '[IssueVoucher] _loadVoucherCategories: got failure or empty resp');
       }
     } catch (e, st) {
       debugPrint('[IssueVoucher] _loadVoucherCategories: error => $e\n$st');
@@ -289,13 +316,15 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       setState(() {
         _loadingCategories = false;
       });
-      debugPrint('[IssueVoucher] _loadVoucherCategories: finished (count=${_voucherCategories.length})');
+      debugPrint(
+          '[IssueVoucher] _loadVoucherCategories: finished (count=${_voucherCategories.length})');
     }
   }
 
   Future<void> _loadSubCategoriesForIndex(int topIndex) async {
     if (topIndex < 0 || topIndex >= _voucherCategories.length) {
-      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: invalid topIndex=$topIndex');
+      debugPrint(
+          '[IssueVoucher] _loadSubCategoriesForIndex: invalid topIndex=$topIndex');
       return;
     }
 
@@ -305,15 +334,19 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       final user = await SessionManager.getUserData();
       final employerId = user?.employerid;
       if (employerId == null) {
-        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: employerId not available');
+        debugPrint(
+            '[IssueVoucher] _loadSubCategoriesForIndex: employerId not available');
         setState(() => _voucherCategories[topIndex]['loadingChildren'] = false);
         return;
       }
 
       final topCat = _voucherCategories[topIndex];
-      final topCatId = (topCat['id'] ?? topCat['topId'] ?? topCat['id_pk'])?.toString()?.trim();
+      final topCatId = (topCat['id'] ?? topCat['topId'] ?? topCat['id_pk'])
+          ?.toString()
+          ?.trim();
       if (topCatId == null || topCatId.isEmpty) {
-        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: missing topCatId');
+        debugPrint(
+            '[IssueVoucher] _loadSubCategoriesForIndex: missing topCatId');
         setState(() => _voucherCategories[topIndex]['loadingChildren'] = false);
         return;
       }
@@ -325,17 +358,22 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       };
 
       debugPrint('Category Id: ${int.tryParse(topCatId) ?? topCatId}');
-      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: calling getVoucherSubCategoryList with params: ${jsonEncode(params)}');
+      debugPrint(
+          '[IssueVoucher] _loadSubCategoriesForIndex: calling getVoucherSubCategoryList with params: ${jsonEncode(params)}');
 
-      final dynamic resp = await _api_serviceSafeGet(() => _apiService.getVoucherSubCategoryList(params));
-      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: raw resp => $resp');
+      final dynamic resp = await _api_serviceSafeGet(
+          () => _apiService.getVoucherSubCategoryList(params));
+      debugPrint(
+          '[IssueVoucher] _loadSubCategoriesForIndex: raw resp => $resp');
 
       // ✅ Extract list safely from response
       List items = [];
       try {
         if (resp == null) {
           items = [];
-        } else if (resp is Map && resp['data'] is Map && resp['data']['list'] is List) {
+        } else if (resp is Map &&
+            resp['data'] is Map &&
+            resp['data']['list'] is List) {
           // your actual format
           items = resp['data']['list'] as List;
         } else if (resp is Map && resp['list'] is List) {
@@ -351,11 +389,13 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           }
         }
       } catch (e) {
-        debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: error extracting list => $e');
+        debugPrint(
+            '[IssueVoucher] _loadSubCategoriesForIndex: error extracting list => $e');
         items = [];
       }
 
-      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: found ${items.length} children');
+      debugPrint(
+          '[IssueVoucher] _loadSubCategoriesForIndex: found ${items.length} children');
 
       // ✅ Build subcategories list
       final children = <Map<String, dynamic>>[];
@@ -364,12 +404,16 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       for (final raw in items) {
         if (raw is! Map) continue;
 
-        final id = (raw['id_pk'] ?? raw['id'] ?? raw['cotocatid'])?.toString() ?? '';
+        final id =
+            (raw['id_pk'] ?? raw['id'] ?? raw['cotocatid'])?.toString() ?? '';
         if (id.isEmpty || seen.contains(id)) continue;
         seen.add(id);
 
-        final name = (raw['vouchername'] ?? raw['purpose_desc'] ?? 'Subcategory').toString();
-        final icon = (raw['vouchericon'] ?? raw['left_vouchericon'])?.toString();
+        final name =
+            (raw['vouchername'] ?? raw['purpose_desc'] ?? 'Subcategory')
+                .toString();
+        final icon =
+            (raw['vouchericon'] ?? raw['left_vouchericon'])?.toString();
 
         children.add({
           'id': id,
@@ -379,7 +423,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         });
       }
 
-      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: built ${children.length} children for parent=$topCatId');
+      debugPrint(
+          '[IssueVoucher] _loadSubCategoriesForIndex: built ${children.length} children for parent=$topCatId');
 
       setState(() {
         _voucherCategories[topIndex]['children'] = children;
@@ -388,10 +433,10 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: error => $e\n$st');
     } finally {
       setState(() => _voucherCategories[topIndex]['loadingChildren'] = false);
-      debugPrint('[IssueVoucher] _loadSubCategoriesForIndex: finished for topIndex=$topIndex');
+      debugPrint(
+          '[IssueVoucher] _loadSubCategoriesForIndex: finished for topIndex=$topIndex');
     }
   }
-
 
   // ---------------- employee search integration (use getVoucherNameSearchMobile) ----------------
 
@@ -401,7 +446,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
     // if less than 3 chars, don't search; also hide suggestions
     if (q.trim().length < 3) {
-      debugPrint('[IssueVoucher] _scheduleEmployeeSearch: query too short (len=${q.length}) for entry=${entry._id}');
+      debugPrint(
+          '[IssueVoucher] _scheduleEmployeeSearch: query too short (len=${q.length}) for entry=${entry._id}');
       setState(() {
         entry.searchResults = null;
         entry.searching = false;
@@ -419,20 +465,24 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
   Future<void> _performEmployeeSearch(_VoucherEntry entry, String q) async {
     try {
-      debugPrint('[IssueVoucher] _performEmployeeSearch: entry=${entry._id} q="$q"');
+      debugPrint(
+          '[IssueVoucher] _performEmployeeSearch: entry=${entry._id} q="$q"');
 
       final user = await SessionManager.getUserData();
       final employerId = user?.employerid;
       if (employerId == null) {
-        debugPrint('[IssueVoucher] _performEmployeeSearch: employerId not available in session');
+        debugPrint(
+            '[IssueVoucher] _performEmployeeSearch: employerId not available in session');
         setState(() => entry.searching = false);
         return;
       }
 
       final params = {'orgId': employerId, 'userName': q};
-      debugPrint('[IssueVoucher] _performEmployeeSearch: calling getVoucherNameSearchMobile with params=$params');
+      debugPrint(
+          '[IssueVoucher] _performEmployeeSearch: calling getVoucherNameSearchMobile with params=$params');
 
-      final resp = await _api_serviceSafeGet(() => _apiService.getVoucherNameSearchMobile(params));
+      final resp = await _api_serviceSafeGet(
+          () => _apiService.getVoucherNameSearchMobile(params));
 
       debugPrint('[IssueVoucher] _performEmployeeSearch: raw resp => $resp');
 
@@ -486,19 +536,24 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     }
     final bank = _banks[idx];
     final bankName = (bank['bankName'] ?? bank['name'] ?? 'Account').toString();
-    final account = (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '').toString();
+    final account =
+        (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '')
+            .toString();
     final masked = _maskAccount(account);
 
-    debugPrint('[IssueVoucher] _selectBankAtIndex: selected bank index=$idx name=$bankName account=$account id=${bank['id'] ?? bank['bankId']}');
+    debugPrint(
+        '[IssueVoucher] _selectBankAtIndex: selected bank index=$idx name=$bankName account=$account id=${bank['id'] ?? bank['bankId']}');
 
     setState(() {
 // ensure selected bank map also has accountSeltWallet at first position (default "Wallet")
-      final Map<String, dynamic> rawMap = Map<String, dynamic>.from(bank as Map);
+      final Map<String, dynamic> rawMap =
+          Map<String, dynamic>.from(bank as Map);
 
 // compute wallet value (use existing if present else default)
-      final String walletValue = (rawMap['accountSeltWallet']?.toString().trim().isNotEmpty == true)
-          ? rawMap['accountSeltWallet'].toString()
-          : 'Wallet';
+      final String walletValue =
+          (rawMap['accountSeltWallet']?.toString().trim().isNotEmpty == true)
+              ? rawMap['accountSeltWallet'].toString()
+              : 'Wallet';
 
 // rebuild with accountSeltWallet first
       final Map<String, dynamic> normalizedSelected = <String, dynamic>{};
@@ -510,12 +565,14 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
       _selectedBankFull = normalizedSelected;
 
-      if (_selectedBankFull!['accountSeltWallet'] == null || _selectedBankFull!['accountSeltWallet'].toString().trim().isEmpty) {
+      if (_selectedBankFull!['accountSeltWallet'] == null ||
+          _selectedBankFull!['accountSeltWallet'].toString().trim().isEmpty) {
         _selectedBankFull!['accountSeltWallet'] = 'Wallet';
       }
       _selectedBankName = bankName;
       _selectedBankMasked = masked;
-      _selectedBankId = (bank['id']?.toString() ?? bank['bankId']?.toString() ?? '');
+      _selectedBankId =
+          (bank['id']?.toString() ?? bank['bankId']?.toString() ?? '');
       _loadingBalance = true; // show loader while fetching balance
       _availableBalance = 0.0; // reset prior balance while loading
       _bankSummary = null;
@@ -526,7 +583,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       final user = await SessionManager.getUserData();
       debugPrint('[IssueVoucher] _selectBankAtIndex: session user => $user');
       if (user == null || user.employerid == null) {
-        debugPrint('[IssueVoucher] _selectBankAtIndex: no user/employerid, aborting balance & summary fetch');
+        debugPrint(
+            '[IssueVoucher] _selectBankAtIndex: no user/employerid, aborting balance & summary fetch');
         setState(() {
           _loadingBalance = false;
           _loadingBankSummary = false;
@@ -540,11 +598,15 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       };
 
       // fetch balance
-      debugPrint('[IssueVoucher] _selectBankAtIndex: calling getBankBalance with params: $params');
-      final balResp = await _api_serviceSafeGet(() => _apiService.getBankBalance(params));
-      debugPrint('[IssueVoucher] _selectBankAtIndex: getBankBalance raw response => $balResp');
+      debugPrint(
+          '[IssueVoucher] _selectBankAtIndex: calling getBankBalance with params: $params');
+      final balResp =
+          await _api_serviceSafeGet(() => _apiService.getBankBalance(params));
+      debugPrint(
+          '[IssueVoucher] _selectBankAtIndex: getBankBalance raw response => $balResp');
 
-      if (balResp != null && (balResp['status'] == true || balResp['success'] == true)) {
+      if (balResp != null &&
+          (balResp['status'] == true || balResp['success'] == true)) {
         // Robust extraction: try multiple possible locations/names for balance
         dynamic balanceField;
         try {
@@ -553,11 +615,13 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
             balanceField = balResp['balance'];
           }
           // nested in data (example: {"data": {"balance": "23629.0"}})
-          else if (balResp['data'] is Map && (balResp['data'] as Map).containsKey('balance')) {
+          else if (balResp['data'] is Map &&
+              (balResp['data'] as Map).containsKey('balance')) {
             balanceField = (balResp['data'] as Map)['balance'];
           }
           // data itself might be numeric / string representing balance
-          else if (balResp.containsKey('data') && (balResp['data'] is String || balResp['data'] is num)) {
+          else if (balResp.containsKey('data') &&
+              (balResp['data'] is String || balResp['data'] is num)) {
             balanceField = balResp['data'];
           }
           // some APIs use availableBalance or balanceAmount
@@ -574,7 +638,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
               }
               if (v is Map) {
                 for (final vv in v.values) {
-                  if (vv is num || (vv is String && double.tryParse(vv) != null)) {
+                  if (vv is num ||
+                      (vv is String && double.tryParse(vv) != null)) {
                     balanceField = vv;
                     break;
                   }
@@ -584,29 +649,40 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
             }
           }
         } catch (e) {
-          debugPrint('[IssueVoucher] _selectBankAtIndex: balance extraction error: $e');
+          debugPrint(
+              '[IssueVoucher] _selectBankAtIndex: balance extraction error: $e');
           balanceField = null;
         }
 
-        debugPrint('[IssueVoucher] _selectBankAtIndex: raw balance field => $balanceField');
-        final balanceValue = double.tryParse(balanceField?.toString() ?? '0') ?? 0.0;
-        debugPrint('[IssueVoucher] _selectBankAtIndex: parsed balance => $balanceValue');
+        debugPrint(
+            '[IssueVoucher] _selectBankAtIndex: raw balance field => $balanceField');
+        final balanceValue =
+            double.tryParse(balanceField?.toString() ?? '0') ?? 0.0;
+        debugPrint(
+            '[IssueVoucher] _selectBankAtIndex: parsed balance => $balanceValue');
 
         setState(() {
           _availableBalance = balanceValue;
           _loadingBalance = false;
         });
       } else {
-        debugPrint('[IssueVoucher] _selectBankAtIndex: balance response indicates failure or null');
+        debugPrint(
+            '[IssueVoucher] _selectBankAtIndex: balance response indicates failure or null');
         setState(() => _loadingBalance = false);
       }
 
       // fetch bank summary (new behavior): call getBankSummary with same params
       try {
-        debugPrint('[IssueVoucher] _selectBankAtIndex: calling getBankSummary with params: $params');
-        final summaryResp = await _api_serviceSafeGet(() => _apiService.getBankSummary(params));
-        debugPrint('[IssueVoucher] _selectBankAtIndex: getBankSummary raw => $summaryResp');
-        if (summaryResp != null && (summaryResp['status'] == true || summaryResp['success'] == true || (summaryResp is Map && summaryResp.isNotEmpty))) {
+        debugPrint(
+            '[IssueVoucher] _selectBankAtIndex: calling getBankSummary with params: $params');
+        final summaryResp =
+            await _api_serviceSafeGet(() => _apiService.getBankSummary(params));
+        debugPrint(
+            '[IssueVoucher] _selectBankAtIndex: getBankSummary raw => $summaryResp');
+        if (summaryResp != null &&
+            (summaryResp['status'] == true ||
+                summaryResp['success'] == true ||
+                (summaryResp is Map && summaryResp.isNotEmpty))) {
           // try to normalize summary map
           if (summaryResp is Map<String, dynamic>) {
             setState(() {
@@ -626,25 +702,25 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           });
         }
       } catch (e, st) {
-        debugPrint('[IssueVoucher] _selectBankAtIndex: Error fetching bank summary: $e\n$st');
+        debugPrint(
+            '[IssueVoucher] _selectBankAtIndex: Error fetching bank summary: $e\n$st');
         setState(() {
           _bankSummary = null;
           _loadingBankSummary = false;
         });
       }
     } catch (e, st) {
-      debugPrint('[IssueVoucher] _selectBankAtIndex: Error fetching bank balance/summary: $e\n$st');
+      debugPrint(
+          '[IssueVoucher] _selectBankAtIndex: Error fetching bank balance/summary: $e\n$st');
       setState(() {
         _loadingBalance = false;
         _loadingBankSummary = false;
       });
     }
 
-    debugPrint('[IssueVoucher] selected bank set => name=$_selectedBankName mask=$_selectedBankMasked id=$_selectedBankId loadingBalance=$_loadingBalance availableBalance=$_availableBalance bankSummaryLoaded=${_bankSummary != null}');
+    debugPrint(
+        '[IssueVoucher] selected bank set => name=$_selectedBankName mask=$_selectedBankMasked id=$_selectedBankId loadingBalance=$_loadingBalance availableBalance=$_availableBalance bankSummaryLoaded=${_bankSummary != null}');
   }
-
-
-
 
   String _maskAccount(String account) {
     final cleaned = account.replaceAll(RegExp(r'\s+'), '');
@@ -747,149 +823,205 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
               final mq = MediaQuery.of(context);
               final horizontalPadding = mq.size.width > 420 ? 28.0 : 16.0;
               return Container(
-                decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
+                decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(18))),
                 child: Column(
                   children: [
-                    Container(margin: const EdgeInsets.only(top: 12, bottom: 6), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4))),
+                    Container(
+                        margin: const EdgeInsets.only(top: 12, bottom: 6),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(4))),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding, vertical: 8),
                       child: Row(
                         children: [
-
                           const Expanded(
                             child: Text(
                               'UPI VOUCHER CATEGORIES',
                               textAlign: TextAlign.left,
                               style: TextStyle(
                                 fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,    // Medium
+                                fontWeight: FontWeight.w500,
+                                // Medium
                                 fontSize: 12,
-                                height: 1.4,                    // 140% line-height
-                                letterSpacing: 0.04,            // 4% (approx)
+                                height: 1.4,
+                                // 140% line-height
+                                letterSpacing: 0.04,
+                                // 4% (approx)
                                 color: Color(0xFF1F212C),
                               ),
                             ),
                           ),
-
-                          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(ctx).pop()),
+                          IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () => Navigator.of(ctx).pop()),
                         ],
                       ),
                     ),
                     Expanded(
                       child: SingleChildScrollView(
                         controller: scrollController,
-                        padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 24),
+                        padding: EdgeInsets.fromLTRB(
+                            horizontalPadding, 0, horizontalPadding, 24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 6),
-
                             if (_loadingCategories)
                               Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 24),
-                                child: Center(child: CircularProgressIndicator()),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 24),
+                                child:
+                                    Center(child: CircularProgressIndicator()),
                               )
                             else if (_voucherCategories.isEmpty)
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 24),
-                                child: Center(child: Text('No categories available')),
+                                child: Center(
+                                    child: Text('No categories available')),
                               )
                             else
-                              ...List.generate(_voucherCategories.length, (index) {
+                              ...List.generate(_voucherCategories.length,
+                                  (index) {
                                 final cat = _voucherCategories[index];
                                 final isExpanded = _expandedTopIndex == index;
-                                final children = (cat['children'] as List).cast<Map<String, dynamic>>();
-                                final loadingChildren = cat['loadingChildren'] == true;
-                                final String title = cat['title']?.toString() ?? 'Category';
-                                final IconData displayIcon = _iconForCategory(cat, index);
+                                final children = (cat['children'] as List)
+                                    .cast<Map<String, dynamic>>();
+                                final loadingChildren =
+                                    cat['loadingChildren'] == true;
+                                final String title =
+                                    cat['title']?.toString() ?? 'Category';
+                                final IconData displayIcon =
+                                    _iconForCategory(cat, index);
 
                                 return Column(
                                   children: [
                                     InkWell(
                                       onTap: () async {
                                         // toggle expansion
-                                        setState(() => _expandedTopIndex = isExpanded ? null : index);
+                                        setState(() => _expandedTopIndex =
+                                            isExpanded ? null : index);
                                         sheetSetState(() {});
                                         // If expanding and children empty, fetch from API
                                         if (!isExpanded && (children.isEmpty)) {
                                           // mark loading in both parent and sheet UI
-                                          setState(() => _voucherCategories[index]['loadingChildren'] = true);
+                                          setState(() =>
+                                              _voucherCategories[index]
+                                                  ['loadingChildren'] = true);
                                           sheetSetState(() {});
-                                          await _loadSubCategoriesForIndex(index);
+                                          await _loadSubCategoriesForIndex(
+                                              index);
                                           sheetSetState(() {});
                                           // after loading, if still no children -> treat as selectable top
-                                          final updatedChildren = (_voucherCategories[index]['children'] as List).cast<Map<String, dynamic>>();
+                                          final updatedChildren =
+                                              (_voucherCategories[index]
+                                                      ['children'] as List)
+                                                  .cast<Map<String, dynamic>>();
                                           if (updatedChildren.isEmpty) {
-                                            debugPrint('[IssueVoucher] _openVoucherPicker: no children returned for index=$index, selecting top category "$title"');
+                                            debugPrint(
+                                                '[IssueVoucher] _openVoucherPicker: no children returned for index=$index, selecting top category "$title"');
                                             setState(() {
-                                              _entries[forIndex].selectedVoucher = title;
-                                              _entries[forIndex].selectedPurposeCode =
+                                              _entries[forIndex]
+                                                  .selectedVoucher = title;
+                                              _entries[forIndex]
+                                                      .selectedPurposeCode =
                                                   (cat['purposeCode'] ??
-                                                      cat['purpose_code'] ??
-                                                      cat['voucherCode'] ??
-                                                      cat['voucher_code'] ??
-                                                      cat['code'])
-                                                      ?.toString();   _entries[forIndex].selectedTopId = (cat['id'] ?? cat['topId'])?.toString();
-                                              _entries[forIndex].selectedTopVoucherName = title;
-                                              _entries[forIndex].selectedChildId = null;
-                                              _entries[forIndex].selectedMcc = null;
-                                              _entries[forIndex].selectedMccDesc = null;
+                                                          cat['purpose_code'] ??
+                                                          cat['voucherCode'] ??
+                                                          cat['voucher_code'] ??
+                                                          cat['code'])
+                                                      ?.toString();
+                                              _entries[forIndex].selectedTopId =
+                                                  (cat['id'] ?? cat['topId'])
+                                                      ?.toString();
+                                              _entries[forIndex]
+                                                      .selectedTopVoucherName =
+                                                  title;
+                                              _entries[forIndex]
+                                                  .selectedChildId = null;
+                                              _entries[forIndex].selectedMcc =
+                                                  null;
+                                              _entries[forIndex]
+                                                  .selectedMccDesc = null;
                                             });
                                             Navigator.of(ctx).pop();
-                                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                                            WidgetsBinding.instance
+                                                .addPostFrameCallback((_) {
                                               FocusScope.of(context).unfocus();
                                             });
                                             return;
                                           }
-
-
-
                                         }
                                       },
                                       child: Container(
-                                        margin: const EdgeInsets.symmetric(vertical: 8),
-                                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade200)),
+                                        margin: const EdgeInsets.symmetric(
+                                            vertical: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12, horizontal: 12),
+                                        decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            border: Border.all(
+                                                color: Colors.grey.shade200)),
                                         child: Row(
                                           children: [
-                                      //      Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(44)), child: Icon(displayIcon, color: Colors.green, size: 22)),
-                                Container(
-                                width: 44,
-                                height: 44,
-                                padding: const EdgeInsets.all(10),       // padding: 10px
-                                decoration: BoxDecoration(
-                               // color: const Color(0xFFF0F8F4),        // approx to green.shade50 but exact Figma look
-                                borderRadius: BorderRadius.circular(40), // radius: 40px
-                                border: Border.all(
-                                color: const Color(0xFFBFDECC),      // #BFDECC
-                                width: 1,                             // border-width: 1px
-                                ),
-                                ),
-                                child: Icon(
-                                displayIcon,
-                                color: const Color(0xFF2F945A),         // Use consistent Cotopay green
-                                size: 22,
-                                ),
-                                ),
+                                            //      Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(44)), child: Icon(displayIcon, color: Colors.green, size: 22)),
+                                            Container(
+                                              width: 44,
+                                              height: 44,
+                                              padding: const EdgeInsets.all(10),
+                                              // padding: 10px
+                                              decoration: BoxDecoration(
+                                                // color: const Color(0xFFF0F8F4),        // approx to green.shade50 but exact Figma look
+                                                borderRadius:
+                                                    BorderRadius.circular(40),
+                                                // radius: 40px
+                                                border: Border.all(
+                                                  color:
+                                                      const Color(0xFFBFDECC),
+                                                  // #BFDECC
+                                                  width: 1, // border-width: 1px
+                                                ),
+                                              ),
+                                              child: Icon(
+                                                displayIcon,
+                                                color: const Color(0xFF2F945A),
+                                                // Use consistent Cotopay green
+                                                size: 22,
+                                              ),
+                                            ),
 
                                             const SizedBox(width: 12),
-                                          // Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+                                            // Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
 
-                                Expanded(
-                                child: Text(
-                                title,
-                                style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w400,     // Regular
-                                fontSize: 14,
-                                height: 1.4,                     // 140% line height
-                                letterSpacing: 0,
-                                color: Color(0xFF2F945A),        // #2F945A
-                                ),
-                                ),
-                                ),
+                                            Expanded(
+                                              child: Text(
+                                                title,
+                                                style: const TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontWeight: FontWeight.w400,
+                                                  // Regular
+                                                  fontSize: 14,
+                                                  height: 1.4,
+                                                  // 140% line height
+                                                  letterSpacing: 0,
+                                                  color: Color(
+                                                      0xFF2F945A), // #2F945A
+                                                ),
+                                              ),
+                                            ),
 
-                                Transform.rotate(angle: isExpanded ? pi / 2 : 0, child: const Icon(Icons.keyboard_arrow_down, color: Colors.black54)),
+                                            Transform.rotate(
+                                                angle: isExpanded ? pi / 2 : 0,
+                                                child: const Icon(
+                                                    Icons.keyboard_arrow_down,
+                                                    color: Colors.black54)),
                                           ],
                                         ),
                                       ),
@@ -900,105 +1032,231 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                         children: [
                                           if (loadingChildren)
                                             const Padding(
-                                              padding: EdgeInsets.symmetric(vertical: 12),
-                                              child: Center(child: CircularProgressIndicator()),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 12),
+                                              child: Center(
+                                                  child:
+                                                      CircularProgressIndicator()),
                                             )
-                                          else if ((_voucherCategories[index]['children'] as List).isEmpty)
-                                          // if children empty (and not loading) we show a simple selectable top (this case usually handled after API call above)
+                                          else if ((_voucherCategories[index]
+                                                  ['children'] as List)
+                                              .isEmpty)
+                                            // if children empty (and not loading) we show a simple selectable top (this case usually handled after API call above)
                                             Column(children: [
                                               ListTile(
-                                                contentPadding: const EdgeInsets.only(left: 68.0, right: 12.0),
-                                                leading: Container(width: 34, height: 34, decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(8)), child: Icon(displayIcon, color: Colors.black54, size: 20)),
-                                                title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: _formFontSize)),
+                                                contentPadding:
+                                                    const EdgeInsets.only(
+                                                        left: 68.0,
+                                                        right: 12.0),
+                                                leading: Container(
+                                                    width: 34,
+                                                    height: 34,
+                                                    decoration: BoxDecoration(
+                                                        color:
+                                                            Colors.transparent,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8)),
+                                                    child: Icon(displayIcon,
+                                                        color: Colors.black54,
+                                                        size: 20)),
+                                                title: Text(title,
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        fontSize:
+                                                            _formFontSize)),
                                                 onTap: () {
-                                                  debugPrint('[IssueVoucher] _openVoucherPicker: selected top (no children)="$title" for index=$forIndex');
+                                                  debugPrint(
+                                                      '[IssueVoucher] _openVoucherPicker: selected top (no children)="$title" for index=$forIndex');
                                                   setState(() {
-                                                    _entries[forIndex].selectedVoucher = title;
-                                                    _entries[forIndex].selectedPurposeCode =
-                                                        (cat['purposeCode'] ??
+                                                    _entries[forIndex]
+                                                            .selectedVoucher =
+                                                        title;
+                                                    _entries[forIndex]
+                                                        .selectedPurposeCode = (cat[
+                                                                'purposeCode'] ??
                                                             cat['purpose_code'] ??
                                                             cat['voucherCode'] ??
                                                             cat['voucher_code'] ??
                                                             cat['code'])
-                                                            ?.toString();       _entries[forIndex].selectedTopId = cat['topId']?.toString();
-                                                    _entries[forIndex].selectedTopVoucherName = title;
-                                                    _entries[forIndex].selectedChildId = null;
-                                                    _entries[forIndex].selectedMcc = null;
-                                                    _entries[forIndex].selectedMccDesc = null;
+                                                        ?.toString();
+                                                    _entries[forIndex]
+                                                            .selectedTopId =
+                                                        cat['topId']
+                                                            ?.toString();
+                                                    _entries[forIndex]
+                                                            .selectedTopVoucherName =
+                                                        title;
+                                                    _entries[forIndex]
+                                                        .selectedChildId = null;
+                                                    _entries[forIndex]
+                                                        .selectedMcc = null;
+                                                    _entries[forIndex]
+                                                        .selectedMccDesc = null;
                                                   });
 
                                                   // close sheet then ensure nothing gets focused (prevent keyboard jumping back)
                                                   Navigator.of(ctx).pop();
-                                                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                                                    FocusScope.of(context).unfocus();
+                                                  WidgetsBinding.instance
+                                                      .addPostFrameCallback(
+                                                          (_) {
+                                                    FocusScope.of(context)
+                                                        .unfocus();
                                                   });
                                                 },
-
-
                                               ),
-                                              Divider(color: Colors.grey.shade200, height: 1),
+                                              Divider(
+                                                  color: Colors.grey.shade200,
+                                                  height: 1),
                                             ])
                                           else
-                                          // render children loaded from API
-                                            ...(_voucherCategories[index]['children'] as List).map<Map<String, dynamic>>((child) => child).map((child) {
-                                              final childTitle = child['title'] ?? 'Sub';
+                                            // render children loaded from API
+                                            ...(_voucherCategories[index]
+                                                    ['children'] as List)
+                                                .map<Map<String, dynamic>>(
+                                                    (child) => child)
+                                                .map((child) {
+                                              final childTitle =
+                                                  child['title'] ?? 'Sub';
                                               final childId = child['id'];
-                                              final IconData childIcon = _iconForChild(childTitle.toString());
+                                              final IconData childIcon =
+                                                  _iconForChild(
+                                                      childTitle.toString());
                                               return Column(children: [
                                                 ListTile(
-                                                  contentPadding: const EdgeInsets.only(left: 68.0, right: 12.0),
-                                                  leading: Container(width: 34, height: 34, decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(8)), child: Icon(childIcon, color: Colors.black54, size: 20)),
-                                                  title: Text(childTitle.toString(), style: const TextStyle(fontWeight: FontWeight.w500, fontSize: _formFontSize)),
+                                                  contentPadding:
+                                                      const EdgeInsets.only(
+                                                          left: 68.0,
+                                                          right: 12.0),
+                                                  leading: Container(
+                                                      width: 34,
+                                                      height: 34,
+                                                      decoration: BoxDecoration(
+                                                          color: Colors
+                                                              .transparent,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(8)),
+                                                      child: Icon(childIcon,
+                                                          color: Colors.black54,
+                                                          size: 20)),
+                                                  title: Text(
+                                                      childTitle.toString(),
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          fontSize:
+                                                              _formFontSize)),
                                                   onTap: () {
-                                                    debugPrint('[IssueVoucher] _openVoucherPicker: selected sub="$childTitle" (id=$childId) for index=$forIndex');
+                                                    debugPrint(
+                                                        '[IssueVoucher] _openVoucherPicker: selected sub="$childTitle" (id=$childId) for index=$forIndex');
 
                                                     // robust extraction for child
                                                     String? extractedMcc;
                                                     String? extractedMccDesc;
-                                                    String? extractedVoucherCode;
-                                                    String? extractedPurposeCode;
+                                                    String?
+                                                        extractedVoucherCode;
+                                                    String?
+                                                        extractedPurposeCode;
 
                                                     try {
                                                       final raw = child['raw'];
                                                       if (raw is Map) {
-                                                        extractedMcc = (raw['mcc'] ?? raw['MCC'] ?? raw['mccCode'] ?? raw['mcc_code'])?.toString();
-                                                        extractedMccDesc = (raw['vouchername'] ?? raw['mcc_description'] ?? raw['purpose_desc'] ?? raw['voucherDesc'])?.toString();
-                                                        extractedVoucherCode = (raw['voucherCode'] ?? raw['voucher_code'] ?? raw['code'] ?? raw['cotocode'])?.toString();
-                                                        extractedPurposeCode = (raw['purposeCode'] ?? raw['purpose_code'] ?? raw['purpose'])?.toString();
+                                                        extractedMcc = (raw[
+                                                                    'mcc'] ??
+                                                                raw['MCC'] ??
+                                                                raw['mccCode'] ??
+                                                                raw['mcc_code'])
+                                                            ?.toString();
+                                                        extractedMccDesc = (raw[
+                                                                    'vouchername'] ??
+                                                                raw['mcc_description'] ??
+                                                                raw['purpose_desc'] ??
+                                                                raw['voucherDesc'])
+                                                            ?.toString();
+                                                        extractedVoucherCode = (raw[
+                                                                    'voucherCode'] ??
+                                                                raw['voucher_code'] ??
+                                                                raw['code'] ??
+                                                                raw['cotocode'])
+                                                            ?.toString();
+                                                        extractedPurposeCode =
+                                                            (raw['purposeCode'] ??
+                                                                    raw['purpose_code'] ??
+                                                                    raw['purpose'])
+                                                                ?.toString();
                                                       }
                                                     } catch (_) {}
 
                                                     // fallback to top-level category if needed
-                                                    extractedVoucherCode ??= (cat['voucherCode'] ?? cat['voucher_code'] ?? cat['purposeCode'] ?? cat['purpose_code'])?.toString();
-                                                    extractedPurposeCode ??= (cat['purposeCode'] ?? cat['purpose_code'])?.toString();
+                                                    extractedVoucherCode ??= (cat[
+                                                                'voucherCode'] ??
+                                                            cat['voucher_code'] ??
+                                                            cat['purposeCode'] ??
+                                                            cat['purpose_code'])
+                                                        ?.toString();
+                                                    extractedPurposeCode ??= (cat[
+                                                                'purposeCode'] ??
+                                                            cat['purpose_code'])
+                                                        ?.toString();
 
                                                     // single setState + single pop/unfocus
                                                     setState(() {
-                                                      _entries[forIndex].selectedVoucher = childTitle.toString();
-                                                      _entries[forIndex].selectedChildId = childId?.toString();
-                                                      _entries[forIndex].selectedPurposeCode = extractedVoucherCode?.isNotEmpty == true ? extractedVoucherCode : (extractedPurposeCode ?? (cat['purposeCode'] ?? cat['purpose_code'])?.toString());
-                                                      _entries[forIndex].selectedTopId = (cat['topId'] ?? cat['id'])?.toString();
-                                                      _entries[forIndex].selectedMcc = extractedMcc;
-                                                      _entries[forIndex].selectedMccDesc = extractedMccDesc;
-                                                      _entries[forIndex].selectedTopVoucherName = (cat['title']?.toString() ?? null);
+                                                      _entries[forIndex]
+                                                              .selectedVoucher =
+                                                          childTitle.toString();
+                                                      _entries[forIndex]
+                                                              .selectedChildId =
+                                                          childId?.toString();
+                                                      _entries[forIndex]
+                                                          .selectedPurposeCode = extractedVoucherCode
+                                                                  ?.isNotEmpty ==
+                                                              true
+                                                          ? extractedVoucherCode
+                                                          : (extractedPurposeCode ??
+                                                              (cat['purposeCode'] ??
+                                                                      cat['purpose_code'])
+                                                                  ?.toString());
+                                                      _entries[forIndex]
+                                                              .selectedTopId =
+                                                          (cat['topId'] ??
+                                                                  cat['id'])
+                                                              ?.toString();
+                                                      _entries[forIndex]
+                                                              .selectedMcc =
+                                                          extractedMcc;
+                                                      _entries[forIndex]
+                                                              .selectedMccDesc =
+                                                          extractedMccDesc;
+                                                      _entries[forIndex]
+                                                              .selectedTopVoucherName =
+                                                          (cat['title']
+                                                                  ?.toString() ??
+                                                              null);
                                                     });
 
                                                     Navigator.of(ctx).pop();
-                                                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                                                      FocusScope.of(context).unfocus();
+                                                    WidgetsBinding.instance
+                                                        .addPostFrameCallback(
+                                                            (_) {
+                                                      FocusScope.of(context)
+                                                          .unfocus();
                                                     });
                                                   },
-
-
-
                                                 ),
-                                                Divider(color: Colors.grey.shade200, height: 1),
+                                                Divider(
+                                                    color: Colors.grey.shade200,
+                                                    height: 1),
                                               ]);
                                             }).toList(),
                                         ],
                                       ),
-                                      crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                                      duration: const Duration(milliseconds: 160),
+                                      crossFadeState: isExpanded
+                                          ? CrossFadeState.showSecond
+                                          : CrossFadeState.showFirst,
+                                      duration:
+                                          const Duration(milliseconds: 160),
                                     ),
                                   ],
                                 );
@@ -1021,12 +1279,19 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     final provided = cat['icon'];
     if (provided is String) {}
     final titlestring = (cat['title'] ?? '').toString().toLowerCase();
-    if (titlestring.contains('fuel') || titlestring.contains('gas')) return Icons.local_gas_station;
-    if (titlestring.contains('meal') || titlestring.contains('food')) return Icons.restaurant;
+    if (titlestring.contains('fuel') || titlestring.contains('gas'))
+      return Icons.local_gas_station;
+    if (titlestring.contains('meal') || titlestring.contains('food'))
+      return Icons.restaurant;
     if (titlestring.contains('travel')) return Icons.flight;
     if (titlestring.contains('uniform')) return Icons.checkroom;
     if (titlestring.contains('gadg')) return Icons.phone_android;
-    final iconsFallback = [Icons.receipt_long, Icons.work_outline, Icons.local_offer, Icons.shopping_bag];
+    final iconsFallback = [
+      Icons.receipt_long,
+      Icons.work_outline,
+      Icons.local_offer,
+      Icons.shopping_bag
+    ];
     return iconsFallback[index % iconsFallback.length];
   }
 
@@ -1035,26 +1300,110 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     if (titlestring.contains('gas')) return Icons.local_gas_station;
     if (titlestring.contains('fuel')) return Icons.local_gas_station;
     if (titlestring.contains('indraprastha')) return Icons.wb_sunny;
-    if (titlestring.contains('breakfast') || titlestring.contains('lunch') || titlestring.contains('dinner') || titlestring.contains('meal')) return Icons.restaurant;
+    if (titlestring.contains('breakfast') ||
+        titlestring.contains('lunch') ||
+        titlestring.contains('dinner') ||
+        titlestring.contains('meal')) return Icons.restaurant;
     return Icons.receipt_long;
   }
 
   void _openRedemptionPicker(int forIndex) {
     showModalBottomSheet<void>(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (ctx) {
         return SafeArea(
           child: Container(
-            decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-            padding: const EdgeInsets.only(top: 8, left: 16, right: 16, bottom: 20),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4))),
-              Row(children: [const Expanded(child: Text('REDEMPTION TYPE', style: TextStyle(fontWeight: FontWeight.w700))), IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(ctx).pop())]),
-              const SizedBox(height: 6),
-              ListTile(title: const Text('Single', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)), onTap: () { debugPrint('[IssueVoucher] _openRedemptionPicker: selected Single for index=$forIndex'); setState(() => _entries[forIndex].redemptionType = 'Single'); Navigator.of(ctx).pop(); }),
-              const Divider(height: 1),
-              ListTile(title: const Text('Multiple', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)), onTap: () { debugPrint('[IssueVoucher] _openRedemptionPicker: selected Multiple for index=$forIndex'); setState(() => _entries[forIndex].redemptionType = 'Multiple'); Navigator.of(ctx).pop(); }),
-            ]),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ======= HEADER =======
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'REDEMPTION TYPE',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                          height: 1.4,
+                          letterSpacing: 0.48,
+                          color: Color(0xFF1F212C),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Color(0xFF1F212C)),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+
+                const Divider(color: Color(0xFFE5E7EB), height: 1),
+
+                const SizedBox(height: 4),
+
+                // ======= SINGLE =======
+                ListTile(
+                  //   contentPadding: EdgeInsets.zero,
+                  leading: SvgPicture.asset(
+                    'assets/single_black.svg',
+                    width: 24,
+                    height: 24,
+                    //     colorFilter: const ColorFilter.mode(Color(0xFF292B3A), BlendMode.srcIn),
+                  ),
+                  title: const Text(
+                    'Single',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      height: 1.4,
+                      color: Color(0xFF292B3A),
+                    ),
+                  ),
+                  onTap: () {
+                    setState(
+                        () => _entries[forIndex].redemptionType = 'Single');
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+
+                // ======= MULTIPLE =======
+                ListTile(
+                  //  contentPadding: EdgeInsets.zero,
+                  leading: SvgPicture.asset(
+                    'assets/multiple_black.svg',
+                    width: 24,
+                    height: 24,
+                    //       colorFilter: const ColorFilter.mode(Color(0xFF292B3A), BlendMode.srcIn),
+                  ),
+                  title: const Text(
+                    'Multiple',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      height: 1.4,
+                      color: Color(0xFF292B3A),
+                    ),
+                  ),
+                  onTap: () {
+                    setState(
+                        () => _entries[forIndex].redemptionType = 'Multiple');
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -1062,10 +1411,9 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   }
 
   // ---------------- UI helpers ----------------
- // double _clamp(double v, double a, double b) => v.clamp(a, b);
-  double _clamp(double v, double a, double b) => (v.clamp(a, b) as num).toDouble();
-
-
+  // double _clamp(double v, double a, double b) => v.clamp(a, b);
+  double _clamp(double v, double a, double b) =>
+      (v.clamp(a, b) as num).toDouble();
 
   // Widget _bankSelectorBox(double iconSize, double innerPadding) {
   //   return GestureDetector(
@@ -1148,25 +1496,37 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   //   );
   // }
 
-
-
-
   // reuse the same modal-opening logic from _bankSelectorBox but in one place
   void _openBankModal() {
     debugPrint('[IssueVoucher] openBankModal called');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.only(top: 8.0, bottom: 12.0),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 10), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4))),
-              const Padding(padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8), child: Align(alignment: Alignment.centerLeft, child: Text('SELECT ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)))),
+              Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(4))),
+              const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                  child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('SELECT ACCOUNT',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14)))),
               if (_loadingBanks)
-                const Padding(padding: EdgeInsets.symmetric(vertical: 32.0), child: Center(child: CircularProgressIndicator()))
+                const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32.0),
+                    child: Center(child: CircularProgressIndicator()))
               else if (_banks.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24.0),
@@ -1174,7 +1534,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                     children: [
                       const Text('No accounts available'),
                       const SizedBox(height: 8),
-                      ElevatedButton(onPressed: _loadBanks, child: const Text('Retry')),
+                      ElevatedButton(
+                          onPressed: _loadBanks, child: const Text('Retry')),
                     ],
                   ),
                 )
@@ -1184,23 +1545,36 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                     shrinkWrap: true,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: _banks.length,
-                    separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+                    separatorBuilder: (_, __) =>
+                        Divider(height: 1, color: Colors.grey.shade200),
                     itemBuilder: (context, index) {
                       final bank = _banks[index];
-                      final bankName = (bank['bankName'] ?? bank['name'] ?? 'Bank').toString();
-                      final account = (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '').toString();
+                      final bankName =
+                          (bank['bankName'] ?? bank['name'] ?? 'Bank')
+                              .toString();
+                      final account = (bank['acNumber'] ??
+                              bank['account'] ??
+                              bank['accountNumber'] ??
+                              '')
+                          .toString();
                       final masked = _maskAccount(account);
                       final bankIconBase64 = bank['bankIcon']?.toString();
                       return ListTile(
                         onTap: () {
-                          debugPrint('[IssueVoucher] bank list tapped index=$index, account=$account');
+                          debugPrint(
+                              '[IssueVoucher] bank list tapped index=$index, account=$account');
                           _selectBankAtIndex(index);
                           Navigator.of(ctx).pop();
                         },
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
                         leading: _bankIconWidget(bankIconBase64, size: 44),
-                        title: Text(bankName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: _formFontSize)),
-                        subtitle: Text(masked, style: const TextStyle(fontSize: _formFontSize)),
+                        title: Text(bankName,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: _formFontSize)),
+                        subtitle: Text(masked,
+                            style: const TextStyle(fontSize: _formFontSize)),
                         trailing: const Icon(Icons.chevron_right),
                       );
                     },
@@ -1222,7 +1596,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         borderRadius: BorderRadius.circular(10),
         onTap: () => _openBankModal(),
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: innerPadding, vertical: innerPadding * 0.6),
+          padding: EdgeInsets.symmetric(
+              horizontal: innerPadding, vertical: innerPadding * 0.6),
           decoration: BoxDecoration(
             color: const Color(0xFF26282C),
             borderRadius: BorderRadius.circular(10),
@@ -1238,18 +1613,24 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                     TextSpan(
                       text: 'coto',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: _clamp(sw * 0.045, 14, 20),
+                        fontFamily: 'InstrumentSans',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        height: 1.0,
+                        letterSpacing: 0,
+                        color: Color(0xFFFFFFFF),
                       ),
                     ),
                     const WidgetSpan(child: SizedBox(width: 6)),
                     TextSpan(
                       text: 'Balance',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.95),
-                        fontWeight: FontWeight.w500,
-                        fontSize: _clamp(sw * 0.04, 12, 16),
+                        fontFamily: 'InstrumentSans',
+                        fontWeight: FontWeight.w400,
+                        fontSize: 18,
+                        height: 1.0,
+                        letterSpacing: 0.04,
+                        color: Color(0xFFFFFFFF),
                       ),
                     ),
                   ],
@@ -1260,7 +1641,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
               // masked account in a small rounded box (right side)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF26282C),
                   borderRadius: BorderRadius.circular(8),
@@ -1268,12 +1650,28 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                 ),
                 child: Text(
                   _SelectedBankMaskedOrDefault(),
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w400,
+                    // Regular
+                    fontSize: 12,
+                    // 12px
+                    height: 1.4,
+                    // 140% line height
+                    letterSpacing: 0,
+                    color: Color(0xFFC7C8D1), // #C7C8D1
+                  ),
                 ),
               ),
 
               const SizedBox(width: 8),
-              const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
+              SvgPicture.asset(
+                'assets/expand.svg',
+                width: 24,
+                height: 24,
+                fit: BoxFit.contain,
+              )
             ],
           ),
         ),
@@ -1281,23 +1679,30 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     );
   }
 
-
   Widget _bankSelectorBox(double iconSize, double innerPadding) {
-  // final bool dark = _isPositiveBalance;
+    // final bool dark = _isPositiveBalance;
     final bool dark = _isWalletAccount;
     // Build a small leading bank icon widget for the selector (use selected bank if available)
     Widget leadingSelectorIcon() {
       // check for bank icon from selectedBankFull, else fallback to default icon widget
       try {
         final rawIcon = _selectedBankFull != null
-            ? (_selectedBankFull!['bankIcon'] ?? _selectedBankFull!['bankicon'] ?? _selectedBankFull!['left_vouchericon'])
+            ? (_selectedBankFull!['bankIcon'] ??
+                _selectedBankFull!['bankicon'] ??
+                _selectedBankFull!['left_vouchericon'])
             : null;
         if (rawIcon != null && rawIcon.toString().trim().isNotEmpty) {
           return _bankIconWidget(rawIcon.toString(), size: 36);
         }
       } catch (_) {}
       // fallback default avatar/icon
-      return Container(width: 36, height: 36, decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)), child: Icon(Icons.account_balance, color: Colors.green, size: 20));
+      return Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8)),
+          child: Icon(Icons.account_balance, color: Colors.green, size: 20));
     }
 
     return Material(
@@ -1310,16 +1715,33 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true, // allow taller modal if needed
-            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
             builder: (ctx) {
               return SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.only(top: 8.0, bottom: 12.0),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 10), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4))),
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8), child: Align(alignment: Alignment.centerLeft, child: Text('SELECT ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)))),
+                    Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(4))),
+                    const Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                        child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text('SELECT ACCOUNT',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14)))),
                     if (_loadingBanks)
-                      const Padding(padding: EdgeInsets.symmetric(vertical: 32.0), child: Center(child: CircularProgressIndicator()))
+                      const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32.0),
+                          child: Center(child: CircularProgressIndicator()))
                     else if (_banks.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 24.0),
@@ -1340,23 +1762,38 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                           shrinkWrap: true,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           itemCount: _banks.length,
-                          separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+                          separatorBuilder: (_, __) =>
+                              Divider(height: 1, color: Colors.grey.shade200),
                           itemBuilder: (context, index) {
                             final bank = _banks[index];
-                            final bankName = (bank['bankName'] ?? bank['name'] ?? 'Bank').toString();
-                            final account = (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '').toString();
+                            final bankName =
+                                (bank['bankName'] ?? bank['name'] ?? 'Bank')
+                                    .toString();
+                            final account = (bank['acNumber'] ??
+                                    bank['account'] ??
+                                    bank['accountNumber'] ??
+                                    '')
+                                .toString();
                             final masked = _maskAccount(account);
                             final bankIconBase64 = bank['bankIcon']?.toString();
                             return ListTile(
                               onTap: () {
-                                debugPrint('[IssueVoucher] bank list tapped index=$index, account=$account');
+                                debugPrint(
+                                    '[IssueVoucher] bank list tapped index=$index, account=$account');
                                 _selectBankAtIndex(index);
                                 Navigator.of(ctx).pop();
                               },
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                              leading: _bankIconWidget(bankIconBase64, size: 44),
-                              title: Text(bankName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: _formFontSize)),
-                              subtitle: Text(masked, style: const TextStyle(fontSize: _formFontSize)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 6),
+                              leading:
+                                  _bankIconWidget(bankIconBase64, size: 44),
+                              title: Text(bankName,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: _formFontSize)),
+                              subtitle: Text(masked,
+                                  style:
+                                      const TextStyle(fontSize: _formFontSize)),
                               trailing: const Icon(Icons.chevron_right),
                             );
                           },
@@ -1369,11 +1806,15 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           );
         },
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: innerPadding, vertical: innerPadding * 0.6),
+          padding: EdgeInsets.symmetric(
+              horizontal: innerPadding, vertical: innerPadding * 0.6),
           decoration: BoxDecoration(
             color: dark ? const Color(0xFF26282C) : Colors.white,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: dark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+            border: Border.all(
+                color: dark
+                    ? Colors.white.withOpacity(0.08)
+                    : Colors.grey.shade200),
           ),
           child: Row(children: [
             // Leading bank icon inside selector (matches modal icon)
@@ -1390,28 +1831,29 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                     style: TextStyle(
                       color: dark ? Colors.white : Colors.black87,
                       fontWeight: FontWeight.w600,
-                      fontSize: _clamp(MediaQuery.of(context).size.width * 0.038, 13, 18),
+                      fontSize: _clamp(
+                          MediaQuery.of(context).size.width * 0.038, 13, 18),
                     ),
                   ),
                   // show masked account inline (smaller / muted)
                   Text(
                     _SelectedBankMaskedOrDefault(),
-                    style: TextStyle(color: dark ? Colors.white70 : Colors.grey.shade600, fontSize: 12),
+                    style: TextStyle(
+                        color: dark ? Colors.white70 : Colors.grey.shade600,
+                        fontSize: 12),
                   ),
                 ],
               ),
             ),
 
             const SizedBox(width: 8),
-            Icon(Icons.keyboard_arrow_down, color: dark ? Colors.white70 : Colors.black54),
+            Icon(Icons.keyboard_arrow_down,
+                color: dark ? Colors.white70 : Colors.black54),
           ]),
         ),
       ),
     );
-
-
   }
-
 
   String _SelectedBankMaskedOrDefault() {
     return _selectedBankMasked.isNotEmpty ? _selectedBankMasked : 'xxxx1234';
@@ -1419,16 +1861,32 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
   Widget _bankIconWidget(String? rawBase64, {double size = 44}) {
     if (rawBase64 == null || rawBase64.trim().isEmpty) {
-      return Container(width: size, height: size, decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.account_balance, color: Colors.green));
+      return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8)),
+          child: const Icon(Icons.account_balance, color: Colors.green));
     }
     try {
       String cleaned = rawBase64;
       if (cleaned.contains(',')) cleaned = cleaned.split(',').last;
       final Uint8List bytes = base64Decode(cleaned);
-      return CircleAvatar(radius: size / 2, backgroundColor: Colors.transparent, backgroundImage: MemoryImage(bytes));
+      return CircleAvatar(
+          radius: size / 2,
+          backgroundColor: Colors.transparent,
+          backgroundImage: MemoryImage(bytes));
     } catch (e) {
-      debugPrint('[IssueVoucher] _bankIconWidget: failed to decode base64 icon: $e');
-      return Container(width: size, height: size, decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.account_balance, color: Colors.green));
+      debugPrint(
+          '[IssueVoucher] _bankIconWidget: failed to decode base64 icon: $e');
+      return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8)),
+          child: const Icon(Icons.account_balance, color: Colors.green));
     }
   }
 
@@ -1454,14 +1912,16 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           'Vouchers',
           style: TextStyle(
             fontFamily: 'Inter',
-            fontWeight: FontWeight.w600, // Semi Bold
+            fontWeight: FontWeight.w600,
+            // Semi Bold
             fontSize: 16,
-            height: 1.4,                 // 140% line-height
-            letterSpacing: 0,            // 0%
-            color: Color(0xFF4A4E69),    // Text color
+            height: 1.4,
+            // 140% line-height
+            letterSpacing: 0,
+            // 0%
+            color: Color(0xFF4A4E69), // Text color
           ),
         ),
-
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: SvgPicture.asset(
@@ -1471,36 +1931,50 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
             color: Colors.black, // if you want tint
           ),
         ),
-
       ),
       body: Container(
         color: Colors.white,
         child: SingleChildScrollView(
           controller: _scroll_controller_safe(),
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: horizontalPadding),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding, vertical: horizontalPadding),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: _isWalletAccount ? const Color(0xFF26282C) : Colors.white,
+                color:
+                    _isWalletAccount ? const Color(0xFF26282C) : Colors.white,
                 borderRadius: BorderRadius.circular(cardRadius),
-                border: _isWalletAccount ? null : Border.all(color: Colors.grey.shade200),
-                boxShadow: _isWalletAccount ? null : [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0,2))],
+                border: _isWalletAccount
+                    ? null
+                    : Border.all(color: Colors.grey.shade200),
+                boxShadow: _isWalletAccount
+                    ? null
+                    : [
+                        BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 6,
+                            offset: Offset(0, 2))
+                      ],
               ),
-
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(cardRadius),
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: innerPadding, vertical: innerPadding),
-                  color: _isWalletAccount ? const Color(0xFF26282C) : Colors.white,
+                  padding: EdgeInsets.symmetric(
+                      horizontal: innerPadding, vertical: innerPadding),
+                  color:
+                      _isWalletAccount ? const Color(0xFF26282C) : Colors.white,
                   child: Column(
                     children: [
                       // Bank selector row (same widget but it adapts to dark / light)
                       Row(children: [
                         Expanded(
                           child: _isWalletAccount
-                              ? _bankSelectorDarkBox(sw, innerPadding) // new dark-style tappable selector (cotoBalance)
-                              : _bankSelectorBox(_clamp(sw * 0.05, 18, 24), innerPadding), // light bank header (existing)
+                              ? _bankSelectorDarkBox(sw,
+                                  innerPadding) // new dark-style tappable selector (cotoBalance)
+                              : _bankSelectorBox(_clamp(sw * 0.05, 18, 24),
+                                  innerPadding), // light bank header (existing)
                         ),
                       ]),
 
@@ -1512,7 +1986,11 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                           children: [
                             const Spacer(),
                             if (_loadingBalance)
-                              SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2))
                             else
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -1526,25 +2004,28 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                     textAlign: TextAlign.right,
                                     style: TextStyle(
                                       fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w600,   // Semi Bold
+                                      fontWeight: FontWeight.w600,
+                                      // Semi Bold
                                       fontSize: 16,
-                                      height: 1.4,                   // 140% line height
+                                      height: 1.4,
+                                      // 140% line height
                                       letterSpacing: 0,
-                                      color: Color(0xFFFFFFFF),      // White
+                                      color: Color(0xFFFFFFFF), // White
                                     ),
                                   ),
-
                                   SizedBox(height: 6),
                                   Text(
                                     'Available Balance',
                                     textAlign: TextAlign.right,
                                     style: TextStyle(
                                       fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w400,     // Regular
+                                      fontWeight: FontWeight.w400,
+                                      // Regular
                                       fontSize: 12,
-                                      height: 1.4,                      // 140% line height
+                                      height: 1.4,
+                                      // 140% line height
                                       letterSpacing: 0,
-                                      color: Color(0xFF86889B),         // #86889B
+                                      color: Color(0xFF86889B), // #86889B
                                     ),
                                   ),
                                 ],
@@ -1552,7 +2033,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                           ],
                         )
                       else
-                      // non-positive balance: show disabled Check Balance CTA and info text inside same card
+                        // non-positive balance: show disabled Check Balance CTA and info text inside same card
                         Column(
                           children: [
                             SizedBox(
@@ -1561,24 +2042,33 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                               child: ElevatedButton(
                                 onPressed: null, // keep disabled
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFEFF4FF), // light blue background like screenshot
+                                  backgroundColor: const Color(0xFFEFF4FF),
+                                  // light blue background like screenshot
                                   foregroundColor: Colors.blue.shade200,
                                   elevation: 0,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8)),
                                 ),
-                                child: Text('Check Balance', style: TextStyle(color: Colors.blue.shade200, fontWeight: FontWeight.w600, fontSize: 16)),
+                                child: Text('Check Balance',
+                                    style: TextStyle(
+                                        color: Colors.blue.shade200,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16)),
                               ),
                             ),
                             const SizedBox(height: 12),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Icon(Icons.info_outline, size: 18, color: Colors.grey.shade600),
+                                Icon(Icons.info_outline,
+                                    size: 18, color: Colors.grey.shade600),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
                                     "'Check Balance' has been disabled currently.",
-                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13.5),
+                                    style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 13.5),
                                   ),
                                 ),
                               ],
@@ -1593,13 +2083,38 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
             SizedBox(height: horizontalPadding * 1.1),
 
-
             // Show "Check Balance" disabled CTA + info when balance is not positive
 
+            Text(
+              'Enter Details',
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                // Semi Bold
+                fontSize: 16,
+                // 16px
+                height: 1.4,
+                // 140% line height
+                letterSpacing: 0,
+                color: Color(0xFF1F212C), // #1F212C
+              ),
+            ),
 
-            Text('Enter Details', style: TextStyle(fontSize: _clamp(sw * 0.045, 16, 20), fontWeight: FontWeight.bold)),
             SizedBox(height: horizontalPadding * 0.4),
-            Text('Please input details for issuance of vouchers', style: TextStyle(color: Colors.black54, fontSize: _clamp(sw * 0.034, 12, 14))),
+            Text(
+              'Please input details for issuance of vouchers',
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w400,
+                // Regular
+                fontSize: 14,
+                // 14px
+                height: 1.4,
+                // 140% line height
+                letterSpacing: 0,
+                color: Color(0xFF4A4E69), // #4A4E69
+              ),
+            ),
             SizedBox(height: horizontalPadding * 0.8),
 
             Column(
@@ -1620,12 +2135,36 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
             GestureDetector(
               onTap: () => _addNewEntry(focus: true),
               child: Container(
-                padding: EdgeInsets.symmetric(vertical: 14),
                 width: double.infinity,
-                decoration: BoxDecoration(color: Colors.green.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
-                child: Center(child: Text('Add new Voucher +', style: TextStyle(color: Colors.green.shade800, fontWeight: FontWeight.bold, fontSize: _clamp(sw * 0.04, 13, 16)))),
+                // Will expand to available width (max 350 in layout)
+                height: 46,
+                // Exact height
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF4EF), // #EAF4EF
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    'Add new Voucher +',
+                    style: const TextStyle(
+                      fontFamily: 'Open Sans',
+                      fontWeight: FontWeight.w600,
+                      // SemiBold
+                      fontSize: 16,
+                      height: 1.4,
+                      // 140% line-height
+                      letterSpacing: 0,
+                      color: Color(0xFF2F945A), // #2F945A
+                    ),
+                  ),
+                ),
               ),
             ),
+
             SizedBox(height: horizontalPadding * 1.0),
 
             SizedBox(
@@ -1634,17 +2173,19 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
               child: ElevatedButton(
                 onPressed: _allEntriesValid ? _onSubmit : null,
                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                  backgroundColor:
+                      MaterialStateProperty.resolveWith<Color>((states) {
                     if (states.contains(MaterialState.disabled)) {
                       return const Color(0xFFEBF2FF); // Inactive BG (#EBF2FF)
                     }
-                    return const Color(0xFF367AFF);   // Active BG (#367AFF)
+                    return const Color(0xFF367AFF); // Active BG (#367AFF)
                   }),
-                  foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                  foregroundColor:
+                      MaterialStateProperty.resolveWith<Color>((states) {
                     if (states.contains(MaterialState.disabled)) {
                       return const Color(0xFFA3C2FF); // Inactive Text (#A3C2FF)
                     }
-                    return Colors.white;              // Active Text (#FFFFFF)
+                    return Colors.white; // Active Text (#FFFFFF)
                   }),
                   padding: MaterialStateProperty.all(
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -1694,45 +2235,102 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('Voucher ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-        //  InkWell(onTap: () => _removeEntry(index), child: const Icon(Icons.delete, color: Colors.red)),
-          InkWell(
-            onTap: () => _removeEntry(index),
-            child: Image.asset(
-              'assets/delete.png',
-              width: 20,   // adjust size if needed
-              height: 20,
+          Text(
+            'Voucher ${index + 1}',
+            style: const TextStyle(
+              fontFamily: 'Open Sans',
+              fontWeight: FontWeight.w600,
+              // SemiBold
+              fontSize: 13,
+              // 13px
+              height: 1.4,
+              // 140% line-height
+              letterSpacing: 0,
+              color: Color(0xFF4A4E69), // #4A4E69
             ),
           ),
-
+          //  InkWell(onTap: () => _removeEntry(index), child: const Icon(Icons.delete, color: Colors.red)),
+          InkWell(
+            onTap: () => _removeEntry(index),
+            child: SvgPicture.asset(
+              'assets/delete.svg',
+              width: 20,
+              height: 20,
+              fit: BoxFit.contain,
+            ),
+          ),
         ]),
         const SizedBox(height: 12),
 
         // Name (with search spinner)
         SizedBox(
           height: fieldHeight,
-          child: TextField(
-            controller: entry.nameController,
-            focusNode: entry.nameFocus,
-            textInputAction: TextInputAction.next,
-            style: const TextStyle(fontSize: _formFontSize),
-            decoration: InputDecoration(
-              hintText: 'Name',
-              hintStyle: const TextStyle(fontSize: _formFontSize, color: Colors.grey),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-              suffixIcon: entry.searching
-                  ? const Padding(
-                padding: EdgeInsets.all(12),
-                child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-              )
-                  : null,
-            ),
-            onChanged: (_) => setState(() {}),
+          child: Stack(
+            children: [
+              // TOP LABEL (STATIC — LIKE SCREENSHOT)
+              Positioned(
+                left: 12,
+                top: 6,
+                child: Text(
+                  'Name',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12,
+                    height: 1.4,
+                    color: Color(0xFF86889B), // #86889B
+                  ),
+                ),
+              ),
+
+              // TEXT FIELD
+              TextField(
+                controller: entry.nameController,
+                focusNode: entry.nameFocus,
+                textInputAction: TextInputAction.next,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 14,
+                  height: 1.4,
+                  color: Color(0xFF1F212C), // #1F212C
+                ),
+                decoration: InputDecoration(
+                  // REMOVE labelText and floating behavior completely
+                  labelText: null,
+                  floatingLabelBehavior: FloatingLabelBehavior.never,
+
+                  // Move text DOWN so it sits below "Name"
+                  contentPadding: const EdgeInsets.fromLTRB(8, 45, 12, 10),
+
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+
+                  suffixIcon: entry.searching
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ],
           ),
         ),
 
@@ -1744,16 +2342,20 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
-              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
+              boxShadow: const [
+                BoxShadow(color: Colors.black12, blurRadius: 8)
+              ],
               border: Border.all(color: Colors.grey.shade200),
             ),
             child: ListView.separated(
               shrinkWrap: true,
               itemCount: suggestions.length,
-              separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+              separatorBuilder: (_, __) =>
+                  Divider(height: 1, color: Colors.grey.shade200),
               itemBuilder: (context, sIndex) {
                 final item = suggestions[sIndex];
-                final userName = item['username'] ?? item['userName'] ?? item['name'] ?? '';
+                final userName =
+                    item['username'] ?? item['userName'] ?? item['name'] ?? '';
                 final mobile = item['mobile'] ?? item['mobileNumber'] ?? '';
                 final email = item['email'] ?? '';
                 return ListTile(
@@ -1766,7 +2368,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                     // Fill controllers (set full name and mobile)
                     entry.nameController.text = (userName ?? '').toString();
                     // move cursor to end
-                    entry.nameController.selection = TextSelection.fromPosition(TextPosition(offset: entry.nameController.text.length));
+                    entry.nameController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: entry.nameController.text.length));
                     entry.mobileController.text = (mobile ?? '').toString();
 
                     // store selected employee for downstream APIs
@@ -1783,7 +2386,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                     // unfocus keyboard
                     FocusScope.of(context).unfocus();
                   },
-                  title: Text(userName.toString(), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  title: Text(userName.toString(),
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text(
                     '${mobile ?? ''}${(email != null && email.toString().isNotEmpty) ? ' • $email' : ''}',
                     style: const TextStyle(fontSize: 12),
@@ -1798,24 +2402,61 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         // Mobile
         SizedBox(
           height: fieldHeight,
-          child: TextField(
-            controller: entry.mobileController,
-            keyboardType: TextInputType.phone,
-            style: const TextStyle(fontSize: _formFontSize),
-            decoration: InputDecoration(
-              hintText: 'Mobile Number',
-              hintStyle: const TextStyle(fontSize: _formFontSize, color: Colors.grey),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-            ),
-            onChanged: (_) => setState(() {}),
+          child: Stack(
+            children: [
+              // TOP STATIC LABEL
+              Positioned(
+                left: 12,
+                top: 8,
+                child: Text(
+                  'Mobile Number',
+                  style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                      fontSize: 12,
+                      // 12px (label)
+                      height: 1.4,
+                      color: Color(0xFF86889B) // #86889B
+                      ),
+                ),
+              ),
+
+              // TEXT FIELD
+              TextField(
+                controller: entry.mobileController,
+                keyboardType: TextInputType.phone,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 14,
+                  // input: 14px
+                  height: 1.4,
+                  color: Color(0xFF1F212C), // text color
+                ),
+                decoration: InputDecoration(
+                  labelText: null,
+                  floatingLabelBehavior: FloatingLabelBehavior.never,
+
+                  // perfect spacing between label & input text
+                  contentPadding: const EdgeInsets.fromLTRB(8, 50, 12, 0),
+
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 12),
 
         // Voucher selector
-        InkWell(
+        /*  InkWell(
           onTap: () => _openVoucherPicker(index),
           child: Container(
             height: fieldHeight,
@@ -1834,122 +2475,372 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
               const Icon(Icons.keyboard_arrow_down, color: Colors.black54)
             ]),
           ),
+        ),*/
+
+        SizedBox(
+          height: fieldHeight,
+          child: Stack(
+            children: [
+              // STATIC LABEL
+              Positioned(
+                left: 12,
+                top: 8,
+                child: Text(
+                  'Select Voucher Type',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12,
+                    // label: 12px
+                    height: 1.4,
+                    color: Color(0xFF86889B),
+                  ),
+                ),
+              ),
+
+              // CLICKABLE FIELD
+              InkWell(
+                onTap: () => _openVoucherPicker(index),
+                child: Container(
+                  height: fieldHeight,
+                  padding: const EdgeInsets.fromLTRB(12, 20, 12, 3),
+                  // aligns value under label
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                    color: Colors.transparent,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          entry.selectedVoucher ?? 'Select Voucher',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w400,
+                            fontSize: _formFontSize,
+                            // usually 14px
+                            height: 1.4,
+                            color: entry.selectedVoucher == null
+                                ? Colors.grey.shade600
+                                : const Color(0xFF1F212C),
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Colors.black54,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
+
         const SizedBox(height: 12),
 
         // amount + redemption
-        Row(children: [
-          Expanded(
-            child: SizedBox(
-              height: fieldHeight,
-              child: TextField(
-                controller: entry.amountController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(fontSize: _formFontSize),
-                decoration: InputDecoration(
-
-
-                  hintText: 'Enter Amount',
-                  hintStyle: const TextStyle(fontSize: _formFontSize, color: Colors.grey),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(
-                      color: entry.isAmountInvalid ? Colors.red : Colors.grey.shade300,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(
-                      color: entry.isAmountInvalid ? Colors.red : Colors.blue,
-                      width: 2,
-                    ),
-                  ),
-                ),
-                onChanged: (value) {
-                  final entered = double.tryParse(value) ?? 0;
-
-                  if (entered > 50000) {
-                    // clear value
-                    entry.amountController.clear();
-
-                    // set invalid state
-                    setState(() {
-                      entry.isAmountInvalid = true;
-                    });
-                  } else {
-                    // reset invalid state
-                    setState(() {
-                      entry.isAmountInvalid = false;
-                    });
-                  }
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: InkWell(
-              onTap: () => _openRedemptionPicker(index),
-              child: Container(
+        Row(
+          children: [
+            // Amount field (left)
+            Expanded(
+              child: SizedBox(
                 height: fieldHeight,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
-                child: Row(children: [
-                  Expanded(
-                    child: Text(entry.redemptionType ?? 'Redemption Type', style: TextStyle(color: entry.redemptionType == null ? Colors.grey.shade600 : Colors.black87, fontSize: _formFontSize)),
-                  ),
-                  const Icon(Icons.keyboard_arrow_down, color: Colors.black54)
-                ]),
+                child: Stack(
+                  children: [
+                    // STATIC TOP LABEL
+                    Positioned(
+                      left: 12,
+                      top: 8,
+                      child: Text(
+                        'Enter Amount',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w400,
+                          fontSize: 12,
+                          // label 12px
+                          height: 1.4,
+                          color: Color(0xFF86889B), // #86889B
+                        ),
+                      ),
+                    ),
+
+                    // TEXT FIELD (amount)
+                    TextField(
+                      controller: entry.amountController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                        fontSize: 14,
+                        // input 14px
+                        height: 1.4,
+                        color: Color(0xFF1F212C), // #1F212C
+                      ),
+                      decoration: InputDecoration(
+                        labelText: null,
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
+                        contentPadding: const EdgeInsets.fromLTRB(8, 50, 12, 3),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: entry.isAmountInvalid
+                                ? Colors.red
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: entry.isAmountInvalid
+                                ? Colors.red
+                                : Colors.blue,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      onChanged: (value) {
+                        final entered = double.tryParse(value) ?? 0;
+
+                        if (entered > 50000) {
+                          // clear value
+                          entry.amountController.clear();
+
+                          // set invalid state
+                          setState(() {
+                            entry.isAmountInvalid = true;
+                          });
+                        } else {
+                          // reset invalid state
+                          setState(() {
+                            entry.isAmountInvalid = false;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ]),
+
+            const SizedBox(width: 12),
+
+            // Redemption Type picker (right)
+            Expanded(
+              child: SizedBox(
+                height: fieldHeight,
+                child: Stack(
+                  children: [
+                    // STATIC TOP LABEL
+                    Positioned(
+                      left: 12,
+                      top: 8,
+                      child: Text(
+                        'Redemption Type',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w400,
+                          fontSize: 12,
+                          // label 12px
+                          height: 1.4,
+                          color: Color(0xFF86889B), // #86889B
+                        ),
+                      ),
+                    ),
+
+                    // Picker container (acts like a read-only field)
+                    InkWell(
+                      onTap: () => _openRedemptionPicker(index),
+                      child: Container(
+                        height: fieldHeight,
+                        padding: const EdgeInsets.fromLTRB(10, 20, 12, 5),
+                        // keep text aligned under label
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade300),
+                          color: Colors.transparent,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                entry.redemptionType ?? '',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: _formFontSize,
+                                  // your existing form font size
+                                  height: 1.4,
+                                  color: entry.redemptionType == null
+                                      ? Colors.grey.shade600
+                                      : const Color(0xFF1F212C),
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.keyboard_arrow_down,
+                                color: Colors.black54, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+
         const SizedBox(height: 12),
 
         // date + validity
-        Row(children: [
-          Expanded(
-            child: InkWell(
-              onTap: () async {
-                final picked = await showDatePicker(context: context, initialDate: entry.selectedDate, firstDate: DateTime.now(), lastDate: DateTime(2100));
-                if (picked != null) setState(() => entry.selectedDate = picked);
-              },
-              child: Container(
+        Row(
+          children: [
+            // ======================= DATE PICKER =======================
+            Expanded(
+              child: SizedBox(
                 height: fieldHeight,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8), color: Colors.white),
-                child: Row(children: [
-                  Text(DateFormat('dd/MM/yyyy').format(entry.selectedDate), style: const TextStyle(fontSize: _formFontSize)),
-                  const Spacer(),
-                  const Icon(Icons.calendar_month, color: Colors.black54)
-                ]),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: InkWell(
-              onTap: () => _openValidityPicker(index),
-              child: Container(
-                height: fieldHeight,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
-                child: Row(children: [
-                  Expanded(
-                    child: Text(
-                      entry.validity != null ? '${entry.validity} days' : 'Validity',
-                      style: TextStyle(color: entry.validity == null ? Colors.grey.shade600 : Colors.black87, fontSize: _formFontSize),
+                child: Stack(
+                  children: [
+                    // FIELD (clickable) — draw this first so label can paint above it
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: entry.selectedDate,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null)
+                          setState(() => entry.selectedDate = picked);
+                      },
+                      child: Container(
+                        height: fieldHeight,
+                        padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+                        // keeps value below label
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.white,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                DateFormat('dd/MM/yyyy')
+                                    .format(entry.selectedDate),
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: _formFontSize,
+                                  height: 1.4,
+                                  color: const Color(0xFF1F212C),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(Icons.calendar_month,
+                                color: Colors.black54, size: 20),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  const Icon(Icons.keyboard_arrow_down, color: Colors.black54)
-                ]),
+
+                    // LABEL (top-left) — draw this AFTER the field so it remains visible
+                    const Positioned(
+                      left: 12,
+                      top: 8,
+                      child: Text(
+                        'Start Date',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w400,
+                          fontSize: 12,
+                          height: 1.4,
+                          color: Color(0xFF86889B),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-        ]),
+            const SizedBox(width: 12),
+
+            // ======================= VALIDITY PICKER =======================
+            Expanded(
+              child: SizedBox(
+                height: fieldHeight,
+                child: Stack(
+                  children: [
+                    // FIELD (clickable)
+                    InkWell(
+                      onTap: () => _openValidityPicker(index),
+                      child: Container(
+                        height: fieldHeight,
+                        padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade300),
+                          color: Colors.transparent,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                entry.validity != null
+                                    ? '${entry.validity} days'
+                                    : 'Select',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: _formFontSize,
+                                  height: 1.4,
+                                  color: entry.validity == null
+                                      ? Colors.grey.shade600
+                                      : const Color(0xFF1F212C),
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.keyboard_arrow_down,
+                                color: Colors.black54, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // LABEL (top-left)
+                    const Positioned(
+                      left: 12,
+                      top: 8,
+                      child: Text(
+                        'Validity',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w400,
+                          fontSize: 12,
+                          height: 1.4,
+                          color: Color(0xFF86889B),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 12),
       ]),
     );
@@ -1957,7 +2848,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
   void _openValidityPicker(int forIndex) {
     final _entry = _entries[forIndex];
-    final TextEditingController customController = TextEditingController(text: _entry.validity ?? '');
+    final TextEditingController customController =
+        TextEditingController(text: _entry.validity ?? '');
 
     showModalBottomSheet<void>(
       context: context,
@@ -1994,15 +2886,18 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                     }
                     final n = int.tryParse(v.trim());
                     if (n == null) {
-                      sheetSetState(() => errorText = 'Please enter a valid number');
+                      sheetSetState(
+                          () => errorText = 'Please enter a valid number');
                       return;
                     }
                     if (n < 2) {
-                      sheetSetState(() => errorText = 'Minimum validity is 2 days');
+                      sheetSetState(
+                          () => errorText = 'Minimum validity is 2 days');
                       return;
                     }
                     if (n > 365) {
-                      sheetSetState(() => errorText = 'Maximum allowed is 365 days');
+                      sheetSetState(
+                          () => errorText = 'Maximum allowed is 365 days');
                       return;
                     }
                     sheetSetState(() => errorText = null);
@@ -2017,61 +2912,83 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 4),
-                        child: Text(label, style: const TextStyle(fontSize: 16)),
+                        child: Text(
+                          label,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w400,   // Regular
+                            fontSize: 14,                  // 14px
+                            height: 1.4,                   // 140%
+                            letterSpacing: 0,
+                            color: Color(0xFF292B3A),      // #292B3A
+                          ),
+                        ),
                       ),
                     );
                   }
+
 
                   return SingleChildScrollView(
                     controller: scrollController,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Center(
-                          child: Container(
-                            width: 40,
-                            height: 4,
-                            margin: const EdgeInsets.only(bottom: 12),
-                            decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4)),
+
+                        const SizedBox(height: 4),
+                        const Text(
+                          'VOUCHER VALIDITY',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12,
+                            height: 1.4,
+                            letterSpacing: 0.48,
+                            color: Color(0xFF1F212C),
                           ),
                         ),
 
-                        const SizedBox(height: 4),
-                        const Text('VOUCHER VALIDITY', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
+
+                        const Divider(color: Color(0xFFE5E7EB), height: 1),
+
+                        const SizedBox(height: 8),
 
                         // presets with thin dividers and roomy padding
                         presetTile('2 days', '2'),
-                        Divider(height: 1, color: Colors.grey.shade300),
+                        //Divider(height: 1, color: Colors.grey.shade300),
                         presetTile('7 days', '7'),
-                        Divider(height: 1, color: Colors.grey.shade300),
+                        //Divider(height: 1, color: Colors.grey.shade300),
                         presetTile('30 days', '30'),
-                        Divider(height: 1, color: Colors.grey.shade300),
+                        //Divider(height: 1, color: Colors.grey.shade300),
                         presetTile('90 days', '90'),
-                        Divider(height: 1, color: Colors.grey.shade300),
+                        //Divider(height: 1, color: Colors.grey.shade300),
                         presetTile('360 days', '360'),
-                        Divider(height: 1, color: Colors.grey.shade300),
+                        //Divider(height: 1, color: Colors.grey.shade300),
 
-                        const SizedBox(height: 12),
+                        //const SizedBox(height: 12),
 
                         // custom input field (rounded with purple border like your screenshot)
                         Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.deepPurple.shade100, width: 2),
+                            border: Border.all(
+                                color: Colors.deepPurple.shade100, width: 2),
                           ),
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: TextField(
                             controller: customController,
                             keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
                             onChanged: (v) => onCustomChanged(v),
                             style: const TextStyle(fontSize: 16),
                             decoration: InputDecoration(
                               hintText: 'Enter days: 2 - 365',
                               border: InputBorder.none,
                               isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 14),
                               errorText: errorText,
                             ),
                           ),
@@ -2081,37 +2998,63 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
                         // full-width rounded button (light purple bg, purple text)
                         SizedBox(
-                          width: double.infinity,
+                          width: double.infinity,   // Full width like the Continue button
+                          height: 46,               // Fixed height 46px
                           child: ElevatedButton(
                             onPressed: isValidNumber(customController.text)
                                 ? () {
                               final val = customController.text.trim();
-                              // final safety check
                               final n = int.tryParse(val);
+
                               if (n == null || n < 2 || n > 365) {
-                                sheetSetState(() => errorText = 'Enter value between 2 and 365');
+                                sheetSetState(() =>
+                                errorText = 'Enter value between 2 and 365');
                                 return;
                               }
+
                               setState(() => _entries[forIndex].validity = n.toString());
                               Navigator.of(ctx).pop();
                             }
                                 : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isValidNumber(customController.text) ? Colors.purple.shade50 : Colors.grey.shade200,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                                if (states.contains(MaterialState.disabled)) {
+                                  return const Color(0xFFEBF2FF);    // Disabled BG (soft purple)
+                                }
+                                return const Color(0xFF367AFF);      // Active BG (light purple)
+                              }),
+                              foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                                if (states.contains(MaterialState.disabled)) {
+                                  return const Color(0xFFA3C2FF);    // Disabled Text
+                                }
+                                return const Color(0xFFFFFFFF);      // Active Text (dark purple)
+                              }),
+                              padding: MaterialStateProperty.all(
+                                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              ),
+                              shape: MaterialStateProperty.all(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              elevation: MaterialStateProperty.all(0),
                             ),
-                            child: Text(
+
+                            child: const Text(
                               'Set custom validity',
+                              textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: isValidNumber(customController.text) ? Colors.purple.shade800 : Colors.grey.shade600,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
+                                fontFamily: 'Open Sans',
+                                fontWeight: FontWeight.w600,   // SemiBold
+                                fontSize: 16,
+                                height: 1.4,
+                                letterSpacing: 0,
                               ),
                             ),
                           ),
                         ),
+
 
                         const SizedBox(height: 18),
                       ],
@@ -2126,22 +3069,26 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     );
   }
 
-  Future<void> _onSubmit() async {    // Use stored selected bank map if available
+  Future<void> _onSubmit() async {
+    // Use stored selected bank map if available
 
     final selectedBank = _selectedBankFull ?? <String, dynamic>{};
 
     // helper to safely read bank fields with multiple possible key names
     String? _bankField(List<String> keys) {
       for (final k in keys) {
-        if (selectedBank.containsKey(k) && selectedBank[k] != null) return selectedBank[k].toString();
+        if (selectedBank.containsKey(k) && selectedBank[k] != null)
+          return selectedBank[k].toString();
       }
       return null;
     }
 
     final merchantId = _bankField(['merchentIid', 'merchantId', 'merchantID']);
-    final subMerchantId = _bankField(['submurchentid', 'subMerchantId', 'subMerchantID']);
+    final subMerchantId =
+        _bankField(['submurchentid', 'subMerchantId', 'subMerchantID']);
     final bankCodeField = _bankField(['bankCode', 'bankcode']);
-    final accountNumberField = _bankField(['acNumber', 'accountNumber', 'acnumber', 'account']);
+    final accountNumberField =
+        _bankField(['acNumber', 'accountNumber', 'acnumber', 'account']);
     final payerVaField = _bankField(['payerva', 'payerVA', 'payerVa']);
 
     // final voucherDetails = _entries.map((e) {
@@ -2167,13 +3114,11 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     //   };
     // }).toList();
 
-
-
     final voucherDetails = _entries.map((e) {
       return {
         'name': e.nameController.text.trim(),
         'mobile': e.mobileController.text.trim(),
-        'voucher':e.selectedMccDesc,
+        'voucher': e.selectedMccDesc,
         'mcc': e.selectedMcc,
         'voucherIdPk': e.selectedChildId,
         'mccDescription': e.selectedMccDesc,
@@ -2187,13 +3132,12 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         'validity': _validityToDays(e.validity),
 
 //        'type': null,
-  //      'bankcode': bankCodeField,
-    //    'voucherType': null,
+        //      'bankcode': bankCodeField,
+        //    'voucherType': null,
         "expenseType": "",
         "vehicleNo": "",
         "remarks": ""
       };
-
     }).toList();
 
     final user = await SessionManager.getUserData();
@@ -2210,24 +3154,16 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         'bankCode': bankCodeField,
         'accountNumber': accountNumberField,
         'payerVA': payerVaField,
-        'availableBalance': _availableBalance, // <-- added balance to pass to next screen
-        'summary': _bankSummary, // <-- added bank summary
+        'availableBalance': _availableBalance,
+        // <-- added balance to pass to next screen
+        'summary': _bankSummary,
+        // <-- added bank summary
         'raw': selectedBank,
       },
       'entries': voucherDetails,
       'orgId': orgId,
       'accountNumber': accountNumberField,
     };
-
-
-
-
-
-
-
-
-
-
 
     // navigate to verification screen (cast bank map to correct type)
     Navigator.of(context).push(
@@ -2299,11 +3235,11 @@ class _VoucherEntry {
 
   bool get isValid =>
       nameController.text.trim().isNotEmpty &&
-          mobileController.text.trim().isNotEmpty &&
-          amountController.text.trim().isNotEmpty &&
-          selectedVoucher != null &&
-          redemptionType != null &&
-          validity != null;
+      mobileController.text.trim().isNotEmpty &&
+      amountController.text.trim().isNotEmpty &&
+      selectedVoucher != null &&
+      redemptionType != null &&
+      validity != null;
 
   bool isAmountInvalid = false;
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cotopay/vouchers_history.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'approve_vouchers_screen.dart';
 import 'issue_voucher_screen.dart';
 import 'api_service.dart';
@@ -30,6 +31,8 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
   // values to show on green card
   String _activeCount = "0";
   double _activeAmount = 0.0;
+
+
 
   @override
   void initState() {
@@ -304,14 +307,20 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final bool isTablet = screenWidth >= 600;
 
+    const double _cardWidth = 330;
+    const double _cardHeight = 44;
+    const double _cardRadius = 10;
+    const double _horizontalPadding = 10; // corresponds to padding: 10px
+    const double _iconContainerSize = 24;
+    const double _badgeWidth = 50;
+    const double _badgeHeight = 23;
+
     // responsive sizes
-    final horizontalPadding = clampDouble(screenWidth * 0.04, 12, 24);
+    final horizontalPadding = clampDouble(screenWidth * 0.07, 12, 24);
     final sectionRadius = clampDouble(screenWidth * 0.04, 12, 20);
     final internalRadius = clampDouble(screenWidth * 0.02, 8, 14);
     final iconSize = clampDouble(screenWidth * 0.05, 18, 28);
-    final titleFont = clampDouble(screenWidth * 0.05, 16, 22);
     final labelFont = clampDouble(screenWidth * 0.038, 14, 18);
-    final smallFont = clampDouble(screenWidth * 0.032, 12, 14);
     final greenCardRadius = clampDouble(screenWidth * 0.038, 12, 24);
 
     return Scaffold(
@@ -324,11 +333,15 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
         title: const Text(
           "Vouchers",
           style: TextStyle(
-            color: Colors.black,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600, // Semi Bold
             fontSize: 16,
-            fontWeight: FontWeight.w600,
+            height: 1.4, // 140% line height
+            letterSpacing: 0,
+            color: Color(0xFF4A4E69), // #4A4E69
           ),
         ),
+
 
         leading: IconButton(icon: const Icon(Icons.sort, color: Colors.black), onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const AccountSettingsScreen()));
@@ -346,7 +359,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: horizontalPadding),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+       //   crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // --- GREEN CARD (bank selector + active vouchers + last updated)
             Container(
@@ -377,8 +390,8 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  Image.asset(
-                                    'assets/images/bank.png',
+                                  SvgPicture.asset(
+                                    'assets/bank.svg',
                                     width: iconSize * 0.9,
                                     height: iconSize * 0.9,
                                     fit: BoxFit.contain,
@@ -387,11 +400,31 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                                   Expanded(
                                     child: Text(
                                       _selectedBankName,
-                                      style: TextStyle(color: Colors.white, fontSize: labelFont, fontWeight: FontWeight.w600),
                                       overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w400, // Regular
+                                        fontSize: 14,
+                                        height: 1.4, // 140%
+                                        letterSpacing: 0,
+                                        color: Color(0xFFFFFFFF), // White
+                                      ),
                                     ),
                                   ),
-                                  Icon(Icons.keyboard_arrow_down, color: Colors.white70, size: iconSize * 0.9),
+
+
+
+                                  SvgPicture.asset(
+                                    'assets/expand.svg',       // update path as required
+                                    width: 20,
+                                    height: 20,
+                                    colorFilter: const ColorFilter.mode(
+                                      Colors.white70,                // matches your earlier color usage
+                                      BlendMode.srcIn,
+                                    ),
+                                  )
+
                                 ],
                               ),
                             ),
@@ -403,14 +436,49 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                           Row(
                             children: [
                               Expanded(
-                                child: Text("Active Vouchers", style: TextStyle(color: Colors.white, fontSize: labelFont, fontWeight: FontWeight.w500)),
+                                child: Text(
+                                  "Active Vouchers",
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 14,
+                                    height: 1.4, // 140% line height
+                                    letterSpacing: 0,
+                                    color: const Color(0xFFEAF4EF),
+                                  ),
+                                ),
                               ),
+
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Text(_activeCount, style: TextStyle(color: Colors.white, fontSize: titleFont * 0.9, fontWeight: FontWeight.w700)),
+                                  Text(
+                                    _activeCount,
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600, // Semi Bold
+                                      fontSize: 16,
+                                      height: 1.4, // 140%
+                                      letterSpacing: 0,
+                                      color: const Color(0xFFFFFFFF),
+                                    ),
+                                  ),
                                   Container(width: 1, height: screenHeight * 0.03, margin: EdgeInsets.symmetric(horizontal: horizontalPadding * 0.6), color: Colors.white.withOpacity(0.4)),
-                                  Text("₹${_activeAmount.toStringAsFixed(_activeAmount.truncateToDouble() == _activeAmount ? 0 : 2)}", style: TextStyle(color: Colors.white, fontSize: titleFont * 0.9, fontWeight: FontWeight.w700)),
+                                  Text(
+                                    "₹${_activeAmount.toStringAsFixed(
+                                      _activeAmount.truncateToDouble() == _activeAmount ? 0 : 2,
+                                    )}",
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600, // Semi Bold
+                                      fontSize: 16,
+                                      height: 1.4, // 140%
+                                      letterSpacing: 0,
+                                      color: const Color(0xFFFFFFFF),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
@@ -420,37 +488,80 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                     ),
 
                     // divider & last updated row
-                    Container(
-                      color: const Color(0xFF2F945A),
-                      child: Column(
-                        children: [
-                          Divider(color: Colors.white.withOpacity(0.18), height: 1),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: horizontalPadding * 0.1),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(_formatLastUpdated(_lastUpdated), style: TextStyle(color: Colors.white70, fontSize: 11), overflow: TextOverflow.ellipsis),
-                                ),
-                                IconButton(
-                                  visualDensity: VisualDensity.compact,
-                                  padding: EdgeInsets.zero,
-                                  onPressed: () async {
-                                    // refresh both list and summary
-                                    final userData = await SessionManager.getUserData();
-                                    if (userData != null && userData.employerid != null) {
-                                      await _loadBankList();
-                                      await _fetchBankSummary( _selectedBankAccount ?? '');
-                                    } else {
-                                      await _loadBankList();
-                                    }
-                                  },
-                                  icon: Icon(Icons.refresh, color: Colors.white70, size: iconSize * 0.95),
-                                ),
-                              ],
+                    // Put this where your original footer Container is
+                    ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(24),
+                        bottomRight: Radius.circular(24),
+                      ),
+                      child: Container(
+                        color: const Color(0xFF2F945A),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Divider(color: Colors.white.withOpacity(0.18), height: 1),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
+                                vertical: horizontalPadding * 0.1,
+                              ),
+                              child: Row(
+                                children: [
+                                  // Spacer left to push center alignment to exact middle
+                                  const SizedBox(width: 20),
+
+                                  // Centered text (keeps true center regardless of icon width)
+                                  Expanded(
+                                    child: Center(
+                                      child: Text(
+                                        _formatLastUpdated(_lastUpdated),
+                                        textAlign: TextAlign.center,
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w400, // Regular
+                                          fontSize: 12,
+                                          height: 1.4, // 140% line-height
+                                          letterSpacing: 0,
+                                          color: Color(0xFF9FCEB3), // #9FCEB3
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                  // Refresh icon aligned at right
+                                  IconButton(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(
+                                      minWidth: 20,
+                                      minHeight: 20,
+                                    ),
+                                    onPressed: () async {
+                                      final userData = await SessionManager.getUserData();
+                                      if (userData != null && userData.employerid != null) {
+                                        await _loadBankList();
+                                        await _fetchBankSummary(_selectedBankAccount ?? '');
+                                      } else {
+                                        await _loadBankList();
+                                      }
+                                    },
+                                    icon: const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: Icon(
+                                        Icons.refresh,
+                                        size: 20,
+                                        color: Color(0xFF9FCEB3),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          )
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -458,12 +569,14 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
               ),
             ),
 
-            SizedBox(height: horizontalPadding * 1.1),
+            SizedBox(height: horizontalPadding * 0.7),
 
             // --- WHITE rounded section (Office UPI Vouchers)
 
 
         FutureBuilder<int?>(
+
+
           future: SessionManager.getRoleId(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -499,88 +612,125 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                           // header
                           Padding(
                             padding: EdgeInsets.only(
-                              top: horizontalPadding * 0.6,
+                              top: horizontalPadding * 0.0,
                               bottom: horizontalPadding * 0.4,
                             ),
                             child: Text(
                               "Office UPI Vouchers",
-                              style: TextStyle(
-                                fontSize: titleFont,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black87,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w600, // Semi Bold
+                                fontSize: 16,
+                                height: 1.4, // 140%
+                                letterSpacing: 0,
+                                color: Color(0xFF1F212C), // #1F212C
                               ),
                             ),
+
                           ),
 
                           // Issue Voucher
                           InkWell(
                             onTap: () => Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (c) => const IssueVoucherScreen(),
-                              ),
+                              MaterialPageRoute(builder: (c) => const IssueVoucherScreen()),
                             ),
-                            child: Container(
-                              width: double.infinity,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: horizontalPadding * 0.9,
-                                vertical: horizontalPadding * 0.75,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(internalRadius),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.all(horizontalPadding * 0.25),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
-                                      color: Colors.white.withOpacity(0.06),
-                                    ),
-                                    child: Icon(
-                                      Icons.confirmation_number,
-                                      color: Colors.white,
-                                      size: iconSize * 0.95,
-                                    ),
+                            child: SizedBox(
+                              width: _cardWidth,                  // use fixed width (330) per spec
+                              height: _cardHeight,                // height 44 per spec
+                              child: Container(
+                                padding: const EdgeInsets.all(_horizontalPadding),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF26282C),                // background: #26282C
+                                  borderRadius: BorderRadius.circular(_cardRadius),
+                                  border: Border.all(
+                                    color: const Color(0xFFEDEDF0),              // border: 1px solid #EDEDF0
+                                    width: 1,
                                   ),
-                                  SizedBox(width: horizontalPadding * 0.8),
-                                  Expanded(
-                                    child: Text(
-                                      "Issue Voucher",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: labelFont,
-                                        fontWeight: FontWeight.w600,
+                                  // subtle elevation if needed (optional)
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween, // space-between
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Icon + label grouping (left)
+                                    Row(
+                                      children: [
+                                        // icon container
+                                        Container(
+                                          padding: EdgeInsets.all(_horizontalPadding * 0.25),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(8),
+                                            color: Colors.white.withOpacity(0.06),
+                                          ),
+                                          child: SvgPicture.asset(
+                                            'assets/isue_vou.svg', // correct svg path
+                                            width: _iconContainerSize,
+                                            height: _iconContainerSize,
+                                            colorFilter: const ColorFilter.mode(
+                                              Colors.white,
+                                              BlendMode.srcIn,
+                                            ),
+                                          ),
+                                        ),
+
+                                        SizedBox(width: _horizontalPadding * 0.8),
+
+                                        // Title
+                                        SizedBox(
+                                          // keep a max width so text doesn't overlap badge in tight layouts
+                                          width: _cardWidth - (_badgeWidth +  ( _horizontalPadding * 4) + _iconContainerSize ),
+                                          child: Text(
+                                            "Issue Voucher",
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w600, // Semi Bold (600)
+                                              fontSize: 14,                // 14px (titleFont)
+                                              height: 1.4,                 // 140% line-height
+                                              letterSpacing: 0,
+                                              color: Color(0xFFFFFFFF),    // white
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    // Right-side badge (Admin)
+                                    Container(
+                                      width: _badgeWidth,
+                                      height: _badgeHeight,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFC312), // #FFC312
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          "Admin",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontFamily: 'Open Sans',
+                                            fontWeight: FontWeight.w400, // Regular (400)
+                                            fontSize: 11,                // 11px
+                                            height: 1.4,                 // 140% line-height
+                                            letterSpacing: 0,
+                                            color: Color(0xFF1F212C),   // #1F212C
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: horizontalPadding * 0.6,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF2C94C),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      "Admin",
-                                      style: TextStyle(
-                                        color: Colors.black87,
-                                        fontSize: smallFont * 0.95,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -588,6 +738,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                           SizedBox(height: horizontalPadding * 0.9),
 
                           // white tiles container
+
                           Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
@@ -595,50 +746,51 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                               border: Border.all(color: Colors.grey.shade200),
                             ),
                             child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 _listTile(
-                                  icon: Icons.verified_outlined,
+                                  icon: 'assets/apr.svg',
                                   title: "Approve Vouchers",
                                   iconSize: iconSize,
                                   textSize: labelFont,
                                   onTap: () => Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (c) => const ApproveVouchersScreen(),
-                                    ),
+                                    MaterialPageRoute(builder: (c) => const ApproveVouchersScreen()),
                                   ),
                                 ),
-                                Divider(height: 1, color: Colors.grey.shade200),
+
+                                const Divider(height: 1, color: Color(0xffF1F1F1)),
+
                                 _listTile(
-                                  icon: Icons.confirmation_number_outlined,
+                                  icon: 'assets/countvc.svg',
                                   title: _activeCount,
                                   iconSize: iconSize,
                                   textSize: labelFont,
                                   onTap: () {},
                                 ),
-                                Divider(height: 1, color: Colors.grey.shade200),
+
+                                const Divider(height: 1, color: Color(0xffF1F1F1)),
+
                                 _listTile(
-                                  icon: Icons.history,
+                                  icon: 'assets/countvc.svg',
                                   title: "Voucher History",
                                   iconSize: iconSize,
                                   textSize: labelFont,
                                   onTap: () => Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (c) => const VouchersScreen(),
-                                    ),
+                                    MaterialPageRoute(builder: (c) => const VouchersScreen()),
                                   ),
                                 ),
                               ],
                             ),
                           ),
 
-                          SizedBox(height: horizontalPadding * 0.9),
+                //          SizedBox(height: horizontalPadding * 0.9),
                         ],
                       ),
                     ),
                   ),
-                  SizedBox(height: horizontalPadding * 1.0),
+             //     SizedBox(height: horizontalPadding * 1.0),
                 ],
               );
             } else {
@@ -658,18 +810,72 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
     );
   }
 
-  Widget _listTile({required IconData icon, required String title, required double iconSize, required double textSize, required VoidCallback onTap}) {
+  Widget _listTile({
+    required String icon,           // asset path, e.g. 'assets/apr.svg'
+    required String title,
+    double iconSize = 24,           // per spec (24x24)
+    double textSize = 14,           // per spec (14px)
+    required VoidCallback onTap,
+  }) {
+    // muted leading icon color from your earlier code
+   // const Color leadingIconTint = Color(0xFF5E5E6B); // muted color
+    const Color titleColor = Color(0xFF4A4E69);     // #4A4E69 (Figma)
+   // final Color trailingChevronColor = Colors.grey.shade400;
+
+    Widget leadingIconWidget;
+    if (icon.toLowerCase().endsWith('.svg')) {
+      leadingIconWidget = SvgPicture.asset(
+        icon,
+        width: iconSize,
+        height: iconSize,
+        fit: BoxFit.contain,
+        // If you want to tint the svg: uncomment the colorFilter line
+      //  colorFilter: const ColorFilter.mode(leadingIconTint, BlendMode.srcIn),
+      );
+    } else {
+      leadingIconWidget = Image.asset(
+        icon,
+        width: iconSize,
+        height: iconSize,
+        fit: BoxFit.contain,
+   //     color: leadingIconTint, // this tints raster images; remove if undesired
+      );
+    }
+
     return InkWell(
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         child: Row(
           children: [
-            Icon(icon, size: iconSize, color: const Color(0xFF5E5E6B)), // muted color
+            leadingIconWidget,
             const SizedBox(width: 12),
-            Expanded(child: Text(title, style: TextStyle(fontSize: textSize, fontWeight: FontWeight.w600, color: const Color(0xFF3D3D4A)))),
-            Icon(Icons.arrow_forward_ios, size: iconSize * 0.6, color: Colors.grey.shade400),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600, // Semi Bold (600)
+                  fontSize: textSize,          // 14 per spec
+                  height: 1.4,                 // 140% line-height
+                  letterSpacing: 0,
+                  color: titleColor,           // #4A4E69
+                ),
+              ),
+            ),
+            SvgPicture.asset(
+              'assets/arr.svg',
+            //  width: 20,
+             // height: 20,
+            /*  colorFilter: ColorFilter.mode(
+           //     trailingChevronColor,
+                BlendMode.srcIn,
+              ),*/
+            )
+
           ],
         ),
       ),

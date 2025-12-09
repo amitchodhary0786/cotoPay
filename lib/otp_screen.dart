@@ -395,29 +395,44 @@ class _OtpScreenState extends State<OtpScreen> {
                   height: 46,
                   child: ElevatedButton(
                     onPressed: isButtonEnabled && !_isLoading ? _handleVerifyOtp : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                      isButtonEnabled ? const Color(0xFF367AFF) : const Color(0xFFEBF2FF),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                        if (states.contains(MaterialState.disabled)) {
+                          return const Color(0xFFEBF2FF); // disabled bg
+                        }
+                        return const Color(0xFF367AFF);   // active bg
+                      }),
+                      foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                        if (states.contains(MaterialState.disabled)) {
+                          return const Color(0xFFA3C2FF); // disabled text
+                        }
+                        return Colors.white;              // active text
+                      }),
+                      padding: MaterialStateProperty.all(
+                        const EdgeInsets.fromLTRB(24, 12, 24, 12),
                       ),
-                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+                      shape: MaterialStateProperty.all(
+                        RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      elevation: MaterialStateProperty.all(0),
                     ),
                     child: _isLoading
                         ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
                     )
                         : const Text(
                       'CONFIRM',
                       style: TextStyle(
-                        fontFamily: 'Open Sans', // Confirm uses Open Sans per your spec
+                        fontFamily: 'Open Sans',
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
                         height: 1.4,
-                        color: Colors.white,
+                        color: Colors.white, // color is still driven by foregroundColor, kept for clarity
                       ),
                     ),
                   ),

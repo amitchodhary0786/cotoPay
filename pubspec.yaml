@@ -102,6 +102,14 @@ flutter:
     - assets/profile_card.svg
     - assets/edit.svg
     - assets/app_bar_back.svg
+    - assets/expand.svg
+    - assets/bank.svg
+    - assets/isue_vou.svg
+    - assets/apr.svg
+    - assets/countvc.svg
+    - assets/delete.svg
+    - assets/single_black.svg
+    - assets/multiple_black.svg
 
 
 flutter_launcher_icons:

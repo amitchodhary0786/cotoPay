@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'api_service.dart';
 import 'package:cotopay/session_manager.dart';
@@ -75,7 +76,18 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
-        title: const Text('Vouchers', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+        title: const Text(
+          'Vouchers',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,  // SemiBold
+            fontSize: 16,
+            height: 1.4,                  // 140%
+            letterSpacing: 0,
+            color: Color(0xFF4A4E69),     // #4A4E69
+          ),
+        ),
+
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.black), onPressed: () => Navigator.pop(context)),
       ),
       body: SafeArea(
@@ -84,15 +96,15 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTopBankCard(),
+              _buildTopBankCard(
+                bankInfo: widget.bankInfo,
+                parseBalance: _parseBalance, // your existing parser
+                width: 420,
+              ),
               const SizedBox(height: 16),
               _buildHeaderCard(),
               const SizedBox(height: 8),
-              ...widget.entries.asMap().entries.map((pair) {
-                final idx = pair.key;
-                final e = pair.value;
-                return _buildEntryCard(idx + 1, e);
-              }).toList(),
+
               const SizedBox(height: 16),
               Row(children: [
                 Checkbox(value: _consentChecked, onChanged: (v) => setState(() => _consentChecked = v ?? false)),
@@ -100,38 +112,73 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                 Expanded(
                   child: Text(
                     'I confirm that the details uploaded above are correct to the best of my knowledge, and are approved by the competent authority in my organization.',
-                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,   // Regular
+                      fontSize: 12,                  // 12px
+                      height: 1.4,                   // 140%
+                      letterSpacing: 0,
+                      color: Color(0xFF86889B),      // #86889B
+                    ),
                   ),
                 ),
+
               ]),
-              const SizedBox(height: 12),
+              const SizedBox(height: 100),
               if (_statusMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Text(_statusMessage, style: const TextStyle(color: Colors.red)),
                 ),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: (!_consentChecked || _loading) ? null : _handleLogin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: (_consentChecked && !_loading) ? const Color(0xFF3366FF) : const Color(0xFFFFFFFF),
-                    foregroundColor: (_consentChecked && !_loading) ? Colors.white : const Color(0xFF3366FF),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: _loading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text(
-                    'ISSUE VOUCHER',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: (_consentChecked && !_loading) ? Colors.white : const Color(0xFF3366FF),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
+    SizedBox(
+    width: double.infinity,
+    height: 52,
+    child: ElevatedButton(
+    onPressed: (!_consentChecked || _loading) ? null : _handleLogin,
+    style: ButtonStyle(
+    backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+    if (states.contains(MaterialState.disabled)) {
+    return const Color(0xFFEBF2FF); // Inactive background
+    }
+    return const Color(0xFF367AFF); // Active background
+    }),
+    foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+    if (states.contains(MaterialState.disabled)) {
+    return const Color(0xFFA3C2FF); // Inactive text
+    }
+    return Colors.white; // Active text
+    }),
+    shape: MaterialStateProperty.all(
+    RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+    elevation: MaterialStateProperty.all(0),
+    padding: MaterialStateProperty.all(
+    const EdgeInsets.symmetric(vertical: 12),
+    ),
+    ),
+    child: _loading
+    ? const SizedBox(
+    width: 20,
+    height: 20,
+    child: CircularProgressIndicator(
+    strokeWidth: 2,
+    color: Colors.white,
+    ),
+    )
+        : const Text(
+    'ISSUE VOUCHER',
+    style: TextStyle(
+    fontFamily: 'Open Sans',
+    fontWeight: FontWeight.w600,
+    fontSize: 16,
+    height: 1.4,
+    letterSpacing: 0,
+    ),
+    ),
+    ),
+    ),
+
+    const SizedBox(height: 20),
             ],
           ),
         ),
@@ -146,43 +193,169 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   // -----------
   // Helper UI pieces (unchanged)
   // --------------------------
-  Widget _buildTopBankCard() {
-    final bank = widget.bankInfo ?? <String, dynamic>{};
+  Widget _buildTopBankCard({
+    required Map<String, dynamic>? bankInfo,
+    required double Function(dynamic) parseBalance,
+    required double width, // pass 350 from caller or use MediaQuery
+  }) {
+    final bank = bankInfo ?? <String, dynamic>{};
     final masked = _firstString(bank, ['masked', 'acNumber', 'accountNumber', 'acnumber', 'account', 'bankAccount']) ?? 'xxxx1234';
     final dynamic rawBalance = _firstValue(bank, ['availableBalance', 'balance', 'availableBal', 'balanceAmount', 'available_balance']);
-    final double balance = _parseBalance(rawBalance);
+    final double balance = parseBalance(rawBalance);
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: const Color(0xFF26282C), borderRadius: BorderRadius.circular(14)),
-      child: Row(children: [
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            RichText(
-              text: TextSpan(
+    return SizedBox(
+      width: width,           // pass 350 or double.infinity
+      height: 113,            // per spec
+      child: Container(
+        padding: const EdgeInsets.all(10), // outer padding
+        decoration: BoxDecoration(
+          color: const Color(0xFF26282C),         // card bg
+          borderRadius: BorderRadius.circular(16), // card radius
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Top pill containing "cotoBalance" and masked + chevron
+            Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF26282C), // same dark tone (looks like inset)
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withOpacity(0.06)),
+              ),
+              child: Row(
                 children: [
-                  TextSpan(text: 'coto', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
-                  const WidgetSpan(child: SizedBox(width: 6)),
-                  TextSpan(text: 'Balance', style: TextStyle(color: Colors.white.withOpacity(0.95), fontWeight: FontWeight.w500, fontSize: 14)),
+                  // "cotoBalance" RichText (left)
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'coto',
+                          style: TextStyle(
+                            fontFamily: 'InstrumentSans',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                            height: 1.0,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const WidgetSpan(child: SizedBox(width: 6)),
+                        TextSpan(
+                          text: 'Balance',
+                          style: TextStyle(
+                            fontFamily: 'InstrumentSans',
+                            fontWeight: FontWeight.w400,
+                            fontSize: 18,
+                            height: 1.0,
+                            letterSpacing: 0.04,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const Spacer(),
+
+                  // masked account text (small chip look)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF26282C),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white.withOpacity(0.06)),
+                    ),
+                    child: Text(
+                      masked,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                        fontSize: 12,
+                        height: 1.4,
+                        color: Color(0xFFC7C8D1),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // chevron / expand
+                  SvgPicture.asset(
+                    'assets/expand.svg',
+                    width: 20,
+                    height: 20,
+                    fit: BoxFit.contain,
+                    // if you need tint: colorFilter: ColorFilter.mode(Color(0xFFC7C8D1), BlendMode.srcIn),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(color: const Color(0xFF26282C), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white.withOpacity(0.06))),
-              child: Text(masked, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+
+            const SizedBox(height: 8), // gap between pill and amount (spec: gap 10)
+
+            // Right aligned amount + subtitle
+            Expanded(
+              child: Align(
+                alignment: Alignment.bottomRight,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                //  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Amount (Inter, w600, 16px)
+                    Text(
+                      NumberFormat.currency(locale: 'en_IN', symbol: '₹').format(balance),
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        height: 1.4,
+                        color: Colors.white,
+                      ),
+                    ),
+
+                   // const SizedBox(height: 6),
+
+                    // Subtitle (Available Balance)
+                    const Text(
+                      'Available Balance',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                        fontSize: 11,
+                        height: 1.4,
+                        color: Color(0xFF86889B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ]),
+          ],
         ),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(balance),
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
-          const SizedBox(height: 6),
-          Text('Available Balance', style: TextStyle(color: Colors.white70, fontSize: 12)),
-        ]),
-      ]),
+      ),
     );
+  }
+
+
+
+  /// Helpers used above — copy implementations from your project:
+  String? _firstString(Map m, List<String> keys) {
+    for (final k in keys) {
+      final v = m[k];
+      if (v is String && v.isNotEmpty) return v;
+    }
+    return null;
+  }
+
+  dynamic _firstValue(Map m, List<String> keys) {
+    for (final k in keys) {
+      if (m.containsKey(k)) return m[k];
+    }
+    return null;
   }
 
   double _parseBalance(dynamic v) {
@@ -198,19 +371,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     }
   }
 
-  String? _firstString(Map<String, dynamic> m, List<String> keys) {
-    for (final k in keys) {
-      if (m.containsKey(k) && m[k] != null) return m[k].toString();
-    }
-    return null;
-  }
 
-  dynamic _firstValue(Map<String, dynamic> m, List<String> keys) {
-    for (final k in keys) {
-      if (m.containsKey(k) && m[k] != null) return m[k];
-    }
-    return null;
-  }
 
   Widget _buildHeaderCard() {
     final bank = widget.bankInfo;
@@ -218,17 +379,50 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: Colors.white, border: Border.all(color: Colors.grey.shade200)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Verify Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+
+        const Text(
+          'Verify Details',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,     // Semi Bold
+            fontSize: 16,                    // 16px
+            height: 1.4,                     // 140%
+            letterSpacing: 0,
+            color: Color(0xFF1F212C),        // #1F212C
+          ),
+        ),
+
         const SizedBox(height: 6),
-        const Text('Please cross-check the details for the issuance of vouchers.', style: TextStyle(color: Colors.black54)),
-        if (bank != null) ...[
+        const Text(
+          'Please cross-check the details for the issuance of vouchers.',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w400,   // Regular
+            fontSize: 14,                  // 14px
+            height: 1.4,                   // 140%
+            letterSpacing: 0,
+            color: Color(0xFF4A4E69),      // #4A4E69
+          ),
+        ),
+
+
+        ...widget.entries.asMap().entries.map((pair) {
+          final idx = pair.key;
+          final e = pair.value;
+          return _buildEntryCard(idx + 1, e);
+        }).toList(),
+
+        /*if (bank != null) ...[
           const SizedBox(height: 12),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text(bank['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
             Text(bank['masked']?.toString() ?? _firstString(bank, ['masked', 'acNumber', 'accountNumber']) ?? '', style: const TextStyle(color: Colors.black54)),
           ])
-        ]
+        ]*/
+
       ]),
+
+
     );
   }
 
@@ -272,7 +466,14 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                 });
               }
             },
-            child: const Icon(Icons.delete_outline, color: Colors.red),
+            child: SvgPicture.asset(
+              'assets/delete.svg',
+              width: 20,
+              height: 20,
+
+            ),
+
+
           ),
         ]),
         const SizedBox(height: 10),
@@ -690,7 +891,20 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                     // header row with title and close
                     Row(
                       children: [
-                        Expanded(child: Text('Authentication for Issuance', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                        Expanded(
+                          child: Text(
+                            'Authentication for Issuance',
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,   // Semi Bold
+                              fontSize: 16,
+                              height: 1.4,                   // 140%
+                              letterSpacing: 0,
+                              color: Color(0xFF1F212C),      // #1F212C
+                            ),
+                          ),
+                        ),
+
                         InkWell(onTap: () { _resendTimer?.cancel(); Navigator.of(ctx).pop(); }, child: const Icon(Icons.close)),
                       ],
                     ),
@@ -729,14 +943,28 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
+                                color: const Color(0xFFEBF2FF),                 // background
+                                border: Border.all(
+                                  color: const Color(0xFFC1D6FF),              // border color
+                                  width: 1,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 'OTP code has been sent to your phone $maskedNumber. Enter OTP to validate issuance.',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 13),
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w400,   // Regular
+                                  fontSize: 12,                  // 12px
+                                  height: 1.4,                   // 140%
+                                  letterSpacing: 0,
+                                  color: Color(0xFF367AFF),      // #367AFF
+                                ),
                               ),
+
+
+
                             );
                           },
                         ),
@@ -746,46 +974,57 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                     const SizedBox(height: 16),
 
                     // button
-                    SizedBox(
-                      width: double.infinity,
-
-                      child: ElevatedButton(
-                        onPressed: (_isVerifyingOtp || _isSendingOtp || !_isOtpFilled)
-                            ? null
-                            : verifyOtpFromDialog,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _isOtpFilled
-                              ? const Color(0xFF367AFF)   // OTP filled
-                              : const Color(0xFFEBF2FF),  // OTP not filled
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: _isVerifyingOtp
-                            ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                            : Text(
-                          'AUTHENTICATE',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: _isOtpFilled
-                                ? Colors.white              // OTP filled
-                                : const Color(0xFFA3C2FF),  // OTP not filled
-                          ),
-                        ),
-                      ),
-
-
-
-                    ),
-                  ],
+          SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+          onPressed: (_isVerifyingOtp || _isSendingOtp || !_isOtpFilled)
+          ? null
+              : verifyOtpFromDialog,
+          style: ButtonStyle(
+          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+          if (states.contains(MaterialState.disabled)) {
+          return const Color(0xFFEBF2FF); // Inactive BG
+          }
+          return const Color(0xFF367AFF);   // Active BG
+          }),
+          foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+          if (states.contains(MaterialState.disabled)) {
+          return const Color(0xFFA3C2FF); // Inactive text
+          }
+          return Colors.white;              // Active text
+          }),
+          padding: MaterialStateProperty.all(
+          const EdgeInsets.symmetric(vertical: 14),
+          ),
+          shape: MaterialStateProperty.all(
+          RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          ),
+          ),
+          elevation: MaterialStateProperty.all(0),
+          ),
+          child: _isVerifyingOtp
+          ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+          color: Colors.white,
+          strokeWidth: 2,
+          ),
+          )
+              : const Text(
+          'AUTHENTICATE',
+          style: TextStyle(
+          fontFamily: 'Open Sans',
+          fontWeight: FontWeight.w600,
+          fontSize: 16,
+          height: 1.4,
+          letterSpacing: 0,
+          ),
+          ),
+          ),
+          ),
+          ],
                 ),
               ),
             ),
@@ -947,7 +1186,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           "validity": e['validity']?.toString() ?? '',
           "expenseType": "Cost Center",
           "vehicleNo": null,
-          "remarks": "kk",
+          "remarks": "",
           "extra1":"mobile"
         };
 

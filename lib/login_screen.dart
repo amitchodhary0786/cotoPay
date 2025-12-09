@@ -553,47 +553,59 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Spacer(),
 
                 // ✅ Continue Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 46,
-                  child: ElevatedButton(
-                    onPressed: isValid && !_isLoading ? _handleLogin : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isValid
-                          ? const Color(0xFF367AFF) // active color
-                          : const Color(0xFFEBF2FF), // inactive color
-                      foregroundColor:
-                      isValid ? Colors.white : Colors.blue.shade200,
-                      shape: RoundedRectangleBorder(
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: ElevatedButton(
+                  onPressed: isValid && !_isLoading ? _handleLogin : null,
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                      if (states.contains(MaterialState.disabled)) {
+                        return const Color(0xFFEBF2FF); // Inactive background
+                      }
+                      return const Color(0xFF367AFF);   // Active background
+                    }),
+                    foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                      if (states.contains(MaterialState.disabled)) {
+                        return const Color(0xFFA3C2FF); // Inactive text
+                      }
+                      return Colors.white;              // Active text
+                    }),
+                    shape: MaterialStateProperty.all(
+                      RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      padding: const EdgeInsets.symmetric(
+                    ),
+                    padding: MaterialStateProperty.all(
+                      const EdgeInsets.symmetric(
                         vertical: 12,
                         horizontal: 24,
                       ),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 3,
-                      ),
-                    )
-                        : const Text(
-                      'CONTINUE',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                        height: 1.4,
-                        letterSpacing: 0.0,
-                      ),
+                    elevation: MaterialStateProperty.all(0),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
+                    ),
+                  )
+                      : const Text(
+                    'CONTINUE',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      height: 1.4,
+                      letterSpacing: 0.0,
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+              ),
+              const SizedBox(height: 24),
               ],
             ),
           ),
