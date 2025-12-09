@@ -1325,27 +1325,27 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
         //final msg = resp != null ? (resp['message'] ?? 'Failed to issue voucher') : 'Failed to issue voucher';
-        /*final msg = resp != null ? (resp['responseApi'] ?? 'Failed to issue voucher') : 'Failed to issue voucher';
+        final msg = resp != null ? (resp['responseApi'] ?? 'Failed to issue voucher') : 'Failed to issue voucher';
         debugPrint('!!! _issueVoucher failed: $msg');
         setState(() {
           _statusMessage = msg;
         });
-*/        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(resp['data'][0]['responseApi']), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(resp['data'][0]['responseApi']), backgroundColor: Colors.red));
 
 
       }
     } catch (e, st) {
       debugPrint('*** _issueVoucher EXCEPTION: $e\n$st');
-    /*  setState(() {
+      setState(() {
         _statusMessage = 'An error occurred: ${e.toString()}';
       });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Issue error: $e'), backgroundColor: Colors.red));
-*/    } /*finally {
+    } finally {
       if (mounted) setState(() {
         _loading = false;
       });
       debugPrint('>>> _issueVoucher: finished (loading=false)');
-    }*/
+    }
   }
 
   String _sha256Hex(String input) {
