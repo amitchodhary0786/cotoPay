@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cotopay/vouchers_history.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'approve_vouchers_screen.dart';
 import 'issue_voucher_screen.dart';
 import 'api_service.dart';
@@ -524,11 +525,15 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
         title: const Text(
           "Vouchers",
           style: TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,      // Semi Bold
+            fontSize: 16,                     // 16px
+            height: 1.4,                      // 140%
+            letterSpacing: 0,
+            color: Color(0xFF1F212C),         // #1F212C
           ),
         ),
+
 
         leading: IconButton(icon: const Icon(Icons.sort, color: Colors.black), onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const AccountSettingsScreen()));
@@ -1113,6 +1118,7 @@ class _VouchersScreenState extends State<VouchersScreen> {
   }
 
   // UPDATED WIDGET: Replaced _buildVoucherCard with the responsive version.
+
   Widget _buildVoucherCard({required Map<String, dynamic> voucherData}) {
     String title = (voucherData['purposeDesc'] ?? '').toString().replaceAll('Vouhcer', 'Voucher');
     if (title.trim().isEmpty) title = 'N/A';
@@ -1138,16 +1144,18 @@ class _VouchersScreenState extends State<VouchersScreen> {
     final bool isExpired = status == 'expired';
 
     // card border color based on status
-    Color cardBorderColor = Colors.grey.shade200;
-    if (isRejected) cardBorderColor = Colors.pink.shade400;
-    else if (isActive) cardBorderColor = Colors.green.shade600;
-    else if (isExpired) cardBorderColor = Colors.grey.shade400;
+    Color cardBorderColor = Color(0xffF1F1F1);
+    if (isRejected) cardBorderColor = Color(0xffF1F1F1);
+    else if (isActive) cardBorderColor = Color(0xffF1F1F1);
+    else if (isExpired) cardBorderColor = Color(0xffF1F1F1);
+
 
     return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
+        color: Colors.white,
+      elevation: 0.4,
+      margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         side: BorderSide(color: cardBorderColor.withOpacity(0.45), width: 1.2),
       ),
       child: InkWell(
@@ -1166,16 +1174,41 @@ class _VouchersScreenState extends State<VouchersScreen> {
                     radius: 24,
                     backgroundColor: Colors.black.withOpacity(0.05),
                     child: Icon(_getIconForPurpose(title), color: Colors.black87, size: 24),
+
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 4),
-                        Text(subtitle, style: TextStyle(color: Colors.grey.shade600, fontSize: 14), overflow: TextOverflow.ellipsis),
-                      ],
+
+                      Text(
+                      title,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,   // Semi Bold
+                        fontSize: 14,                  // 14px
+                        height: 1.4,                   // 140%
+                        letterSpacing: 0,
+                        color: Color(0xFF000000),      // #000000
+                      ),
+                    ),
+
+                      const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,   // Regular
+                        fontSize: 12,                  // 12px
+                        height: 1.4,                   // 140%
+                        letterSpacing: 0,
+                        color: Color(0xFF6B6B6B),      // #6B6B6B
+                      ),
+                    ),
+                    ],
                     ),
                   ),
 
@@ -1213,34 +1246,84 @@ class _VouchersScreenState extends State<VouchersScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(
-                            redemptionType.toLowerCase() == 'single' ? Icons.looks_one_outlined : Icons.monetization_on_outlined,
-                            color: Colors.green,
-                            size: 20,
+                          (redemptionType.toLowerCase() == 'multiple')
+                              ? SvgPicture.asset(
+                            'assets/multiple.svg',
+                            width: 20,
+                            height: 20,
+                            color: Color(0xff2F945A),
+                          )
+                              : SvgPicture.asset(
+                            'assets/single.svg',
+                            width: 20,
+                            height: 20,
+                            color: Color(0xff2F945A),
                           ),
                           const SizedBox(width: 6),
-                          Text(redemptionType, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-                        ],
+        Text(
+          redemptionType,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w400,     // Regular
+            fontSize: 12,                    // 12px
+            height: 1.4,                     // 140%
+            letterSpacing: 0,
+            color: Color(0xFF1F002A),        // #1F002A
+          ),
+        ),
+
+        ],
                       ),
                       if (!isRejected) ...[
                         const SizedBox(height: 4),
-                        Text(validity, style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500)),
-                      ],
+    Text(
+    validity,
+    style: const TextStyle(
+    fontFamily: 'Inter',
+    fontWeight: FontWeight.w400,       // Regular
+    fontSize: 12,                      // 12px
+    height: 1.4,                       // 140%
+    letterSpacing: 0,
+    color: Color(0xFFFF545A),          // #FF545A
+    ),
+    ),
+    ],
                     ],
                   ),
 
-                  Text(
-                    NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(amount),
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ],
+          Text(
+            NumberFormat.currency(
+              locale: 'en_IN',
+              symbol: '₹',
+              decimalDigits: 0,
+            ).format(amount),
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w600,   // Semi Bold
+              fontSize: 16,                  // 16px
+              height: 1.4,                   // 140%
+              letterSpacing: 0,
+              color: Color(0xFF000000),      // #000000
+            ),
+          ),
+
+          ],
               )
             ],
           ),
         ),
       ),
     );
+
   }
+
+
+
+
+
+
+
+
 
   // UPDATED HELPER: Changed icon for 'meal' to better match the design.
   IconData _getIconForPurpose(String purpose) {

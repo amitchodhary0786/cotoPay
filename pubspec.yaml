@@ -110,6 +110,8 @@ flutter:
     - assets/delete.svg
     - assets/single_black.svg
     - assets/multiple_black.svg
+    - assets/checked.svg
+    - assets/righ.svg
 
 
 flutter_launcher_icons:

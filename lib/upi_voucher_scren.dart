@@ -708,7 +708,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                                     Container(
                                       width: _badgeWidth,
                                       height: _badgeHeight,
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      //padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFFFC312), // #FFC312
                                         borderRadius: BorderRadius.circular(20),
@@ -785,7 +785,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                             ),
                           ),
 
-                //          SizedBox(height: horizontalPadding * 0.9),
+                          SizedBox(height: horizontalPadding * 0.9),
                         ],
                       ),
                     ),
