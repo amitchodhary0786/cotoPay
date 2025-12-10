@@ -657,60 +657,62 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                                   ],
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween, // space-between
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    // Icon + label grouping (left)
-                                    Row(
-                                      children: [
-                                        // icon container
-                                        Container(
-                                          padding: EdgeInsets.all(_horizontalPadding * 0.25),
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(8),
-                                            color: Colors.white.withOpacity(0.06),
-                                          ),
-                                          child: SvgPicture.asset(
-                                            'assets/isue_vou.svg', // correct svg path
-                                            width: _iconContainerSize,
-                                            height: _iconContainerSize,
-                                            colorFilter: const ColorFilter.mode(
-                                              Colors.white,
-                                              BlendMode.srcIn,
+
+                                    // LEFT SIDE (Icon + Title)
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          // Icon
+                                          Container(
+                                            padding: EdgeInsets.all(_horizontalPadding * 0.45),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(8),
+                                              color: Colors.white.withOpacity(0.06),
+                                            ),
+                                            child: SvgPicture.asset(
+                                              'assets/isue_vou.svg',
+                                              width: _iconContainerSize,
+                                              height: _iconContainerSize,
+                                              colorFilter: const ColorFilter.mode(
+                                                Colors.white,
+                                                BlendMode.srcIn,
+                                              ),
                                             ),
                                           ),
-                                        ),
 
-                                        SizedBox(width: _horizontalPadding * 0.8),
+                                          SizedBox(width: _horizontalPadding * 0.8),
 
-                                        // Title
-                                        SizedBox(
-                                          // keep a max width so text doesn't overlap badge in tight layouts
-                                          width: _cardWidth - (_badgeWidth +  ( _horizontalPadding * 4) + _iconContainerSize ),
-                                          child: Text(
-                                            "Issue Voucher",
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontFamily: 'Inter',
-                                              fontWeight: FontWeight.w600, // Semi Bold (600)
-                                              fontSize: 14,                // 14px (titleFont)
-                                              height: 1.4,                 // 140% line-height
-                                              letterSpacing: 0,
-                                              color: Color(0xFFFFFFFF),    // white
+                                          // Title — USE EXPANDED HERE
+                                          Expanded(
+                                            child: Text(
+                                              "Issue Voucher",
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 14,
+                                                height: 1.4,
+                                                letterSpacing: 0,
+                                                color: Color(0xFFFFFFFF),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
 
-                                    // Right-side badge (Admin)
+                                    SizedBox(width: 8),
+
+                                    // RIGHT SIDE BADGE
                                     Container(
                                       width: _badgeWidth,
                                       height: _badgeHeight,
-                                      //padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFFC312), // #FFC312
+                                        color: Color(0xFFFFC312),
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Center(
@@ -720,17 +722,18 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                                           overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                             fontFamily: 'Open Sans',
-                                            fontWeight: FontWeight.w400, // Regular (400)
-                                            fontSize: 11,                // 11px
-                                            height: 1.4,                 // 140% line-height
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 11,
+                                            height: 1.4,
                                             letterSpacing: 0,
-                                            color: Color(0xFF1F212C),   // #1F212C
+                                            color: Color(0xFF1F212C),
                                           ),
                                         ),
                                       ),
                                     ),
                                   ],
-                                ),
+                                )
+
                               ),
                             ),
                           ),
