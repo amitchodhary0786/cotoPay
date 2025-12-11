@@ -75,18 +75,20 @@ android {
                 keyPassword = keystoreProperties["keyPassword"] as String
             }
         }
+
     }
 
 
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            /*signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
-            )
+            )*/
+            signingConfig = null // <--- remove signing
         }
     }
 }

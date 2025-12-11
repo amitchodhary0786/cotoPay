@@ -89,16 +89,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       setState(() {
         _voucherListFuture =
             _apiService.getVoucherList(params).then((response) {
-              if (response != null &&
-                  response['status'] == true &&
-                  response['data'] is List) {
-                debugPrint("📤 Home Response  $response");
-                return response['data'] as List<dynamic>;
-              } else {
-                throw Exception(
-                    response?['message'] ?? 'Failed to load vouchers');
-              }
-            });
+          if (response != null &&
+              response['status'] == true &&
+              response['data'] is List) {
+            debugPrint("📤 Home Response  $response");
+            return response['data'] as List<dynamic>;
+          } else {
+            throw Exception(response?['message'] ?? 'Failed to load vouchers');
+          }
+        });
       });
     } else {
       setState(() {
@@ -121,11 +120,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         body: IndexedStack(
           index: _selectedIndex,
           children: [
-            HomeContent(name: _name, voucherListFuture: _voucherListFuture,onIndexChange: (index){
-              setState(() {
-                _selectedIndex = index;
-              });
-            },),
+            HomeContent(
+              name: _name,
+              voucherListFuture: _voucherListFuture,
+              onIndexChange: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+            ),
             const SafeArea(child: UpiVouchersScreen()),
             //   const SafeArea(child: DecryptDemoScreen()),
 
@@ -274,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
             final availableForSlots = usableWidth - reservedCenterWidth;
             final double slotWidth =
-            (availableForSlots / 4.0).clamp(56.0, 160.0);
+                (availableForSlots / 4.0).clamp(56.0, 160.0);
 
             /// override iconSize ALWAYS with Figma value: 24px
             final double iconSize = 24;
@@ -464,12 +467,15 @@ class HomeContent extends StatelessWidget {
   final Future<List<dynamic>>? voucherListFuture;
   final void Function(int) onIndexChange;
 
-  const HomeContent({super.key, required this.name, this.voucherListFuture, required this.onIndexChange,});
+  const HomeContent({
+    super.key,
+    required this.name,
+    this.voucherListFuture,
+    required this.onIndexChange,
+  });
 
   DateTime? _parseDate(String? dateStr) {
-    if (dateStr == null || dateStr
-        .trim()
-        .isEmpty) {
+    if (dateStr == null || dateStr.trim().isEmpty) {
       return null;
     }
     final formats = [
@@ -490,6 +496,11 @@ class HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Size screenSize = MediaQuery.of(context).size;
+    final double screenHeight = screenSize.height;
+    final double screenWidth = screenSize.width;
+/*
+
     final double statusBarHeight = MediaQuery
         .of(context)
         .padding
@@ -500,11 +511,6 @@ class HomeContent extends StatelessWidget {
     const double visibleHeight = 410.0; // fixed visible area (px)
     const double visibleTop =
     494.0; // (optional) if you want to position using absolute top
-    final Size screenSize = MediaQuery
-        .of(context)
-        .size;
-    final double screenHeight = screenSize.height;
-    final double screenWidth = screenSize.width;
 
     // card width / carousel height (responsive)
     final double cardWidth = (screenWidth < 360)
@@ -520,6 +526,7 @@ class HomeContent extends StatelessWidget {
         (screenHeight - topAreaEstimatedHeight) / screenHeight;
     final double initialChildSize =
     (visibleHeight / screenHeight).clamp(0.05, 0.9);
+*/
 
     return Stack(
       children: [
@@ -532,9 +539,9 @@ class HomeContent extends StatelessWidget {
               // Top bar
               Container(
                   color: const Color(0xff1C1C1E), child: _topBar(context)),
-              const SizedBox(height: 8),
+              SizedBox(height: screenHeight * 0.002),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: screenHeight * 0.02),
                 child: FutureBuilder<List<dynamic>>(
                   future: voucherListFuture,
                   builder: (context, snapshot) {
@@ -549,8 +556,8 @@ class HomeContent extends StatelessWidget {
                       activeVoucherCount = createdVouchers.length;
                       totalAmount = createdVouchers.fold(
                           0.0,
-                              (sum, item) =>
-                          sum +
+                          (sum, item) =>
+                              sum +
                               ((item['amount'] as num?)?.toDouble() ?? 0.0));
                     }
                     return _voucherBalanceCard(context,
@@ -558,16 +565,16 @@ class HomeContent extends StatelessWidget {
                   },
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: screenHeight * 0.03),
               SizedBox(
-                height: carouselHeight,
+                height: 180,
                 child: FutureBuilder<List<dynamic>>(
                   future: voucherListFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
                           child:
-                          CircularProgressIndicator(color: Colors.white));
+                              CircularProgressIndicator(color: Colors.white));
                     }
                     /*if (snapshot.hasError) {
                       return Center(
@@ -576,16 +583,15 @@ class HomeContent extends StatelessWidget {
 
                     final createdVouchers = snapshot.hasData
                         ? snapshot.data!
-                        .where((voucher) => voucher['type'] == 'Active')
-                        .toList()
+                            .where((voucher) => voucher['type'] == 'Active')
+                            .toList()
                         : [];
 
                     if (createdVouchers.isEmpty) {
                       return Center(
                           child: Padding(
                               padding: EdgeInsets.symmetric(
-                                  horizontal:
-                                  math.max(24.0, screenWidth * 0.06)),
+                                  horizontal: screenHeight * 0.01),
                               child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -594,7 +600,7 @@ class HomeContent extends StatelessWidget {
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                             color:
-                                            Colors.white.withOpacity(0.8),
+                                                Colors.white.withOpacity(0.8),
                                             fontSize: math.max(
                                                 13, screenWidth * 0.038))),
                                     const SizedBox(height: 12),
@@ -606,7 +612,7 @@ class HomeContent extends StatelessWidget {
                                                 horizontal: 20, vertical: 10),
                                             shape: RoundedRectangleBorder(
                                                 borderRadius:
-                                                BorderRadius.circular(12))),
+                                                    BorderRadius.circular(12))),
                                         icon: const Icon(Icons.star, size: 18),
                                         label: const Text(
                                             'Experience UPI Magic',
@@ -617,7 +623,7 @@ class HomeContent extends StatelessWidget {
                                               context,
                                               MaterialPageRoute(
                                                   builder: (context) =>
-                                                  const HowUpiVouchersWorks()));
+                                                      const HowUpiVouchersWorks()));
                                           RefreshService.refresh();
                                         }),
                                   ])));
@@ -632,14 +638,14 @@ class HomeContent extends StatelessWidget {
                         itemBuilder: (context, index) {
                           final voucherData = createdVouchers[index];
                           final double rightPadding =
-                          (index == createdVouchers.length - 1)
-                              ? math.max(12, screenWidth * 0.04)
-                              : 16.0;
+                              (index == createdVouchers.length - 1)
+                                  ? math.max(12, screenWidth * 0.04)
+                                  : 16.0;
                           return Padding(
                               padding: EdgeInsets.only(right: rightPadding),
                               child: _voucherCard(context,
                                   voucherData: voucherData,
-                                  cardWidth: cardWidth));
+                                  cardWidth: screenWidth * 0.6));
                         });
                   },
                 ),
@@ -647,15 +653,15 @@ class HomeContent extends StatelessWidget {
               const SizedBox(height: 24),
               Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: _actionButtons(screenWidth: screenWidth,context)),
+                  child: _actionButtons(screenWidth: screenWidth, context)),
               const SizedBox(height: 14),
             ],
           ),
         ),
         DraggableScrollableSheet(
-          initialChildSize: initialChildSize,
+          initialChildSize: 0.40,
           // user cannot collapse below visibleHeight
-          minChildSize: initialChildSize,
+          minChildSize: 0.35,
           // allow user to expand up to 70% of screen
           maxChildSize: 0.75,
           builder: (context, scrollController) {
@@ -663,11 +669,8 @@ class HomeContent extends StatelessWidget {
               // decoration + bottom border
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius:
-                BorderRadius.vertical(top: Radius.circular(20.0)),
-                boxShadow: [
-                  BoxShadow(color: Colors.black26, blurRadius: 8)
-                ],
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)],
                 border: Border(
                     bottom: BorderSide(
                         width: 1.0,
@@ -843,8 +846,8 @@ class HomeContent extends StatelessWidget {
 
     double amount = (voucherData['amount'] as num?)?.toDouble() ?? 0.0;
     String displayAmount =
-    NumberFormat.currency(locale: 'en_IN', symbol: '₹ ', decimalDigits: 2)
-        .format(amount);
+        NumberFormat.currency(locale: 'en_IN', symbol: '₹ ', decimalDigits: 2)
+            .format(amount);
 
     Widget bankIconWidget() {
       if (bankIconBase64.isNotEmpty) {
@@ -872,7 +875,7 @@ class HomeContent extends StatelessWidget {
         RefreshService.refresh();
       },
       child: SizedBox(
-        width: 225,
+        width: cardWidth,
         child: Stack(
           clipBehavior: Clip.none, // allows SVG to overflow card
           children: [
@@ -939,7 +942,7 @@ class HomeContent extends StatelessWidget {
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             title,
@@ -1006,37 +1009,37 @@ class HomeContent extends StatelessWidget {
                               padding: const EdgeInsetsGeometry.all(10.0),
                               child: Row(
                                 mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   // TEXT BLOCK
                                   Column(
                                     crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
                                           (redemptionType.toLowerCase() ==
-                                              'multiple')
+                                                  'multiple')
                                               ? SvgPicture.asset(
-                                            'assets/multiple.svg',
-                                            width: 20,
-                                            height: 20,
-                                            colorFilter: ColorFilter.mode(
-                                              Colors.white
-                                                  .withOpacity(0.9),
-                                              BlendMode.srcIn,
-                                            ),
-                                          )
+                                                  'assets/multiple.svg',
+                                                  width: 20,
+                                                  height: 20,
+                                                  colorFilter: ColorFilter.mode(
+                                                    Colors.white
+                                                        .withOpacity(0.9),
+                                                    BlendMode.srcIn,
+                                                  ),
+                                                )
                                               : SvgPicture.asset(
-                                            'assets/single.svg',
-                                            width: 20,
-                                            height: 20,
-                                            colorFilter: ColorFilter.mode(
-                                              Colors.white
-                                                  .withOpacity(0.9),
-                                              BlendMode.srcIn,
-                                            ),
-                                          ),
+                                                  'assets/single.svg',
+                                                  width: 20,
+                                                  height: 20,
+                                                  colorFilter: ColorFilter.mode(
+                                                    Colors.white
+                                                        .withOpacity(0.9),
+                                                    BlendMode.srcIn,
+                                                  ),
+                                                ),
                                           Padding(
                                             padding: const EdgeInsets.only(
                                                 left: 5.0),
@@ -1055,7 +1058,7 @@ class HomeContent extends StatelessWidget {
                                       ),
                                       Padding(
                                         padding:
-                                        const EdgeInsets.only(left: 2.0),
+                                            const EdgeInsets.only(left: 2.0),
                                         child: Text(
                                           'Expires on $expiryText',
                                           style: TextStyle(
@@ -1064,7 +1067,7 @@ class HomeContent extends StatelessWidget {
                                             fontSize: 12.0,
                                             height: 1.4,
                                             color:
-                                            Colors.white.withOpacity(0.7),
+                                                Colors.white.withOpacity(0.7),
                                           ),
                                         ),
                                       ),
@@ -1096,7 +1099,7 @@ class HomeContent extends StatelessWidget {
   }
 
   // Put this where your other widget methods are (keep `import 'dart:math' as math;` at top)
-  Widget _actionButtons(BuildContext context,{required double screenWidth}) {
+  Widget _actionButtons(BuildContext context, {required double screenWidth}) {
     const double designButtonWidth = 125.0;
     const double designButtonHeight = 52.0;
     const double horizontalPadding = 16.0;
@@ -1142,8 +1145,7 @@ class HomeContent extends StatelessWidget {
                 padH: padH,
                 onTap: () {
                   onIndexChange(1);
-                }
-            ),
+                }),
           ),
           SizedBox(
             width: buttonWidth,
@@ -1207,23 +1209,23 @@ class HomeContent extends StatelessWidget {
               height: iconSize,
               child: imagePath.toLowerCase().endsWith('.svg')
                   ? SvgPicture.asset(
-                imagePath,
-                width: iconSize,
-                height: iconSize,
-                fit: BoxFit.contain,
-                // tint the SVG (like color in Image.asset)
-                colorFilter: const ColorFilter.mode(
-                  Colors.white,
-                  BlendMode.srcIn,
-                ),
-              )
+                      imagePath,
+                      width: iconSize,
+                      height: iconSize,
+                      fit: BoxFit.contain,
+                      // tint the SVG (like color in Image.asset)
+                      colorFilter: const ColorFilter.mode(
+                        Colors.white,
+                        BlendMode.srcIn,
+                      ),
+                    )
                   : Image.asset(
-                imagePath,
-                width: iconSize,
-                height: iconSize,
-                fit: BoxFit.contain,
-                color: Colors.white,
-              ),
+                      imagePath,
+                      width: iconSize,
+                      height: iconSize,
+                      fit: BoxFit.contain,
+                      color: Colors.white,
+                    ),
             ),
 
             SizedBox(width: gap),
@@ -1384,7 +1386,7 @@ class _VoucherBalanceInnerState extends State<_VoucherBalanceInner> {
                 const SizedBox(width: 8),
                 Container(
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: const Color(0xff48484A),
                     borderRadius: BorderRadius.circular(10),
@@ -1402,9 +1404,9 @@ class _VoucherBalanceInnerState extends State<_VoucherBalanceInner> {
                   onTap: () => setState(() => _expanded = !_expanded),
                   child: _expanded
                       ? SvgPicture.asset('assets/revoke.svg',
-                      width: 20, height: 20)
+                          width: 20, height: 20)
                       : SvgPicture.asset('assets/info.svg',
-                      width: 20, height: 20),
+                          width: 20, height: 20),
                 ),
                 const SizedBox(width: 8),
               ],

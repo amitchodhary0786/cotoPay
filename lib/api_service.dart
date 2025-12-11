@@ -3,9 +3,7 @@
 
 // Pre Production
 
-
 /*
-
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -536,18 +534,10 @@ Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async 
 
 }
 
-
-
 */
 
 
-
-
-
-
-
 //------------- Production Api---------------------
-
 
 
 import 'dart:convert';
@@ -559,7 +549,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:pointycastle/asymmetric/api.dart' show RSAPublicKey, RSAPrivateKey;
-class ApiService {
+class
+ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();

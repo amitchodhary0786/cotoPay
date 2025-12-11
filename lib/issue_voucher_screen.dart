@@ -1,16 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:math';
 
+import 'package:cotopay/session_manager.dart';
 import 'package:cotopay/voucher_verify_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 
 import 'api_service.dart';
-import 'package:cotopay/session_manager.dart';
-import 'package:flutter/services.dart';
 
 class IssueVoucherScreen extends StatefulWidget {
   const IssueVoucherScreen({super.key});
@@ -972,7 +971,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                         child: Row(
                                           children: [
                                             //      Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(44)), child: Icon(displayIcon, color: Colors.green, size: 22)),
-                                            Container(
+                                            /* Container(
                                               width: 44,
                                               height: 44,
                                               padding: const EdgeInsets.all(10),
@@ -995,8 +994,10 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                 // Use consistent Cotopay green
                                                 size: 22,
                                               ),
+                                            ),*/
+                                            Image.memory(
+                                              base64Decode(cat['icon']),
                                             ),
-
                                             const SizedBox(width: 12),
                                             // Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
 
@@ -1048,7 +1049,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                     const EdgeInsets.only(
                                                         left: 68.0,
                                                         right: 12.0),
-                                                leading: Container(
+                                                leading: /*Container(
                                                     width: 34,
                                                     height: 34,
                                                     decoration: BoxDecoration(
@@ -1059,7 +1060,10 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                                 .circular(8)),
                                                     child: Icon(displayIcon,
                                                         color: Colors.black54,
-                                                        size: 20)),
+                                                        size: 20))*/
+                                                    Image.memory(
+                                                  base64Decode(cat['icon']),
+                                                ),
                                                 title: Text(title,
                                                     style: const TextStyle(
                                                         fontWeight:
@@ -1121,15 +1125,15 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                   child['title'] ?? 'Sub';
                                               final childId = child['id'];
                                               final IconData childIcon =
-                                                  _iconForChild(
-                                                      childTitle.toString());
+                                              _iconForChild(
+                                                  childTitle.toString());
                                               return Column(children: [
                                                 ListTile(
                                                   contentPadding:
                                                       const EdgeInsets.only(
                                                           left: 68.0,
                                                           right: 12.0),
-                                                  leading: Container(
+                                                  leading: /*Container(
                                                       width: 34,
                                                       height: 34,
                                                       decoration: BoxDecoration(
@@ -1140,7 +1144,10 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                                   .circular(8)),
                                                       child: Icon(childIcon,
                                                           color: Colors.black54,
-                                                          size: 20)),
+                                                          size: 20))*/
+                                                      Image.memory(
+                                                    base64Decode(child['vouchericon']),
+                                                  ),
                                                   title: Text(
                                                       childTitle.toString(),
                                                       style: const TextStyle(
@@ -1277,7 +1284,11 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
   IconData _iconForCategory(Map<String, dynamic> cat, int index) {
     final provided = cat['icon'];
-    if (provided is String) {}
+    if (provided is String) {
+      Image.memory(
+        base64Decode(provided),
+      );
+    }
     final titlestring = (cat['title'] ?? '').toString().toLowerCase();
     if (titlestring.contains('fuel') || titlestring.contains('gas'))
       return Icons.local_gas_station;
@@ -2911,29 +2922,31 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                         Navigator.of(ctx).pop();
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 4),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 18, horizontal: 4),
                         child: Text(
                           label,
                           style: const TextStyle(
                             fontFamily: 'Inter',
-                            fontWeight: FontWeight.w400,   // Regular
-                            fontSize: 14,                  // 14px
-                            height: 1.4,                   // 140%
+                            fontWeight: FontWeight.w400,
+                            // Regular
+                            fontSize: 14,
+                            // 14px
+                            height: 1.4,
+                            // 140%
                             letterSpacing: 0,
-                            color: Color(0xFF292B3A),      // #292B3A
+                            color: Color(0xFF292B3A), // #292B3A
                           ),
                         ),
                       ),
                     );
                   }
 
-
                   return SingleChildScrollView(
                     controller: scrollController,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
                         const SizedBox(height: 4),
                         const Text(
                           'VOUCHER VALIDITY',
@@ -2998,40 +3011,51 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
                         // full-width rounded button (light purple bg, purple text)
                         SizedBox(
-                          width: double.infinity,   // Full width like the Continue button
-                          height: 46,               // Fixed height 46px
+                          width: double.infinity,
+                          // Full width like the Continue button
+                          height: 46,
+                          // Fixed height 46px
                           child: ElevatedButton(
                             onPressed: isValidNumber(customController.text)
                                 ? () {
-                              final val = customController.text.trim();
-                              final n = int.tryParse(val);
+                                    final val = customController.text.trim();
+                                    final n = int.tryParse(val);
 
-                              if (n == null || n < 2 || n > 365) {
-                                sheetSetState(() =>
-                                errorText = 'Enter value between 2 and 365');
-                                return;
-                              }
+                                    if (n == null || n < 2 || n > 365) {
+                                      sheetSetState(() => errorText =
+                                          'Enter value between 2 and 365');
+                                      return;
+                                    }
 
-                              setState(() => _entries[forIndex].validity = n.toString());
-                              Navigator.of(ctx).pop();
-                            }
+                                    setState(() => _entries[forIndex].validity =
+                                        n.toString());
+                                    Navigator.of(ctx).pop();
+                                  }
                                 : null,
-
                             style: ButtonStyle(
-                              backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                              backgroundColor:
+                                  MaterialStateProperty.resolveWith<Color>(
+                                      (states) {
                                 if (states.contains(MaterialState.disabled)) {
-                                  return const Color(0xFFEBF2FF);    // Disabled BG (soft purple)
+                                  return const Color(
+                                      0xFFEBF2FF); // Disabled BG (soft purple)
                                 }
-                                return const Color(0xFF367AFF);      // Active BG (light purple)
+                                return const Color(
+                                    0xFF367AFF); // Active BG (light purple)
                               }),
-                              foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                              foregroundColor:
+                                  MaterialStateProperty.resolveWith<Color>(
+                                      (states) {
                                 if (states.contains(MaterialState.disabled)) {
-                                  return const Color(0xFFA3C2FF);    // Disabled Text
+                                  return const Color(
+                                      0xFFA3C2FF); // Disabled Text
                                 }
-                                return const Color(0xFFFFFFFF);      // Active Text (dark purple)
+                                return const Color(
+                                    0xFFFFFFFF); // Active Text (dark purple)
                               }),
                               padding: MaterialStateProperty.all(
-                                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 12),
                               ),
                               shape: MaterialStateProperty.all(
                                 RoundedRectangleBorder(
@@ -3040,13 +3064,13 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                               ),
                               elevation: MaterialStateProperty.all(0),
                             ),
-
                             child: const Text(
                               'Set custom validity',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontFamily: 'Open Sans',
-                                fontWeight: FontWeight.w600,   // SemiBold
+                                fontWeight: FontWeight.w600,
+                                // SemiBold
                                 fontSize: 16,
                                 height: 1.4,
                                 letterSpacing: 0,
@@ -3054,7 +3078,6 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                             ),
                           ),
                         ),
-
 
                         const SizedBox(height: 18),
                       ],

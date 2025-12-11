@@ -1,13 +1,15 @@
 // voucher_verify_screen.dart
 import 'dart:async';
 import 'dart:convert';
+
+import 'package:cotopay/session_manager.dart';
 import 'package:cotopay/voucher_status_screen.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
+
 import 'api_service.dart';
-import 'package:cotopay/session_manager.dart';
 
 class VoucherVerifyScreen extends StatefulWidget {
   final ApiService apiService;
@@ -34,7 +36,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
   // OTP dialog state
   final List<TextEditingController> _otpControllers =
-  List.generate(6, (_) => TextEditingController());
+      List.generate(6, (_) => TextEditingController());
   int _resendSeconds = 30;
   Timer? _resendTimer;
   String? _orderId; // filled after OTP send
@@ -67,10 +69,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sw = MediaQuery
-        .of(context)
-        .size
-        .width;
+    final sw = MediaQuery.of(context).size.width;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -144,17 +143,17 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                 height: 52,
                 child: ElevatedButton(
                   onPressed:
-                  (!_consentChecked || _loading) ? null : _handleLogin,
+                      (!_consentChecked || _loading) ? null : _handleLogin,
                   style: ButtonStyle(
                     backgroundColor:
-                    MaterialStateProperty.resolveWith<Color>((states) {
+                        MaterialStateProperty.resolveWith<Color>((states) {
                       if (states.contains(MaterialState.disabled)) {
                         return const Color(0xFFEBF2FF); // Inactive background
                       }
                       return const Color(0xFF367AFF); // Active background
                     }),
                     foregroundColor:
-                    MaterialStateProperty.resolveWith<Color>((states) {
+                        MaterialStateProperty.resolveWith<Color>((states) {
                       if (states.contains(MaterialState.disabled)) {
                         return const Color(0xFFA3C2FF); // Inactive text
                       }
@@ -171,23 +170,23 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                   ),
                   child: _loading
                       ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : const Text(
-                    'ISSUE VOUCHER',
-                    style: TextStyle(
-                      fontFamily: 'Open Sans',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      height: 1.4,
-                      letterSpacing: 0,
-                    ),
-                  ),
+                          'ISSUE VOUCHER',
+                          style: TextStyle(
+                            fontFamily: 'Open Sans',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            height: 1.4,
+                            letterSpacing: 0,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -210,13 +209,13 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   }) {
     final bank = bankInfo ?? <String, dynamic>{};
     final masked = _firstString(bank, [
-      'masked',
-      'acNumber',
-      'accountNumber',
-      'acnumber',
-      'account',
-      'bankAccount'
-    ]) ??
+          'masked',
+          'acNumber',
+          'accountNumber',
+          'acnumber',
+          'account',
+          'bankAccount'
+        ]) ??
         'xxxx1234';
     final dynamic rawBalance = _firstValue(bank, [
       'availableBalance',
@@ -287,7 +286,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                   // masked account text (small chip look)
                   Container(
                     padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF26282C),
                       borderRadius: BorderRadius.circular(8),
@@ -435,10 +434,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
             color: Color(0xFF4A4E69), // #4A4E69
           ),
         ),
-        ...widget.entries
-            .asMap()
-            .entries
-            .map((pair) {
+        ...widget.entries.asMap().entries.map((pair) {
           final idx = pair.key;
           final e = pair.value;
           return _buildEntryCard(idx + 1, e);
@@ -460,7 +456,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       if (a == null || a.isEmpty) return '';
       final parsed = double.tryParse(a) ?? 0.0;
       return NumberFormat.currency(
-          locale: 'en_IN', symbol: '₹', decimalDigits: 0)
+              locale: 'en_IN', symbol: '₹', decimalDigits: 0)
           .format(parsed);
     }
 
@@ -528,21 +524,21 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       children: [
         Expanded(
             child:
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(aLabel,
-                  style: const TextStyle(color: Colors.black54, fontSize: 12)),
-              const SizedBox(height: 4),
-              Text(aVal, style: const TextStyle(fontSize: 14)),
-            ])),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(aLabel,
+              style: const TextStyle(color: Colors.black54, fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(aVal, style: const TextStyle(fontSize: 14)),
+        ])),
         const SizedBox(width: 12),
         Expanded(
             child:
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(bLabel,
-                  style: const TextStyle(color: Colors.black54, fontSize: 12)),
-              const SizedBox(height: 4),
-              Text(bVal, style: const TextStyle(fontSize: 14)),
-            ])),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(bLabel,
+              style: const TextStyle(color: Colors.black54, fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(bVal, style: const TextStyle(fontSize: 14)),
+        ])),
       ],
     );
   }
@@ -551,8 +547,8 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   // OTP / Login / Verify / Issue flows
   // --------------------------
 
-  Future<void> _showDeleteVoucherDialog(BuildContext context,
-      VoidCallback onDelete) {
+  Future<void> _showDeleteVoucherDialog(
+      BuildContext context, VoidCallback onDelete) {
     return showDialog(
       context: context,
       barrierDismissible: false,
@@ -758,8 +754,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         }
 
         // reset OTP controllers
-        for (final c in _otpControllers)
-          c.text = '';
+        for (final c in _otpControllers) c.text = '';
 
         // start resend timer
         _startResendTimer();
@@ -951,7 +946,6 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           }
 */
 
-
           Widget otpBoxesRow() {
             return Wrap(
               spacing: otpBoxSize * 0.08,
@@ -998,7 +992,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                       }
 
                       final entered =
-                      _otpControllers.map((c) => c.text.trim()).join();
+                          _otpControllers.map((c) => c.text.trim()).join();
                       final filled = entered.length == 6 &&
                           entered.runes.every((r) => r >= 48 && r <= 57);
 
@@ -1017,12 +1011,12 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
             insetPadding: EdgeInsets.symmetric(
                 horizontal: mq.size.width * 0.04, vertical: 24),
             shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: dialogWidth),
               child: Padding(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 18.0, vertical: 18),
+                    const EdgeInsets.symmetric(horizontal: 18.0, vertical: 18),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1059,8 +1053,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                     // resend line
                     if (_resendSeconds > 0)
                       Text(
-                          "Didn't receive the code? 00:${_resendSeconds
-                              .toString().padLeft(2, '0')}",
+                          "Didn't receive the code? 00:${_resendSeconds.toString().padLeft(2, '0')}",
                           style: const TextStyle(color: Colors.black54))
                     else
                       GestureDetector(
@@ -1098,7 +1091,6 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                         ),
                       ),
 
-
                     const SizedBox(height: 12),
                     Column(
                       children: [
@@ -1117,9 +1109,8 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
                             final user = snapshot.data;
                             final maskedNumber = (user?.mobile != null &&
-                                user!.mobile!.length >= 4)
-                                ? '+91-xxxxxx ${user.mobile!.substring(
-                                user.mobile!.length - 4)}'
+                                    user!.mobile!.length >= 4)
+                                ? '+91-xxxxxx ${user.mobile!.substring(user.mobile!.length - 4)}'
                                 : '+91-xxxxxxXXXX';
 
                             return Container(
@@ -1162,27 +1153,26 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed:
-                        (_isVerifyingOtp || _isSendingOtp || !_isOtpFilled)
-                            ? null
-                            : verifyOtpFromDialog,
+                            (_isVerifyingOtp || _isSendingOtp || !_isOtpFilled)
+                                ? null
+                                : verifyOtpFromDialog,
                         style: ButtonStyle(
                           backgroundColor:
-                          MaterialStateProperty.resolveWith<Color>(
+                              MaterialStateProperty.resolveWith<Color>(
                                   (states) {
-                                if (states.contains(MaterialState.disabled)) {
-                                  return const Color(0xFFEBF2FF); // Inactive BG
-                                }
-                                return const Color(0xFF367AFF); // Active BG
-                              }),
+                            if (states.contains(MaterialState.disabled)) {
+                              return const Color(0xFFEBF2FF); // Inactive BG
+                            }
+                            return const Color(0xFF367AFF); // Active BG
+                          }),
                           foregroundColor:
-                          MaterialStateProperty.resolveWith<Color>(
+                              MaterialStateProperty.resolveWith<Color>(
                                   (states) {
-                                if (states.contains(MaterialState.disabled)) {
-                                  return const Color(
-                                      0xFFA3C2FF); // Inactive text
-                                }
-                                return Colors.white; // Active text
-                              }),
+                            if (states.contains(MaterialState.disabled)) {
+                              return const Color(0xFFA3C2FF); // Inactive text
+                            }
+                            return Colors.white; // Active text
+                          }),
                           padding: MaterialStateProperty.all(
                             const EdgeInsets.symmetric(vertical: 14),
                           ),
@@ -1195,23 +1185,23 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                         ),
                         child: _isVerifyingOtp
                             ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : const Text(
-                          'AUTHENTICATE',
-                          style: TextStyle(
-                            fontFamily: 'Open Sans',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            height: 1.4,
-                            letterSpacing: 0,
-                          ),
-                        ),
+                                'AUTHENTICATE',
+                                style: TextStyle(
+                                  fontFamily: 'Open Sans',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  height: 1.4,
+                                  letterSpacing: 0,
+                                ),
+                              ),
                       ),
                     ),
                   ],
@@ -1279,7 +1269,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         return true;
       } else {
         final msg =
-        resp != null ? (resp['message'] ?? 'Invalid OTP') : 'Invalid OTP';
+            resp != null ? (resp['message'] ?? 'Invalid OTP') : 'Invalid OTP';
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(msg), backgroundColor: Colors.red));
         _verifyInProgress = false;
@@ -1332,12 +1322,12 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       debugPrint(
           '[IssueVoucher] _loadBanks: calling getBankList with params: $bankParams');
       final response =
-      await _api_serviceSafeGet(() => _apiService.getBankList(bankParams));
+          await _api_serviceSafeGet(() => _apiService.getBankList(bankParams));
 
       final list = (response?['data'] as List<dynamic>?) ?? [];
 
       final selfBank = list.firstWhere(
-            (e) => (e['accountSeltWallet']?.toString() ?? '') == 'Self',
+        (e) => (e['accountSeltWallet']?.toString() ?? '') == 'Self',
         orElse: () => null,
       );
 
@@ -1363,8 +1353,6 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
       final List<Map<String, dynamic>> details = widget.entries.map((e) {
         return {
-
-
           "name": e['name'] ?? '',
           "mobile": e['mobile'] ?? '',
           "voucherType": e['mccDescription'],
@@ -1378,7 +1366,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           "redemptionType": e['redemptionType'] ?? '',
           "amount": e['amount']?.toString() ?? '',
           "startDate":
-          e['startDate'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
+              e['startDate'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
           "validity": e['validity']?.toString() ?? '',
           "expenseType": "Cost Center",
           "vehicleNo": null,
@@ -1460,25 +1448,27 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
               resp['status'] == true)) {
         // --- Call WhatsApp API for each detail's amount ---
         try {
-          for (final d in details) {
-            final amount = (d['amount'] ?? '').toString();
-            final validity = (d['validity'] ?? '').toString();
-            final category = (d['mccDescription'] ?? '').toString();
+          // for (final d in details) {
+          final amount =
+              (/*d['amount']*/ resp['data'][0]['amount'] ?? '').toString();
+          final validity =
+              (/*d['expDate']*/ resp['data'][0]['expDate'] ?? '').toString();
+          final category =
+              (/*d['mccDescription']*/ resp['data'][0]['mccDescription'] ?? '')
+                  .toString();
 
-            if (amount.isNotEmpty) {
-           //   await meessageApiCall(amount);
-            //  await whatApiCall(amount,validity,category);
-
-              // if you want non-blocking concurrent calls, collect futures and await Future.wait(...)
-            }
+          if (amount.isNotEmpty) {
+            meessageApiCall(amount);
+            whatApiCall(amount, validity, category);
+            // if you want non-blocking concurrent calls, collect futures and await Future.wait(...)
           }
+          // }
         } catch (e, st) {
           debugPrint('WhatsApp call(s) failed: $e\n$st');
           // optionally show a non-blocking warning; don't fail the whole flow
         }
 
-        await showDialog
-          (
+        await showDialog(
           context: context,
           barrierDismissible: false,
           builder: (ctx) {
@@ -1487,7 +1477,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
             final dialogWidth = w < 500 ? w * 0.92 : 420.0;
             return Dialog(
               insetPadding:
-              EdgeInsets.symmetric(horizontal: mq.size.width * 0.04),
+                  EdgeInsets.symmetric(horizontal: mq.size.width * 0.04),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14)),
               child: ConstrainedBox(
@@ -1605,10 +1595,11 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Issue error: $e'), backgroundColor: Colors.red));
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
         });
+      }
       debugPrint('>>> _issueVoucher: finished (loading=false)');
     }
   }
@@ -1619,18 +1610,16 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     return digest.toString();
   }
 
-
   Future<void> meessageApiCall(String amount) async {
     try {
       final user = await SessionManager.getUserData();
       final employerMobile = user?.mobile?.toString() ?? '';
       final payload = {
         "mobile": employerMobile,
-        "template": "UPI Voucher worth INR ${amount} is issued to you! Transact using your Google Pay app - CotoPay",
+        "template":"Issuance INR CP Common",
         "value": null,
-        "message": null,
-        "userName": null,
-        "password1": null,
+        "message": "UPI Voucher worth INR ${amount} is issued to you! Transact using your Google Pay app - CotoPay",
+        "userName":  user?.username?.toString(),
         "password1": null,
         "password2": null,
         "password3": null,
@@ -1642,11 +1631,17 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         "otp": null,
         "orderId": null,
         "countdown": null,
+        "amount": amount,
+        "makerName": "No",
+        "checkerName": "No",
+        "checkerFlag": "No",
+        "voucherCount": '1',
       };
 
       final resp = await widget.apiService.getMeesageAPi(payload);
       debugPrint('[resendOtp] => $resp');
-      if (resp != null && resp['status'] == true) {} else {
+      if (resp != null && resp['status'] == true) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(resp?['message'] ?? 'Something went wrong'),
             backgroundColor: Colors.red));
@@ -1654,38 +1649,34 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     } catch (e) {}
   }
 
-
-  Future<void> whatApiCall(String amount,String validity,String category) async {
+  Future<void> whatApiCall(
+      String amount, String validity, String category) async {
     try {
       final user = await SessionManager.getUserData();
       final employerMobile = user?.mobile?.toString() ?? '';
-      final userName = user?.username?.toString() ?? '';
 
       final payload = {
         "campaignName": "20250510_voucher_issuance",
         "mobile": employerMobile,
-         "userName":  "Cotodel Communications",
-         "firstName":  user?.firstName?.toString(),
-         "organizationName":  "CotoPay",
-         "type":  "CotoPay",
-         "amount":  amount,
-         "category": category,
-         "validity": validity,
-         "source":  null,
-         "balance":  null,
-         "makerName":  "No",
-         "checkerName": "No" ,
-         "checkerFlag":  "No",
-         "voucherCount":  "1",
-
-
-
-
-    };
+        "userName": "Cotodel Communications",
+        "firstName": user?.username?.toString(),
+        "organizationName": "CotoPay",
+        "type": "CotoPay",
+        "amount": amount,
+        "category": category,
+        "validity": validity,
+        "source": null,
+        "balance": null,
+        "makerName": "No",
+        "checkerName": "No",
+        "checkerFlag": "No",
+        "voucherCount": "1",
+      };
 
       final resp = await widget.apiService.getWhatsappApi(payload);
       debugPrint('[resendOtp] => $resp');
-      if (resp != null && resp['status'] == true) {} else {
+      if (resp != null && resp['status'] == true) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(resp?['message'] ?? 'Something went wrong'),
             backgroundColor: Colors.red));
