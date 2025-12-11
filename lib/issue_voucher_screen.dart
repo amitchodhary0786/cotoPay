@@ -418,7 +418,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         children.add({
           'id': id,
           'title': name,
-          'left_vouchericon': icon,
+          'vouchericon': icon,
           'raw': raw,
         });
       }
