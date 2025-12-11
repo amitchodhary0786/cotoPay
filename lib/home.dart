@@ -711,11 +711,11 @@ class HomeContent extends StatelessWidget {
                       controller: scrollController,
                       padding: const EdgeInsets.only(bottom: 90, top: 6),
                       children: [
-                        _offerTile(
+                      /*  _offerTile(
                             icon: Icons.local_gas_station_outlined,
                             title: 'Indian Oil',
                             subtitle: 'Get up to 50% Cashback'),
-                        _offerTile(
+                      */  _offerTile(
                             icon: Icons.local_shipping_outlined,
                             title: 'Onboard 20+ Vehicles',
                             subtitle: 'Get up to 50% Cashback'),

@@ -215,6 +215,16 @@ Future<void> _ensureTokenProduction() async {
     return _callApiEndpoint('http://52.66.10.111:8088/userServices/Api/get/sendOtp', userData);
   }
 
+ Future<Map<String, dynamic>> getMeesageAPi(Map<String, dynamic> userData) async {
+    //return _callApiEndpoint('$_baseServiceUrl/getOtpNew', userData);
+    return _callApiEndpoint('http://52.66.10.111:8088/userServices/Api/get/sendTransOtp', userData);
+  }
+
+ Future<Map<String, dynamic>> getWhatsappApi(Map<String, dynamic> userData) async {
+    //return _callApiEndpoint('$_baseServiceUrl/getOtpNew', userData);
+    return _callApiEndpoint('http://52.66.10.111:8088/userServices/Api/get/sendWhatsApp', userData);
+  }
+
 
   Future<Map<String, dynamic>> verifyOtp(Map<String, dynamic> otpData) async {
     //return _callApiEndpoint('$_baseServiceUrl/verifyOtpNew', otpData);
@@ -802,6 +812,7 @@ class ApiService {
   Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async {
     return _callApiEndpoint('http://52.66.10.111:8085/cashFree/Api/get/cashFreeOrder', params);
   }
+
 
 
 

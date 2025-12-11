@@ -195,7 +195,7 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildDetailRow(label1: 'Sponsored by', value1: 'CotoPay', label2: 'Issuer Bank', value2: 'Indian Bank'),
+              _buildDetailRow(label1: 'Sponsored by', value1: 'CotoPay', label2: 'Issuer Bank', value2: '-'),
               const SizedBox(height: 12),
               _buildDetailRow(label1: 'Issue Date', value1: _formatDisplayDate(data['issueDate']), label2: 'Expiry Date', value2: _formatDisplayDate(data['expDate'])),
               const SizedBox(height: 12),

@@ -112,6 +112,7 @@ flutter:
     - assets/multiple_black.svg
     - assets/checked.svg
     - assets/righ.svg
+    - assets/genspend.png
 
 
 flutter_launcher_icons:
