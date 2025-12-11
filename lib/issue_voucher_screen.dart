@@ -1151,8 +1151,10 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                   title: Text(
                                                       childTitle.toString(),
                                                       style: const TextStyle(
+                                                        color: Color(
+                                                            0xFF2F945A),
                                                           fontWeight:
-                                                              FontWeight.w500,
+                                                              FontWeight.w400,
                                                           fontSize:
                                                               _formFontSize)),
                                                   onTap: () {
