@@ -4,7 +4,7 @@
 // Pre Production
 
 
-
+/*
 
 import 'dart:convert';
 import 'dart:io';
@@ -538,7 +538,7 @@ Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async 
 
 
 
-
+*/
 
 
 
@@ -549,7 +549,7 @@ Future<Map<String, dynamic>> getTrialPayment(Map<String, dynamic> params) async 
 //------------- Production Api---------------------
 
 
-/*
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -859,6 +859,16 @@ class ApiService {
     return _callApiEndpoint('https://ghgs4s7q6i.execute-api.ap-south-1.amazonaws.com/first/userServices-Api-get-verifyOtp', otpData);
   }
 
+  Future<Map<String, dynamic>> getMeesageAPi(Map<String, dynamic> userData) async {
+    //return _callApiEndpoint('$_baseServiceUrl/getOtpNew', userData);
+    return _callApiEndpoint('http://52.66.10.111:8088/userServices/Api/get/sendTransOtp', userData);
+  }
+
+  Future<Map<String, dynamic>> getWhatsappApi(Map<String, dynamic> userData) async {
+    //return _callApiEndpoint('$_baseServiceUrl/getOtpNew', userData);
+    return _callApiEndpoint('http://52.66.10.111:8088/userServices/Api/get/sendWhatsApp', userData);
+  }
+
   Future<Map<String, dynamic>> _callApiEndpoint(String url, Map<String, dynamic> data, {String method = 'POST'}) async {
     await _ensureToken();
     if (_accessToken == null) throw Exception('Authorization token is missing.');
@@ -952,4 +962,4 @@ class ApiService {
 
 }
 
-*/
+

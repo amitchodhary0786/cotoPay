@@ -1,23 +1,23 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
-import 'package:flutter_svg/flutter_svg.dart';
 
-import 'upi_voucher_scren.dart';
+import 'package:cotopay/util/refreshservice.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 
-import 'session_manager.dart';
-import 'api_service.dart';
-import 'voucher_detail_screen.dart';
 import 'account_settings_screen.dart';
+import 'api_service.dart';
 import 'history_screen.dart';
+import 'issue_how_voucher_works.dart';
 import 'notifications_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'rewards_screen.dart';
-import 'issue_how_voucher_works.dart';
-import 'package:cotopay/util/refreshservice.dart';
+import 'session_manager.dart';
+import 'upi_voucher_scren.dart';
+import 'voucher_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -89,15 +89,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       setState(() {
         _voucherListFuture =
             _apiService.getVoucherList(params).then((response) {
-          if (response != null &&
-              response['status'] == true &&
-              response['data'] is List) {
-            debugPrint("📤 Home Response  $response");
-            return response['data'] as List<dynamic>;
-          } else {
-            throw Exception(response?['message'] ?? 'Failed to load vouchers');
-          }
-        });
+              if (response != null &&
+                  response['status'] == true &&
+                  response['data'] is List) {
+                debugPrint("📤 Home Response  $response");
+                return response['data'] as List<dynamic>;
+              } else {
+                throw Exception(
+                    response?['message'] ?? 'Failed to load vouchers');
+              }
+            });
       });
     } else {
       setState(() {
@@ -120,7 +121,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         body: IndexedStack(
           index: _selectedIndex,
           children: [
-            HomeContent(name: _name, voucherListFuture: _voucherListFuture),
+            HomeContent(name: _name, voucherListFuture: _voucherListFuture,onIndexChange: (index){
+              setState(() {
+                _selectedIndex = index;
+              });
+            },),
             const SafeArea(child: UpiVouchersScreen()),
             //   const SafeArea(child: DecryptDemoScreen()),
 
@@ -269,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
             final availableForSlots = usableWidth - reservedCenterWidth;
             final double slotWidth =
-                (availableForSlots / 4.0).clamp(56.0, 160.0);
+            (availableForSlots / 4.0).clamp(56.0, 160.0);
 
             /// override iconSize ALWAYS with Figma value: 24px
             final double iconSize = 24;
@@ -297,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       index: 1,
                       iconSize: iconSize,
                       fontSize: fontSize),
-                  SizedBox(width: reservedCenterWidth),
+                  const SizedBox(width: reservedCenterWidth),
                   _navTileFixed(
                       width: slotWidth,
                       iconPath: 'assets/offer_b.svg',
@@ -399,7 +404,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }) {
     final bool isSelected = _selectedIndex == index;
 
-    final Color activeColor = const Color(0xFF2F945A); // white on green bg
+    const Color activeColor = Color(0xFF2F945A); // white on green bg
     final Color inactiveColor = const Color(0xFF86889B).withOpacity(0.7);
     final color = isSelected ? activeColor : inactiveColor;
 
@@ -457,11 +462,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 class HomeContent extends StatelessWidget {
   final String name;
   final Future<List<dynamic>>? voucherListFuture;
+  final void Function(int) onIndexChange;
 
-  const HomeContent({super.key, required this.name, this.voucherListFuture});
+  const HomeContent({super.key, required this.name, this.voucherListFuture, required this.onIndexChange,});
 
   DateTime? _parseDate(String? dateStr) {
-    if (dateStr == null || dateStr.trim().isEmpty) return null;
+    if (dateStr == null || dateStr
+        .trim()
+        .isEmpty) {
+      return null;
+    }
     final formats = [
       "yyyy-MM-dd HH:mm:ss",
       "yyyy-MM-dd",
@@ -480,14 +490,19 @@ class HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double statusBarHeight = MediaQuery.of(context).padding.top;
+    final double statusBarHeight = MediaQuery
+        .of(context)
+        .padding
+        .top;
     // final screenWidth = MediaQuery.of(context).size.width;
     // final screenHeight = MediaQuery.of(context).size.height;
 
-    final double visibleHeight = 410.0; // fixed visible area (px)
-    final double visibleTop =
-        494.0; // (optional) if you want to position using absolute top
-    final Size screenSize = MediaQuery.of(context).size;
+    const double visibleHeight = 410.0; // fixed visible area (px)
+    const double visibleTop =
+    494.0; // (optional) if you want to position using absolute top
+    final Size screenSize = MediaQuery
+        .of(context)
+        .size;
     final double screenHeight = screenSize.height;
     final double screenWidth = screenSize.width;
 
@@ -495,7 +510,7 @@ class HomeContent extends StatelessWidget {
     final double cardWidth = (screenWidth < 360)
         ? screenWidth * 0.82
         : (screenWidth < 600 ? math.min(300, screenWidth * 0.66) : 340);
-    final double carouselHeight = math.max(150, cardWidth * 0.85);
+    final double carouselHeight = math.max(150, cardWidth * 0.65);
 
     // Estimate top area height so the draggable sheet starts below it.
     final double topAreaEstimatedHeight =
@@ -504,7 +519,7 @@ class HomeContent extends StatelessWidget {
     final double initialSheetFraction =
         (screenHeight - topAreaEstimatedHeight) / screenHeight;
     final double initialChildSize =
-        (visibleHeight / screenHeight).clamp(0.05, 0.9);
+    (visibleHeight / screenHeight).clamp(0.05, 0.9);
 
     return Stack(
       children: [
@@ -534,8 +549,8 @@ class HomeContent extends StatelessWidget {
                       activeVoucherCount = createdVouchers.length;
                       totalAmount = createdVouchers.fold(
                           0.0,
-                          (sum, item) =>
-                              sum +
+                              (sum, item) =>
+                          sum +
                               ((item['amount'] as num?)?.toDouble() ?? 0.0));
                     }
                     return _voucherBalanceCard(context,
@@ -543,7 +558,7 @@ class HomeContent extends StatelessWidget {
                   },
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
               SizedBox(
                 height: carouselHeight,
                 child: FutureBuilder<List<dynamic>>(
@@ -552,7 +567,7 @@ class HomeContent extends StatelessWidget {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
                           child:
-                              CircularProgressIndicator(color: Colors.white));
+                          CircularProgressIndicator(color: Colors.white));
                     }
                     /*if (snapshot.hasError) {
                       return Center(
@@ -561,8 +576,8 @@ class HomeContent extends StatelessWidget {
 
                     final createdVouchers = snapshot.hasData
                         ? snapshot.data!
-                            .where((voucher) => voucher['type'] == 'Active')
-                            .toList()
+                        .where((voucher) => voucher['type'] == 'Active')
+                        .toList()
                         : [];
 
                     if (createdVouchers.isEmpty) {
@@ -570,7 +585,7 @@ class HomeContent extends StatelessWidget {
                           child: Padding(
                               padding: EdgeInsets.symmetric(
                                   horizontal:
-                                      math.max(24.0, screenWidth * 0.06)),
+                                  math.max(24.0, screenWidth * 0.06)),
                               child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -579,7 +594,7 @@ class HomeContent extends StatelessWidget {
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                             color:
-                                                Colors.white.withOpacity(0.8),
+                                            Colors.white.withOpacity(0.8),
                                             fontSize: math.max(
                                                 13, screenWidth * 0.038))),
                                     const SizedBox(height: 12),
@@ -591,7 +606,7 @@ class HomeContent extends StatelessWidget {
                                                 horizontal: 20, vertical: 10),
                                             shape: RoundedRectangleBorder(
                                                 borderRadius:
-                                                    BorderRadius.circular(12))),
+                                                BorderRadius.circular(12))),
                                         icon: const Icon(Icons.star, size: 18),
                                         label: const Text(
                                             'Experience UPI Magic',
@@ -602,7 +617,7 @@ class HomeContent extends StatelessWidget {
                                               context,
                                               MaterialPageRoute(
                                                   builder: (context) =>
-                                                      const HowUpiVouchersWorks()));
+                                                  const HowUpiVouchersWorks()));
                                           RefreshService.refresh();
                                         }),
                                   ])));
@@ -617,9 +632,9 @@ class HomeContent extends StatelessWidget {
                         itemBuilder: (context, index) {
                           final voucherData = createdVouchers[index];
                           final double rightPadding =
-                              (index == createdVouchers.length - 1)
-                                  ? math.max(12, screenWidth * 0.04)
-                                  : 16.0;
+                          (index == createdVouchers.length - 1)
+                              ? math.max(12, screenWidth * 0.04)
+                              : 16.0;
                           return Padding(
                               padding: EdgeInsets.only(right: rightPadding),
                               child: _voucherCard(context,
@@ -629,10 +644,10 @@ class HomeContent extends StatelessWidget {
                   },
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
               Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: _actionButtons(screenWidth: screenWidth)),
+                  child: _actionButtons(screenWidth: screenWidth,context)),
               const SizedBox(height: 14),
             ],
           ),
@@ -642,18 +657,18 @@ class HomeContent extends StatelessWidget {
           // user cannot collapse below visibleHeight
           minChildSize: initialChildSize,
           // allow user to expand up to 70% of screen
-          maxChildSize: 0.70,
+          maxChildSize: 0.75,
           builder: (context, scrollController) {
             return Container(
               // decoration + bottom border
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20.0)),
-                boxShadow: const [
+                BorderRadius.vertical(top: Radius.circular(20.0)),
+                boxShadow: [
                   BoxShadow(color: Colors.black26, blurRadius: 8)
                 ],
-                border: const Border(
+                border: Border(
                     bottom: BorderSide(
                         width: 1.0,
                         color: Color(0xFFE0E0E0))), // 1px bottom border
@@ -683,7 +698,7 @@ class HomeContent extends StatelessWidget {
                         child: Text(
                           'OFFERS ON VOUCHERS'.toUpperCase(),
                           textAlign: TextAlign.right,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
                             // Medium 500
@@ -692,15 +707,15 @@ class HomeContent extends StatelessWidget {
                             // 140% line-height
                             letterSpacing: 0.48,
                             // 4% of 12px
-                            color: const Color(0xFF1F212C), // black87
+                            color: Color(0xFF1F212C), // black87
                           ),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Divider(
-                    color: const Color(0xFFF1F1F1),
+                  const Divider(
+                    color: Color(0xFFF1F1F1),
                     thickness: 1,
                     height: 1,
                   ),
@@ -711,18 +726,18 @@ class HomeContent extends StatelessWidget {
                       controller: scrollController,
                       padding: const EdgeInsets.only(bottom: 90, top: 6),
                       children: [
-                      /*  _offerTile(
-                            icon: Icons.local_gas_station_outlined,
-                            title: 'Indian Oil',
-                            subtitle: 'Get up to 50% Cashback'),
-                      */  _offerTile(
+                        // _offerTile(
+                        //     icon: Icons.local_gas_station_outlined,
+                        //     title: 'Indian Oil',
+                        //     subtitle: 'Get up to 50% Cashback'),
+                        _offerTile(
                             icon: Icons.local_shipping_outlined,
                             title: 'Onboard 20+ Vehicles',
-                            subtitle: 'Get up to 50% Cashback'),
+                            subtitle: 'Get up to ₹100 Cashback'),
                         _offerTile(
                             icon: Icons.list_alt,
                             title: 'Issue 5 Fuel Vouchers',
-                            subtitle: 'Get up to 50% Cashback'),
+                            subtitle: 'Get up to ₹100 Cashback'),
                         const SizedBox(height: 8),
                         const SizedBox(height: 24),
                       ],
@@ -814,10 +829,12 @@ class HomeContent extends StatelessWidget {
     String bankIconBase64 = voucherData['bankIcon'] ?? '';
     String redemptionType = voucherData['redemtionType'] ?? 'N/A';
 
-
     debugPrint('redemptionType => $redemptionType');
     print('redemptionType = $redemptionType');
-    print('asset loaded = ' + (redemptionType.toLowerCase() == 'multiple' ? 'multiple.svg' : 'single.svg'));
+    print('asset loaded = ' +
+        (redemptionType.toLowerCase() == 'multiple'
+            ? 'multiple.svg'
+            : 'single.svg'));
 
     DateTime? expiryDate = _parseDate(voucherData['expDate']);
     String expiryText = expiryDate != null
@@ -826,15 +843,15 @@ class HomeContent extends StatelessWidget {
 
     double amount = (voucherData['amount'] as num?)?.toDouble() ?? 0.0;
     String displayAmount =
-        NumberFormat.currency(locale: 'en_IN', symbol: '₹ ', decimalDigits: 2)
-            .format(amount);
+    NumberFormat.currency(locale: 'en_IN', symbol: '₹ ', decimalDigits: 2)
+        .format(amount);
 
     Widget bankIconWidget() {
       if (bankIconBase64.isNotEmpty) {
         try {
           final imageBytes = base64Decode(bankIconBase64);
           return Image.memory(imageBytes,
-              width: 24, height: 24, fit: BoxFit.contain);
+              width: 22, height: 22, fit: BoxFit.contain);
         } catch (e) {
           return const Icon(Icons.business, color: Colors.white, size: 24);
         }
@@ -850,17 +867,15 @@ class HomeContent extends StatelessWidget {
         await Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => VoucherDetailScreen(voucherData: voucherData)));
+                builder: (context) =>
+                    VoucherDetailScreen(voucherData: voucherData)));
         RefreshService.refresh();
       },
-
       child: SizedBox(
         width: 225,
-        height: 188,
         child: Stack(
           clipBehavior: Clip.none, // allows SVG to overflow card
           children: [
-
             // ⭐ LEFT CURVED LINE SVG (added here)
             Positioned(
               left: -7.5,
@@ -868,11 +883,11 @@ class HomeContent extends StatelessWidget {
               bottom: 0,
               child: ClipRRect(
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  bottomLeft: Radius.circular(20),
+                  topLeft: Radius.circular(18),
+                  bottomLeft: Radius.circular(16),
                 ),
                 child: SizedBox(
-                  height: 188,
+                  height: 148,
                   child: SvgPicture.asset(
                     'assets/left_line.svg',
                     fit: BoxFit.fitHeight,
@@ -886,153 +901,190 @@ class HomeContent extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: const Color(0xff26282C),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                padding: const EdgeInsets.all(14.0),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: Row(
                   children: [
-                    Row(children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xffE3E3E3).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: bankIconWidget(),
-                      ),
-                      const SizedBox(width: 12),
-
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16.0,
-                                height: 1.4,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-
-                            const Text(
-                              'CotoPay',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w400,
-                                fontSize: 12.0,
-                                height: 1.4,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ]),
-
-                    const SizedBox(height: 25),
-
-                    Text(
-                      'Amount',
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                        fontSize: 12.0,
-                        height: 1.4,
-                        color: Color(0x80FFFFFF),
-                      ),
+                    const SizedBox(
+                      width: 12,
                     ),
-
-                    Text(
-                      displayAmount,
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18.0,
-                        height: 1.4,
-                        color: Colors.white,
-                      ),
+                    VerticalDivider(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
+                      thickness: 1,
                     ),
-
-                    const SizedBox(height: 35),
-                    Divider(color: Colors.white.withOpacity(0.2), height: 1),
-
-                    const SizedBox(height: 10),
-
-                    Row(
-                      children: [
-                        // ICON
-                        (redemptionType.toLowerCase() == 'multiple')
-                            ? SvgPicture.asset(
-                          'assets/multiple.svg',
-                          width: 20,
-                          height: 20,
-                          colorFilter: ColorFilter.mode(
-                            Colors.white.withOpacity(0.9),
-                            BlendMode.srcIn,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const SizedBox(
+                            height: 5,
                           ),
-                        )
-                            : SvgPicture.asset(
-                          'assets/single.svg',
-                          width: 20,
-                          height: 20,
-                          colorFilter: ColorFilter.mode(
-                            Colors.white.withOpacity(0.9),
-                            BlendMode.srcIn,
+                          Padding(
+                            padding: const EdgeInsetsGeometry.all(10.0),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Row(children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xffE3E3E3)
+                                            .withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: bankIconWidget(),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            title,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 16.0,
+                                              height: 1.6,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const Text(
+                                            'CotoPay',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w400,
+                                              fontSize: 12.0,
+                                              height: 1.4,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ]),
+                                  const SizedBox(height: 5),
+                                  const Text(
+                                    'Amount',
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w400,
+                                      fontSize: 12.0,
+                                      height: 1.4,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    displayAmount,
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20.0,
+                                      height: 1.4,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ]),
                           ),
-                        ),
+                          const SizedBox(
+                            height: 4,
+                          ),
+                          Divider(
+                              color: Colors.white.withOpacity(0.2), height: 1),
+                          const SizedBox(
+                            height: 4,
+                          ),
+                          Padding(
+                              padding: const EdgeInsetsGeometry.all(10.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // TEXT BLOCK
+                                  Column(
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          (redemptionType.toLowerCase() ==
+                                              'multiple')
+                                              ? SvgPicture.asset(
+                                            'assets/multiple.svg',
+                                            width: 20,
+                                            height: 20,
+                                            colorFilter: ColorFilter.mode(
+                                              Colors.white
+                                                  .withOpacity(0.9),
+                                              BlendMode.srcIn,
+                                            ),
+                                          )
+                                              : SvgPicture.asset(
+                                            'assets/single.svg',
+                                            width: 20,
+                                            height: 20,
+                                            colorFilter: ColorFilter.mode(
+                                              Colors.white
+                                                  .withOpacity(0.9),
+                                              BlendMode.srcIn,
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                left: 5.0),
+                                            child: Text(
+                                              redemptionType,
+                                              style: const TextStyle(
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w400,
+                                                fontSize: 14.0,
+                                                height: 1.4,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                      Padding(
+                                        padding:
+                                        const EdgeInsets.only(left: 2.0),
+                                        child: Text(
+                                          'Expires on $expiryText',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 12.0,
+                                            height: 1.4,
+                                            color:
+                                            Colors.white.withOpacity(0.7),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
 
-                        const SizedBox(width: 10),
+                                  const Spacer(),
 
-                        // TEXT BLOCK
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              redemptionType,
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w400,
-                                fontSize: 14.0,
-                                height: 1.4,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              'Expires on $expiryText',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w400,
-                                fontSize: 12.0,
-                                height: 1.4,
-                                color: Colors.white.withOpacity(0.7),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const Spacer(),
-
-                        // RIGHT ARROW
-                        SvgPicture.asset(
-                          'assets/arr.svg',
-                          width: 18,
-                          height: 9,
-                          fit: BoxFit.contain,
-                        ),
-                      ],
-                    ),
+                                  // RIGHT ARROW
+                                  SvgPicture.asset(
+                                    'assets/arr.svg',
+                                    width: 18,
+                                    height: 9,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ],
+                              )),
+                        ],
+                      ),
+                    )
                   ],
                 ),
               ),
@@ -1041,12 +1093,10 @@ class HomeContent extends StatelessWidget {
         ),
       ),
     );
-
-
   }
 
   // Put this where your other widget methods are (keep `import 'dart:math' as math;` at top)
-  Widget _actionButtons({required double screenWidth}) {
+  Widget _actionButtons(BuildContext context,{required double screenWidth}) {
     const double designButtonWidth = 125.0;
     const double designButtonHeight = 52.0;
     const double horizontalPadding = 16.0;
@@ -1082,14 +1132,17 @@ class HomeContent extends StatelessWidget {
             width: buttonWidth,
             height: buttonHeight,
             child: _actionButton(
-              imagePath: 'assets/issue_icon.svg',
-              label: 'Issue',
-              iconSize: iconSize,
-              fontSize: fontSize,
-              gap: gap,
-              radius: radius,
-              padV: padV,
-              padH: padH,
+                imagePath: 'assets/issue_icon.svg',
+                label: 'Issue',
+                iconSize: iconSize,
+                fontSize: fontSize,
+                gap: gap,
+                radius: radius,
+                padV: padV,
+                padH: padH,
+                onTap: () {
+                  onIndexChange(1);
+                }
             ),
           ),
           SizedBox(
@@ -1154,23 +1207,23 @@ class HomeContent extends StatelessWidget {
               height: iconSize,
               child: imagePath.toLowerCase().endsWith('.svg')
                   ? SvgPicture.asset(
-                      imagePath,
-                      width: iconSize,
-                      height: iconSize,
-                      fit: BoxFit.contain,
-                      // tint the SVG (like color in Image.asset)
-                      colorFilter: const ColorFilter.mode(
-                        Colors.white,
-                        BlendMode.srcIn,
-                      ),
-                    )
+                imagePath,
+                width: iconSize,
+                height: iconSize,
+                fit: BoxFit.contain,
+                // tint the SVG (like color in Image.asset)
+                colorFilter: const ColorFilter.mode(
+                  Colors.white,
+                  BlendMode.srcIn,
+                ),
+              )
                   : Image.asset(
-                      imagePath,
-                      width: iconSize,
-                      height: iconSize,
-                      fit: BoxFit.contain,
-                      color: Colors.white,
-                    ),
+                imagePath,
+                width: iconSize,
+                height: iconSize,
+                fit: BoxFit.contain,
+                color: Colors.white,
+              ),
             ),
 
             SizedBox(width: gap),
@@ -1331,7 +1384,7 @@ class _VoucherBalanceInnerState extends State<_VoucherBalanceInner> {
                 const SizedBox(width: 8),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: const Color(0xff48484A),
                     borderRadius: BorderRadius.circular(10),
@@ -1349,9 +1402,9 @@ class _VoucherBalanceInnerState extends State<_VoucherBalanceInner> {
                   onTap: () => setState(() => _expanded = !_expanded),
                   child: _expanded
                       ? SvgPicture.asset('assets/revoke.svg',
-                          width: 20, height: 20)
+                      width: 20, height: 20)
                       : SvgPicture.asset('assets/info.svg',
-                          width: 20, height: 20),
+                      width: 20, height: 20),
                 ),
                 const SizedBox(width: 8),
               ],

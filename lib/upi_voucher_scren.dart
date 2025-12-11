@@ -357,9 +357,9 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
 
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: horizontalPadding),
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         child: Column(
-          //   crossAxisAlignment: CrossAxisAlignment.start,
+       //   crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // --- GREEN CARD (bank selector + active vouchers + last updated)
             Container(
@@ -574,234 +574,230 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
             // --- WHITE rounded section (Office UPI Vouchers)
 
 
-            FutureBuilder<int?>(
+        FutureBuilder<int?>(
 
 
-              future: SessionManager.getRoleId(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const SizedBox(); // can show loader if needed
-                }
+          future: SessionManager.getRoleId(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(); // can show loader if needed
+            }
 
-                final roleId = snapshot.data;
+            final roleId = snapshot.data;
 
-                debugPrint('Role ID: $roleId');
+               debugPrint('Role ID: $roleId');
 
 
-                if (roleId == 8 || roleId == 9 || roleId == 99) {
-                  return Column(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(sectionRadius),
-                          border: Border.all(color: Colors.grey.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            )
-                          ],
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.all(horizontalPadding),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // header
-                              Padding(
-                                padding: EdgeInsets.only(
-                                  top: horizontalPadding * 0.0,
-                                  bottom: horizontalPadding * 0.4,
-                                ),
-                                child: Text(
-                                  "Office UPI Vouchers",
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w600, // Semi Bold
-                                    fontSize: 16,
-                                    height: 1.4, // 140%
-                                    letterSpacing: 0,
-                                    color: Color(0xFF1F212C), // #1F212C
-                                  ),
-                                ),
-
+          if (roleId == 8 || roleId == 9 || roleId == 99) {
+              return Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(sectionRadius),
+                      border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        )
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // header
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: horizontalPadding * 0.0,
+                              bottom: horizontalPadding * 0.4,
+                            ),
+                            child: Text(
+                              "Office UPI Vouchers",
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w600, // Semi Bold
+                                fontSize: 16,
+                                height: 1.4, // 140%
+                                letterSpacing: 0,
+                                color: Color(0xFF1F212C), // #1F212C
                               ),
+                            ),
 
-                              // Issue Voucher
-                              InkWell(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (c) => const IssueVoucherScreen()),
+                          ),
+
+                          // Issue Voucher
+                          InkWell(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (c) => const IssueVoucherScreen()),
+                            ),
+                            child: Container(
+                                padding: const EdgeInsets.all(_horizontalPadding),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF26282C),                // background: #26282C
+                                  borderRadius: BorderRadius.circular(_cardRadius),
+                                  border: Border.all(
+                                    color: const Color(0xFFEDEDF0),              // border: 1px solid #EDEDF0
+                                    width: 1,
+                                  ),
+                                  // subtle elevation if needed (optional)
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                                child: SizedBox(
-                                  width: _cardWidth,                  // use fixed width (330) per spec
-                                  height: _cardHeight,                // height 44 per spec
-                                  child: Container(
-                                      padding: const EdgeInsets.all(_horizontalPadding),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF26282C),                // background: #26282C
-                                        borderRadius: BorderRadius.circular(_cardRadius),
-                                        border: Border.all(
-                                          color: const Color(0xFFEDEDF0),              // border: 1px solid #EDEDF0
-                                          width: 1,
-                                        ),
-                                        // subtle elevation if needed (optional)
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.03),
-                                            blurRadius: 6,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+
+                                    // LEFT SIDE (Icon + Title)
+                                    Expanded(
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
-
-                                          // LEFT SIDE (Icon + Title)
-                                          Expanded(
-                                            child: Row(
-                                              children: [
-                                                // Icon
-                                                Container(
-                                                  padding: EdgeInsets.all(_horizontalPadding * 0.45),
-                                                  decoration: BoxDecoration(
-                                                    borderRadius: BorderRadius.circular(8),
-                                                    color: Colors.white.withOpacity(0.06),
-                                                  ),
-                                                  child: SvgPicture.asset(
-                                                    'assets/isue_vou.svg',
-                                                    width: _iconContainerSize,
-                                                    height: _iconContainerSize,
-                                                    colorFilter: const ColorFilter.mode(
-                                                      Colors.white,
-                                                      BlendMode.srcIn,
-                                                    ),
-                                                  ),
-                                                ),
-
-                                                SizedBox(width: _horizontalPadding * 0.8),
-
-                                                // Title — USE EXPANDED HERE
-                                                Expanded(
-                                                  child: Text(
-                                                    "Issue Voucher",
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontFamily: 'Inter',
-                                                      fontWeight: FontWeight.w600,
-                                                      fontSize: 14,
-                                                      height: 1.4,
-                                                      letterSpacing: 0,
-                                                      color: Color(0xFFFFFFFF),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
+                                          // Icon
+                                          Container(
+                                            padding: EdgeInsets.all(_horizontalPadding * 0.45),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(8),
+                                              color: Colors.white.withOpacity(0.06),
+                                            ),
+                                            child: SvgPicture.asset(
+                                              'assets/isue_vou.svg',
+                                              width: _iconContainerSize,
+                                              height: _iconContainerSize,
+                                              colorFilter: const ColorFilter.mode(
+                                                Colors.white,
+                                                BlendMode.srcIn,
+                                              ),
                                             ),
                                           ),
 
-                                          SizedBox(width: 8),
+                                          SizedBox(width: _horizontalPadding * 0.8),
 
-                                          // RIGHT SIDE BADGE
-                                          Container(
-                                            width: _badgeWidth,
-                                            height: _badgeHeight,
-                                            decoration: BoxDecoration(
-                                              color: Color(0xFFFFC312),
-                                              borderRadius: BorderRadius.circular(20),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                "Admin",
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  fontFamily: 'Open Sans',
-                                                  fontWeight: FontWeight.w400,
-                                                  fontSize: 11,
-                                                  height: 1.4,
-                                                  letterSpacing: 0,
-                                                  color: Color(0xFF1F212C),
-                                                ),
+                                          // Title — USE EXPANDED HERE
+                                          Expanded(
+                                            child: Text(
+                                              "Issue Voucher",
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 14,
+                                                height: 1.4,
+                                                letterSpacing: 0,
+                                                color: Color(0xFFFFFFFF),
                                               ),
                                             ),
                                           ),
                                         ],
-                                      )
-
-                                  ),
-                                ),
-                              ),
-
-                              SizedBox(height: horizontalPadding * 0.9),
-
-                              // white tiles container
-
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(internalRadius),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _listTile(
-                                      icon: 'assets/apr.svg',
-                                      title: "Approve Vouchers",
-                                      iconSize: iconSize,
-                                      textSize: labelFont,
-                                      onTap: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (c) => const ApproveVouchersScreen()),
                                       ),
                                     ),
 
-                                    const Divider(height: 1, color: Color(0xffF1F1F1)),
+                                    SizedBox(width: 8),
 
-                                    _listTile(
-                                      icon: 'assets/countvc.svg',
-                                      title: _activeCount,
-                                      iconSize: iconSize,
-                                      textSize: labelFont,
-                                      onTap: () {},
-                                    ),
-
-                                    const Divider(height: 1, color: Color(0xffF1F1F1)),
-
-                                    _listTile(
-                                      icon: 'assets/countvc.svg',
-                                      title: "Voucher History",
-                                      iconSize: iconSize,
-                                      textSize: labelFont,
-                                      onTap: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (c) => const VouchersScreen()),
+                                    // RIGHT SIDE BADGE
+                                    Container(
+                                      width: _badgeWidth,
+                                      height: _badgeHeight,
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFFFFC312),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          "Admin",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontFamily: 'Open Sans',
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 11,
+                                            height: 1.4,
+                                            letterSpacing: 0,
+                                            color: Color(0xFF1F212C),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
-                                ),
+                                )
+
                               ),
-
-                              SizedBox(height: horizontalPadding * 0.9),
-                            ],
                           ),
-                        ),
-                      ),
-                      //     SizedBox(height: horizontalPadding * 1.0),
-                    ],
-                  );
-                } else {
-                  return const SizedBox.shrink(); // hide if not roleId 8 or 9
-                }
 
-              },
-            ),
+                          SizedBox(height: horizontalPadding * 0.9),
+
+                          // white tiles container
+
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(internalRadius),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _listTile(
+                                  icon: 'assets/apr.svg',
+                                  title: "Approve Vouchers",
+                                  iconSize: iconSize,
+                                  textSize: labelFont,
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (c) => const ApproveVouchersScreen()),
+                                  ),
+                                ),
+
+                                const Divider(height: 1, color: Color(0xffF1F1F1)),
+
+                                _listTile(
+                                  icon: 'assets/countvc.svg',
+                                  title: _activeCount,
+                                  iconSize: iconSize,
+                                  textSize: labelFont,
+                                  onTap: () {},
+                                ),
+
+                                const Divider(height: 1, color: Color(0xffF1F1F1)),
+
+                                _listTile(
+                                  icon: 'assets/countvc.svg',
+                                  title: "Voucher History",
+                                  iconSize: iconSize,
+                                  textSize: labelFont,
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (c) => const VouchersScreen()),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // SizedBox(height: horizontalPadding * 0.9),
+                        ],
+                      ),
+                    ),
+                  ),
+             //     SizedBox(height: horizontalPadding * 1.0),
+                ],
+              );
+            } else {
+              return const SizedBox.shrink(); // hide if not roleId 8 or 9
+            }
+
+          },
+        ),
 
 
 
@@ -821,9 +817,9 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
     required VoidCallback onTap,
   }) {
     // muted leading icon color from your earlier code
-    // const Color leadingIconTint = Color(0xFF5E5E6B); // muted color
+   // const Color leadingIconTint = Color(0xFF5E5E6B); // muted color
     const Color titleColor = Color(0xFF4A4E69);     // #4A4E69 (Figma)
-    // final Color trailingChevronColor = Colors.grey.shade400;
+   // final Color trailingChevronColor = Colors.grey.shade400;
 
     Widget leadingIconWidget;
     if (icon.toLowerCase().endsWith('.svg')) {
@@ -833,7 +829,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
         height: iconSize,
         fit: BoxFit.contain,
         // If you want to tint the svg: uncomment the colorFilter line
-        //  colorFilter: const ColorFilter.mode(leadingIconTint, BlendMode.srcIn),
+      //  colorFilter: const ColorFilter.mode(leadingIconTint, BlendMode.srcIn),
       );
     } else {
       leadingIconWidget = Image.asset(
@@ -841,7 +837,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
         width: iconSize,
         height: iconSize,
         fit: BoxFit.contain,
-        //     color: leadingIconTint, // this tints raster images; remove if undesired
+   //     color: leadingIconTint, // this tints raster images; remove if undesired
       );
     }
 
@@ -871,9 +867,9 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
             ),
             SvgPicture.asset(
               'assets/arr.svg',
-              //  width: 20,
-              // height: 20,
-              /*  colorFilter: ColorFilter.mode(
+            //  width: 20,
+             // height: 20,
+            /*  colorFilter: ColorFilter.mode(
            //     trailingChevronColor,
                 BlendMode.srcIn,
               ),*/
