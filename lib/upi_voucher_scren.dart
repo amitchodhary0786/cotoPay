@@ -357,7 +357,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
 
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: horizontalPadding),
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         child: Column(
        //   crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -605,7 +605,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                       ],
                     ),
                     child: Padding(
-                      padding: EdgeInsets.all(horizontalPadding),
+                      padding: const EdgeInsets.all(20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -635,10 +635,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                               context,
                               MaterialPageRoute(builder: (c) => const IssueVoucherScreen()),
                             ),
-                            child: SizedBox(
-                              width: _cardWidth,                  // use fixed width (330) per spec
-                              height: _cardHeight,                // height 44 per spec
-                              child: Container(
+                            child: Container(
                                 padding: const EdgeInsets.all(_horizontalPadding),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF26282C),                // background: #26282C
@@ -735,7 +732,6 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                                 )
 
                               ),
-                            ),
                           ),
 
                           SizedBox(height: horizontalPadding * 0.9),
@@ -788,7 +784,7 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                             ),
                           ),
 
-                          SizedBox(height: horizontalPadding * 0.9),
+                          // SizedBox(height: horizontalPadding * 0.9),
                         ],
                       ),
                     ),
