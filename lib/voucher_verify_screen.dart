@@ -114,10 +114,10 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                     onChanged: (v) =>
                         setState(() => _consentChecked = v ?? false)),
                 const SizedBox(width: 8),
-                Expanded(
+                const Expanded(
                   child: Text(
                     'I confirm that the details uploaded above are correct to the best of my knowledge, and are approved by the competent authority in my organization.',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w400,
                       // Regular
@@ -469,7 +469,19 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           color: Colors.white),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Icon(Icons.local_offer_outlined, size: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            decoration: const BoxDecoration(
+              color: Colors.grey,
+              borderRadius: BorderRadius.all(Radius.circular(6.0)),
+            ),
+            child: e['icon'] != null
+                ? Image.memory(
+                    base64Decode(e['icon'] ?? ''),
+              color: Colors.black,
+                  )
+                : const Icon(Icons.local_offer_outlined, size: 20),
+          ),
           const SizedBox(width: 8),
           Text(e['purposeDescription'] ?? e['voucherDesc'] ?? 'Voucher',
               style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -1371,7 +1383,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           "expenseType": "Cost Center",
           "vehicleNo": null,
           "remarks": "",
-          "extra1": "mobile"
+          "extra1": "mobile",
         };
       }).toList();
 
@@ -1443,7 +1455,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       debugPrint('<<< _issueVoucher: api response => $resp');
 
       // if (resp != null && (resp['status'] == true || resp['success'] == true)) {
-      if (resp != null &&
+      if (resp != null && resp['data'] != null &&
           (resp['data'][0]['response'] == "SUCCESS" &&
               resp['status'] == true)) {
         // --- Call WhatsApp API for each detail's amount ---
@@ -1456,10 +1468,13 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           final category =
               (/*d['mccDescription']*/ resp['data'][0]['mccDescription'] ?? '')
                   .toString();
+          final mobile =
+              (/*d['mccDescription']*/ resp['data'][0]['mobile'] ?? '')
+                  .toString();
 
           if (amount.isNotEmpty) {
-            meessageApiCall(amount);
-            whatApiCall(amount, validity, category);
+            meessageApiCall(amount, mobile);
+            whatApiCall(amount, validity, category, mobile);
             // if you want non-blocking concurrent calls, collect futures and await Future.wait(...)
           }
           // }
@@ -1530,7 +1545,6 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                       child: ElevatedButton(
                         onPressed: () async {
                           // final resp = await widget.apiService.createSingleVoucher(requestBody);
-
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -1610,16 +1624,17 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     return digest.toString();
   }
 
-  Future<void> meessageApiCall(String amount) async {
+  Future<void> meessageApiCall(String amount, String mobile) async {
     try {
       final user = await SessionManager.getUserData();
-      final employerMobile = user?.mobile?.toString() ?? '';
+      // final employerMobile = user?.mobile?.toString() ?? '';
       final payload = {
-        "mobile": employerMobile,
-        "template":"Issuance INR CP Common",
+        "mobile": mobile,
+        "template": "Issuance INR CP Common",
         "value": null,
-        "message": "UPI Voucher worth INR ${amount} is issued to you! Transact using your Google Pay app - CotoPay",
-        "userName":  user?.username?.toString(),
+        "message":
+            "UPI Voucher worth INR ${amount} is issued to you! Transact using your Google Pay app - CotoPay",
+        "userName": user?.username?.toString(),
         "password1": null,
         "password2": null,
         "password3": null,
@@ -1650,14 +1665,14 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   }
 
   Future<void> whatApiCall(
-      String amount, String validity, String category) async {
+      String amount, String validity, String category, String mobile) async {
     try {
       final user = await SessionManager.getUserData();
-      final employerMobile = user?.mobile?.toString() ?? '';
+      // final employerMobile = user?.mobile?.toString() ?? '';
 
       final payload = {
         "campaignName": "20250510_voucher_issuance",
-        "mobile": employerMobile,
+        "mobile": mobile,
         "userName": "Cotodel Communications",
         "firstName": user?.username?.toString(),
         "organizationName": "CotoPay",

@@ -40,8 +40,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     // if no bank selected yet, follow default behaviour (show Wallet/dark)
     if (_selectedBankFull == null) return true;
     final val =
-        (_selectedBankFull?['accountSeltWallet']?.toString() ?? 'Wallet')
-            .toLowerCase();
+    (_selectedBankFull?['accountSeltWallet']?.toString() ?? 'Wallet')
+        .toLowerCase();
     return val == 'wallet';
   }
 
@@ -76,7 +76,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
   @override
   void dispose() {
-    for (final e in _entries) e.dispose();
+    for (final e in _entries)
+      e.dispose();
     // cancel timers
     for (final t in _searchTimers.values) {
       t?.cancel();
@@ -110,7 +111,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       debugPrint(
           '[IssueVoucher] _loadBanks: calling getBankList with params: $bankParams');
       final bankResp =
-          await _api_serviceSafeGet(() => _apiService.getBankList(bankParams));
+      await _api_serviceSafeGet(() => _apiService.getBankList(bankParams));
 
       debugPrint('[IssueVoucher] _loadBanks: getBankList response: $bankResp');
 
@@ -122,13 +123,16 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         _banks = List<dynamic>.from(bankResp['data']).map((raw) {
           if (raw is Map) {
             final Map<String, dynamic> original =
-                Map<String, dynamic>.from(raw as Map);
+            Map<String, dynamic>.from(raw as Map);
             // pick value or default
             final String walletVal =
-                (original['accountSeltWallet']?.toString().trim().isNotEmpty ==
-                        true)
-                    ? original['accountSeltWallet'].toString()
-                    : 'Wallet';
+            (original['accountSeltWallet']
+                ?.toString()
+                .trim()
+                .isNotEmpty ==
+                true)
+                ? original['accountSeltWallet'].toString()
+                : 'Wallet';
 
             // create a new LinkedHashMap so insertion order is preserved
             final Map<String, dynamic> normalized = <String, dynamic>{};
@@ -175,7 +179,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                 '[IssueVoucher] _loadBanks: no wallet bank found — leaving selection empty to show default Wallet view');
             setState(() {
               _loadingBalance =
-                  false; // we don't have a selected bank so no balance to load
+              false; // we don't have a selected bank so no balance to load
               // preserve _selectedBankFull == null so UI shows wallet style by default
             });
           }
@@ -245,7 +249,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           '[IssueVoucher] _loadVoucherCategories: calling POST getVoucherCategoryList with params: $params');
 
       final resp = await _api_serviceSafeGet(
-          () => _apiService.getVoucherCategoryList(params));
+              () => _apiService.getVoucherCategoryList(params));
 
       debugPrint('[IssueVoucher] _loadVoucherCategories: raw resp => $resp');
 
@@ -268,7 +272,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         }
 
         debugPrint(
-            '[IssueVoucher] _loadVoucherCategories: parsed ${items.length} categories');
+            '[IssueVoucher] _loadVoucherCategories: parsed ${items
+                .length} categories');
 
         // Normalize keys so UI/other code can rely on consistent field names.
         _voucherCategories = items.map<Map<String, dynamic>>((raw) {
@@ -316,7 +321,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         _loadingCategories = false;
       });
       debugPrint(
-          '[IssueVoucher] _loadVoucherCategories: finished (count=${_voucherCategories.length})');
+          '[IssueVoucher] _loadVoucherCategories: finished (count=${_voucherCategories
+              .length})');
     }
   }
 
@@ -358,10 +364,11 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
       debugPrint('Category Id: ${int.tryParse(topCatId) ?? topCatId}');
       debugPrint(
-          '[IssueVoucher] _loadSubCategoriesForIndex: calling getVoucherSubCategoryList with params: ${jsonEncode(params)}');
+          '[IssueVoucher] _loadSubCategoriesForIndex: calling getVoucherSubCategoryList with params: ${jsonEncode(
+              params)}');
 
       final dynamic resp = await _api_serviceSafeGet(
-          () => _apiService.getVoucherSubCategoryList(params));
+              () => _apiService.getVoucherSubCategoryList(params));
       debugPrint(
           '[IssueVoucher] _loadSubCategoriesForIndex: raw resp => $resp');
 
@@ -394,7 +401,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       }
 
       debugPrint(
-          '[IssueVoucher] _loadSubCategoriesForIndex: found ${items.length} children');
+          '[IssueVoucher] _loadSubCategoriesForIndex: found ${items
+              .length} children');
 
       // ✅ Build subcategories list
       final children = <Map<String, dynamic>>[];
@@ -409,10 +417,10 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         seen.add(id);
 
         final name =
-            (raw['vouchername'] ?? raw['purpose_desc'] ?? 'Subcategory')
-                .toString();
+        (raw['vouchername'] ?? raw['purpose_desc'] ?? 'Subcategory')
+            .toString();
         final icon =
-            (raw['vouchericon'] ?? raw['left_vouchericon'])?.toString();
+        (raw['vouchericon'] ?? raw['left_vouchericon'])?.toString();
 
         children.add({
           'id': id,
@@ -423,7 +431,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       }
 
       debugPrint(
-          '[IssueVoucher] _loadSubCategoriesForIndex: built ${children.length} children for parent=$topCatId');
+          '[IssueVoucher] _loadSubCategoriesForIndex: built ${children
+              .length} children for parent=$topCatId');
 
       setState(() {
         _voucherCategories[topIndex]['children'] = children;
@@ -444,9 +453,12 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     _searchTimers[entry._id]?.cancel();
 
     // if less than 3 chars, don't search; also hide suggestions
-    if (q.trim().length < 3) {
+    if (q
+        .trim()
+        .length < 3) {
       debugPrint(
-          '[IssueVoucher] _scheduleEmployeeSearch: query too short (len=${q.length}) for entry=${entry._id}');
+          '[IssueVoucher] _scheduleEmployeeSearch: query too short (len=${q
+              .length}) for entry=${entry._id}');
       setState(() {
         entry.searchResults = null;
         entry.searching = false;
@@ -481,7 +493,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           '[IssueVoucher] _performEmployeeSearch: calling getVoucherNameSearchMobile with params=$params');
 
       final resp = await _api_serviceSafeGet(
-          () => _apiService.getVoucherNameSearchMobile(params));
+              () => _apiService.getVoucherNameSearchMobile(params));
 
       debugPrint('[IssueVoucher] _performEmployeeSearch: raw resp => $resp');
 
@@ -536,23 +548,27 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     final bank = _banks[idx];
     final bankName = (bank['bankName'] ?? bank['name'] ?? 'Account').toString();
     final account =
-        (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '')
-            .toString();
+    (bank['acNumber'] ?? bank['account'] ?? bank['accountNumber'] ?? '')
+        .toString();
     final masked = _maskAccount(account);
 
     debugPrint(
-        '[IssueVoucher] _selectBankAtIndex: selected bank index=$idx name=$bankName account=$account id=${bank['id'] ?? bank['bankId']}');
+        '[IssueVoucher] _selectBankAtIndex: selected bank index=$idx name=$bankName account=$account id=${bank['id'] ??
+            bank['bankId']}');
 
     setState(() {
 // ensure selected bank map also has accountSeltWallet at first position (default "Wallet")
       final Map<String, dynamic> rawMap =
-          Map<String, dynamic>.from(bank as Map);
+      Map<String, dynamic>.from(bank as Map);
 
 // compute wallet value (use existing if present else default)
       final String walletValue =
-          (rawMap['accountSeltWallet']?.toString().trim().isNotEmpty == true)
-              ? rawMap['accountSeltWallet'].toString()
-              : 'Wallet';
+      (rawMap['accountSeltWallet']
+          ?.toString()
+          .trim()
+          .isNotEmpty == true)
+          ? rawMap['accountSeltWallet'].toString()
+          : 'Wallet';
 
 // rebuild with accountSeltWallet first
       final Map<String, dynamic> normalizedSelected = <String, dynamic>{};
@@ -565,13 +581,16 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       _selectedBankFull = normalizedSelected;
 
       if (_selectedBankFull!['accountSeltWallet'] == null ||
-          _selectedBankFull!['accountSeltWallet'].toString().trim().isEmpty) {
+          _selectedBankFull!['accountSeltWallet']
+              .toString()
+              .trim()
+              .isEmpty) {
         _selectedBankFull!['accountSeltWallet'] = 'Wallet';
       }
       _selectedBankName = bankName;
       _selectedBankMasked = masked;
       _selectedBankId =
-          (bank['id']?.toString() ?? bank['bankId']?.toString() ?? '');
+      (bank['id']?.toString() ?? bank['bankId']?.toString() ?? '');
       _loadingBalance = true; // show loader while fetching balance
       _availableBalance = 0.0; // reset prior balance while loading
       _bankSummary = null;
@@ -600,7 +619,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       debugPrint(
           '[IssueVoucher] _selectBankAtIndex: calling getBankBalance with params: $params');
       final balResp =
-          await _api_serviceSafeGet(() => _apiService.getBankBalance(params));
+      await _api_serviceSafeGet(() => _apiService.getBankBalance(params));
       debugPrint(
           '[IssueVoucher] _selectBankAtIndex: getBankBalance raw response => $balResp');
 
@@ -675,7 +694,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         debugPrint(
             '[IssueVoucher] _selectBankAtIndex: calling getBankSummary with params: $params');
         final summaryResp =
-            await _api_serviceSafeGet(() => _apiService.getBankSummary(params));
+        await _api_serviceSafeGet(() => _apiService.getBankSummary(params));
         debugPrint(
             '[IssueVoucher] _selectBankAtIndex: getBankSummary raw => $summaryResp');
         if (summaryResp != null &&
@@ -718,7 +737,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     }
 
     debugPrint(
-        '[IssueVoucher] selected bank set => name=$_selectedBankName mask=$_selectedBankMasked id=$_selectedBankId loadingBalance=$_loadingBalance availableBalance=$_availableBalance bankSummaryLoaded=${_bankSummary != null}');
+        '[IssueVoucher] selected bank set => name=$_selectedBankName mask=$_selectedBankMasked id=$_selectedBankId loadingBalance=$_loadingBalance availableBalance=$_availableBalance bankSummaryLoaded=${_bankSummary !=
+            null}');
   }
 
   String _maskAccount(String account) {
@@ -825,7 +845,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                 decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(18))),
+                    BorderRadius.vertical(top: Radius.circular(18))),
                 child: Column(
                   children: [
                     Container(
@@ -875,103 +895,119 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                             if (_loadingCategories)
                               Padding(
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 24),
+                                const EdgeInsets.symmetric(vertical: 24),
                                 child:
-                                    Center(child: CircularProgressIndicator()),
-                              )
-                            else if (_voucherCategories.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 24),
-                                child: Center(
-                                    child: Text('No categories available')),
+                                Center(child: CircularProgressIndicator()),
                               )
                             else
-                              ...List.generate(_voucherCategories.length,
-                                  (index) {
-                                final cat = _voucherCategories[index];
-                                final isExpanded = _expandedTopIndex == index;
-                                final children = (cat['children'] as List)
-                                    .cast<Map<String, dynamic>>();
-                                final loadingChildren =
-                                    cat['loadingChildren'] == true;
-                                final String title =
-                                    cat['title']?.toString() ?? 'Category';
-                                final IconData displayIcon =
-                                    _iconForCategory(cat, index);
+                              if (_voucherCategories.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 24),
+                                  child: Center(
+                                      child: Text('No categories available')),
+                                )
+                              else
+                                ...List.generate(_voucherCategories.length,
+                                        (index) {
+                                      final cat = _voucherCategories[index];
+                                      final isExpanded = _expandedTopIndex ==
+                                          index;
+                                      final children = (cat['children'] as List)
+                                          .cast<Map<String, dynamic>>();
+                                      final loadingChildren =
+                                          cat['loadingChildren'] == true;
+                                      final String title =
+                                          cat['title']?.toString() ??
+                                              'Category';
+                                      final IconData displayIcon =
+                                      _iconForCategory(cat, index);
 
-                                return Column(
-                                  children: [
-                                    InkWell(
-                                      onTap: () async {
-                                        // toggle expansion
-                                        setState(() => _expandedTopIndex =
-                                            isExpanded ? null : index);
-                                        sheetSetState(() {});
-                                        // If expanding and children empty, fetch from API
-                                        if (!isExpanded && (children.isEmpty)) {
-                                          // mark loading in both parent and sheet UI
-                                          setState(() =>
-                                              _voucherCategories[index]
-                                                  ['loadingChildren'] = true);
-                                          sheetSetState(() {});
-                                          await _loadSubCategoriesForIndex(
-                                              index);
-                                          sheetSetState(() {});
-                                          // after loading, if still no children -> treat as selectable top
-                                          final updatedChildren =
-                                              (_voucherCategories[index]
-                                                      ['children'] as List)
-                                                  .cast<Map<String, dynamic>>();
-                                          if (updatedChildren.isEmpty) {
-                                            debugPrint(
-                                                '[IssueVoucher] _openVoucherPicker: no children returned for index=$index, selecting top category "$title"');
-                                            setState(() {
-                                              _entries[forIndex]
-                                                  .selectedVoucher = title;
-                                              _entries[forIndex]
-                                                      .selectedPurposeCode =
-                                                  (cat['purposeCode'] ??
-                                                          cat['purpose_code'] ??
-                                                          cat['voucherCode'] ??
-                                                          cat['voucher_code'] ??
-                                                          cat['code'])
-                                                      ?.toString();
-                                              _entries[forIndex].selectedTopId =
-                                                  (cat['id'] ?? cat['topId'])
-                                                      ?.toString();
-                                              _entries[forIndex]
-                                                      .selectedTopVoucherName =
-                                                  title;
-                                              _entries[forIndex]
-                                                  .selectedChildId = null;
-                                              _entries[forIndex].selectedMcc =
-                                                  null;
-                                              _entries[forIndex]
-                                                  .selectedMccDesc = null;
-                                            });
-                                            Navigator.of(ctx).pop();
-                                            WidgetsBinding.instance
-                                                .addPostFrameCallback((_) {
-                                              FocusScope.of(context).unfocus();
-                                            });
-                                            return;
-                                          }
-                                        }
-                                      },
-                                      child: Container(
-                                        margin: const EdgeInsets.symmetric(
-                                            vertical: 8),
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 12, horizontal: 12),
-                                        decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                            border: Border.all(
-                                                color: Colors.grey.shade200)),
-                                        child: Row(
-                                          children: [
-                                            //      Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(44)), child: Icon(displayIcon, color: Colors.green, size: 22)),
-                                            /* Container(
+                                      return Column(
+                                        children: [
+                                          InkWell(
+                                            onTap: () async {
+                                              // toggle expansion
+                                              setState(() =>
+                                              _expandedTopIndex =
+                                              isExpanded ? null : index);
+                                              sheetSetState(() {});
+                                              // If expanding and children empty, fetch from API
+                                              if (!isExpanded &&
+                                                  (children.isEmpty)) {
+                                                // mark loading in both parent and sheet UI
+                                                setState(() =>
+                                                _voucherCategories[index]
+                                                ['loadingChildren'] = true);
+                                                sheetSetState(() {});
+                                                await _loadSubCategoriesForIndex(
+                                                    index);
+                                                sheetSetState(() {});
+                                                // after loading, if still no children -> treat as selectable top
+                                                final updatedChildren =
+                                                (_voucherCategories[index]
+                                                ['children'] as List)
+                                                    .cast<
+                                                    Map<String, dynamic>>();
+                                                if (updatedChildren.isEmpty) {
+                                                  debugPrint(
+                                                      '[IssueVoucher] _openVoucherPicker: no children returned for index=$index, selecting top category "$title"');
+                                                  setState(() {
+                                                    _entries[forIndex]
+                                                        .selectedVoucher =
+                                                        title;
+                                                    _entries[forIndex]
+                                                        .selectedPurposeCode =
+                                                        (cat['purposeCode'] ??
+                                                            cat['purpose_code'] ??
+                                                            cat['voucherCode'] ??
+                                                            cat['voucher_code'] ??
+                                                            cat['code'])
+                                                            ?.toString();
+                                                    _entries[forIndex]
+                                                        .selectedTopId =
+                                                        (cat['id'] ??
+                                                            cat['topId'])
+                                                            ?.toString();
+                                                    _entries[forIndex]
+                                                        .selectedTopVoucherName =
+                                                        title;
+                                                    _entries[forIndex]
+                                                        .selectedChildId = null;
+                                                    _entries[forIndex]
+                                                        .selectedMcc =
+                                                    null;
+                                                    _entries[forIndex]
+                                                        .selectedMccDesc = null;
+                                                  });
+                                                  Navigator.of(ctx).pop();
+                                                  WidgetsBinding.instance
+                                                      .addPostFrameCallback((
+                                                      _) {
+                                                    FocusScope
+                                                        .of(context)
+                                                        .unfocus();
+                                                  });
+                                                  return;
+                                                }
+                                              }
+                                            },
+                                            child: Container(
+                                              margin: const EdgeInsets
+                                                  .symmetric(
+                                                  vertical: 8),
+                                              padding: const EdgeInsets
+                                                  .symmetric(
+                                                  vertical: 12, horizontal: 12),
+                                              decoration: BoxDecoration(
+                                                  borderRadius:
+                                                  BorderRadius.circular(10),
+                                                  border: Border.all(
+                                                      color: Colors.grey
+                                                          .shade200)),
+                                              child: Row(
+                                                children: [
+                                                  //      Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(44)), child: Icon(displayIcon, color: Colors.green, size: 22)),
+                                                  /* Container(
                                               width: 44,
                                               height: 44,
                                               padding: const EdgeInsets.all(10),
@@ -995,61 +1031,68 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                 size: 22,
                                               ),
                                             ),*/
-                                            Image.memory(
-                                              base64Decode(cat['icon']),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            // Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+                                                  Image.memory(
+                                                    base64Decode(cat['icon']),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  // Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
 
-                                            Expanded(
-                                              child: Text(
-                                                title,
-                                                style: const TextStyle(
-                                                  fontFamily: 'Inter',
-                                                  fontWeight: FontWeight.w400,
-                                                  // Regular
-                                                  fontSize: 14,
-                                                  height: 1.4,
-                                                  // 140% line height
-                                                  letterSpacing: 0,
-                                                  color: Color(
-                                                      0xFF2F945A), // #2F945A
-                                                ),
+                                                  Expanded(
+                                                    child: Text(
+                                                      title,
+                                                      style: const TextStyle(
+                                                        fontFamily: 'Inter',
+                                                        fontWeight: FontWeight
+                                                            .w400,
+                                                        // Regular
+                                                        fontSize: 14,
+                                                        height: 1.4,
+                                                        // 140% line height
+                                                        letterSpacing: 0,
+                                                        color: Color(
+                                                            0xFF2F945A), // #2F945A
+                                                      ),
+                                                    ),
+                                                  ),
+
+                                                  Transform.rotate(
+                                                      angle: isExpanded
+                                                          ? pi / 2
+                                                          : 0,
+                                                      child: const Icon(
+                                                          Icons
+                                                              .keyboard_arrow_down,
+                                                          color: Colors
+                                                              .black54)),
+                                                ],
                                               ),
                                             ),
-
-                                            Transform.rotate(
-                                                angle: isExpanded ? pi / 2 : 0,
-                                                child: const Icon(
-                                                    Icons.keyboard_arrow_down,
-                                                    color: Colors.black54)),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    AnimatedCrossFade(
-                                      firstChild: const SizedBox.shrink(),
-                                      secondChild: Column(
-                                        children: [
-                                          if (loadingChildren)
-                                            const Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                  vertical: 12),
-                                              child: Center(
-                                                  child:
-                                                      CircularProgressIndicator()),
-                                            )
-                                          else if ((_voucherCategories[index]
+                                          ),
+                                          AnimatedCrossFade(
+                                            firstChild: const SizedBox.shrink(),
+                                            secondChild: Column(
+                                              children: [
+                                                if (loadingChildren)
+                                                  const Padding(
+                                                    padding: EdgeInsets
+                                                        .symmetric(
+                                                        vertical: 12),
+                                                    child: Center(
+                                                        child:
+                                                        CircularProgressIndicator()),
+                                                  )
+                                                else
+                                                  if ((_voucherCategories[index]
                                                   ['children'] as List)
-                                              .isEmpty)
-                                            // if children empty (and not loading) we show a simple selectable top (this case usually handled after API call above)
-                                            Column(children: [
-                                              ListTile(
-                                                contentPadding:
-                                                    const EdgeInsets.only(
-                                                        left: 68.0,
-                                                        right: 12.0),
-                                                leading: /*Container(
+                                                      .isEmpty)
+                                                  // if children empty (and not loading) we show a simple selectable top (this case usually handled after API call above)
+                                                    Column(children: [
+                                                      ListTile(
+                                                        contentPadding:
+                                                        const EdgeInsets.only(
+                                                            left: 68.0,
+                                                            right: 12.0),
+                                                        leading: /*Container(
                                                     width: 34,
                                                     height: 34,
                                                     decoration: BoxDecoration(
@@ -1061,79 +1104,95 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                     child: Icon(displayIcon,
                                                         color: Colors.black54,
                                                         size: 20))*/
-                                                    Image.memory(
-                                                  base64Decode(cat['icon']),
-                                                ),
-                                                title: Text(title,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        fontSize:
-                                                            _formFontSize)),
-                                                onTap: () {
-                                                  debugPrint(
-                                                      '[IssueVoucher] _openVoucherPicker: selected top (no children)="$title" for index=$forIndex');
-                                                  setState(() {
-                                                    _entries[forIndex]
-                                                            .selectedVoucher =
-                                                        title;
-                                                    _entries[forIndex]
-                                                        .selectedPurposeCode = (cat[
+                                                        Image.memory(
+                                                          base64Decode(
+                                                              cat['icon']),
+                                                        ),
+                                                        title: Text(title,
+                                                            style: const TextStyle(
+                                                                fontWeight:
+                                                                FontWeight.w500,
+                                                                fontSize:
+                                                                _formFontSize)),
+                                                        onTap: () {
+                                                          debugPrint(
+                                                              '[IssueVoucher] _openVoucherPicker: selected top (no children)="$title" for index=$forIndex');
+                                                          setState(() {
+                                                            _entries[forIndex]
+                                                                .selectedVoucher =
+                                                                title;
+                                                            _entries[forIndex]
+                                                                .selectedVoucherIcon =
+                                                            cat['icon'];
+                                                            _entries[forIndex]
+                                                                .selectedPurposeCode =
+                                                                (cat[
                                                                 'purposeCode'] ??
-                                                            cat['purpose_code'] ??
-                                                            cat['voucherCode'] ??
-                                                            cat['voucher_code'] ??
-                                                            cat['code'])
-                                                        ?.toString();
-                                                    _entries[forIndex]
-                                                            .selectedTopId =
-                                                        cat['topId']
-                                                            ?.toString();
-                                                    _entries[forIndex]
-                                                            .selectedTopVoucherName =
-                                                        title;
-                                                    _entries[forIndex]
-                                                        .selectedChildId = null;
-                                                    _entries[forIndex]
-                                                        .selectedMcc = null;
-                                                    _entries[forIndex]
-                                                        .selectedMccDesc = null;
-                                                  });
+                                                                    cat['purpose_code'] ??
+                                                                    cat['voucherCode'] ??
+                                                                    cat['voucher_code'] ??
+                                                                    cat['code'])
+                                                                    ?.toString();
+                                                            _entries[forIndex]
+                                                                .selectedTopId =
+                                                                cat['topId']
+                                                                    ?.toString();
+                                                            _entries[forIndex]
+                                                                .selectedTopVoucherName =
+                                                                title;
+                                                            _entries[forIndex]
+                                                                .selectedChildId =
+                                                            null;
+                                                            _entries[forIndex]
+                                                                .selectedMcc =
+                                                            null;
+                                                            _entries[forIndex]
+                                                                .selectedMccDesc =
+                                                            null;
+                                                          });
 
-                                                  // close sheet then ensure nothing gets focused (prevent keyboard jumping back)
-                                                  Navigator.of(ctx).pop();
-                                                  WidgetsBinding.instance
-                                                      .addPostFrameCallback(
-                                                          (_) {
-                                                    FocusScope.of(context)
-                                                        .unfocus();
-                                                  });
-                                                },
-                                              ),
-                                              Divider(
-                                                  color: Colors.grey.shade200,
-                                                  height: 1),
-                                            ])
-                                          else
-                                            // render children loaded from API
-                                            ...(_voucherCategories[index]
+                                                          // close sheet then ensure nothing gets focused (prevent keyboard jumping back)
+                                                          Navigator
+                                                              .of(ctx)
+                                                              .pop();
+                                                          WidgetsBinding
+                                                              .instance
+                                                              .addPostFrameCallback(
+                                                                  (_) {
+                                                                FocusScope.of(
+                                                                    context)
+                                                                    .unfocus();
+                                                              });
+                                                        },
+                                                      ),
+                                                      Divider(
+                                                          color: Colors.grey
+                                                              .shade200,
+                                                          height: 1),
+                                                    ])
+                                                  else
+                                                  // render children loaded from API
+                                                    ...(_voucherCategories[index]
                                                     ['children'] as List)
-                                                .map<Map<String, dynamic>>(
-                                                    (child) => child)
-                                                .map((child) {
-                                              final childTitle =
-                                                  child['title'] ?? 'Sub';
-                                              final childId = child['id'];
-                                              final IconData childIcon =
-                                              _iconForChild(
-                                                  childTitle.toString());
-                                              return Column(children: [
-                                                ListTile(
-                                                  contentPadding:
-                                                      const EdgeInsets.only(
-                                                          left: 68.0,
-                                                          right: 12.0),
-                                                  leading: /*Container(
+                                                        .map<Map<String,
+                                                        dynamic>>(
+                                                            (child) => child)
+                                                        .map((child) {
+                                                      final childTitle =
+                                                          child['title'] ??
+                                                              'Sub';
+                                                      final childId = child['id'];
+                                                      final IconData childIcon =
+                                                      _iconForChild(
+                                                          childTitle
+                                                              .toString());
+                                                      return Column(children: [
+                                                        ListTile(
+                                                          contentPadding:
+                                                          const EdgeInsets.only(
+                                                              left: 68.0,
+                                                              right: 12.0),
+                                                          leading: /*Container(
                                                       width: 34,
                                                       height: 34,
                                                       decoration: BoxDecoration(
@@ -1145,131 +1204,157 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                                                       child: Icon(childIcon,
                                                           color: Colors.black54,
                                                           size: 20))*/
-                                                      Image.memory(
-                                                    base64Decode(child['vouchericon']),
-                                                  ),
-                                                  title: Text(
-                                                      childTitle.toString(),
-                                                      style: const TextStyle(
-                                                        color: Color(
-                                                            0xFF2F945A),
-                                                          fontWeight:
-                                                              FontWeight.w400,
-                                                          fontSize:
-                                                              _formFontSize)),
-                                                  onTap: () {
-                                                    debugPrint(
-                                                        '[IssueVoucher] _openVoucherPicker: selected sub="$childTitle" (id=$childId) for index=$forIndex');
+                                                          Image.memory(
+                                                            base64Decode(
+                                                                child['vouchericon']),
+                                                          ),
+                                                          title: Text(
+                                                              childTitle
+                                                                  .toString(),
+                                                              style: const TextStyle(
+                                                                  color: Color(
+                                                                      0xFF2F945A),
+                                                                  fontWeight:
+                                                                  FontWeight
+                                                                      .w400,
+                                                                  fontSize:
+                                                                  _formFontSize)),
+                                                          onTap: () {
+                                                            debugPrint(
+                                                                '[IssueVoucher] _openVoucherPicker: selected sub="$childTitle" (id=$childId) for index=$forIndex');
 
-                                                    // robust extraction for child
-                                                    String? extractedMcc;
-                                                    String? extractedMccDesc;
-                                                    String?
-                                                        extractedVoucherCode;
-                                                    String?
-                                                        extractedPurposeCode;
+                                                            // robust extraction for child
+                                                            String? extractedMcc;
+                                                            String? extractedMccDesc;
+                                                            String?
+                                                            extractedVoucherCode;
+                                                            String?
+                                                            extractedPurposeCode;
+                                                            String?
+                                                            extractedVoucherIcon;
 
-                                                    try {
-                                                      final raw = child['raw'];
-                                                      if (raw is Map) {
-                                                        extractedMcc = (raw[
+                                                            try {
+                                                              final raw = child['raw'];
+                                                              if (raw is Map) {
+                                                                extractedMcc =
+                                                                    (raw[
                                                                     'mcc'] ??
-                                                                raw['MCC'] ??
-                                                                raw['mccCode'] ??
-                                                                raw['mcc_code'])
-                                                            ?.toString();
-                                                        extractedMccDesc = (raw[
+                                                                        raw['MCC'] ??
+                                                                        raw['mccCode'] ??
+                                                                        raw['mcc_code'])
+                                                                        ?.toString();
+                                                                extractedMccDesc =
+                                                                    (raw[
                                                                     'vouchername'] ??
-                                                                raw['mcc_description'] ??
-                                                                raw['purpose_desc'] ??
-                                                                raw['voucherDesc'])
-                                                            ?.toString();
-                                                        extractedVoucherCode = (raw[
+                                                                        raw['mcc_description'] ??
+                                                                        raw['purpose_desc'] ??
+                                                                        raw['voucherDesc'])
+                                                                        ?.toString();
+                                                                extractedVoucherCode =
+                                                                    (raw[
                                                                     'voucherCode'] ??
-                                                                raw['voucher_code'] ??
-                                                                raw['code'] ??
-                                                                raw['cotocode'])
-                                                            ?.toString();
-                                                        extractedPurposeCode =
-                                                            (raw['purposeCode'] ??
-                                                                    raw['purpose_code'] ??
-                                                                    raw['purpose'])
-                                                                ?.toString();
-                                                      }
-                                                    } catch (_) {}
+                                                                        raw['voucher_code'] ??
+                                                                        raw['code'] ??
+                                                                        raw['cotocode'])
+                                                                        ?.toString();
+                                                                extractedPurposeCode =
+                                                                    (raw['purposeCode'] ??
+                                                                        raw['purpose_code'] ??
+                                                                        raw['purpose'])
+                                                                        ?.toString();
 
-                                                    // fallback to top-level category if needed
-                                                    extractedVoucherCode ??= (cat[
+                                                                extractedVoucherIcon =
+                                                                child['vouchericon'];
+                                                              }
+                                                            } catch (_) {}
+
+                                                            // fallback to top-level category if needed
+                                                            extractedVoucherCode ??=
+                                                                (cat[
                                                                 'voucherCode'] ??
-                                                            cat['voucher_code'] ??
-                                                            cat['purposeCode'] ??
-                                                            cat['purpose_code'])
-                                                        ?.toString();
-                                                    extractedPurposeCode ??= (cat[
+                                                                    cat['voucher_code'] ??
+                                                                    cat['purposeCode'] ??
+                                                                    cat['purpose_code'])
+                                                                    ?.toString();
+                                                            extractedPurposeCode ??=
+                                                                (cat[
                                                                 'purposeCode'] ??
-                                                            cat['purpose_code'])
-                                                        ?.toString();
+                                                                    cat['purpose_code'])
+                                                                    ?.toString();
 
-                                                    // single setState + single pop/unfocus
-                                                    setState(() {
-                                                      _entries[forIndex]
-                                                              .selectedVoucher =
-                                                          childTitle.toString();
-                                                      _entries[forIndex]
-                                                              .selectedChildId =
-                                                          childId?.toString();
-                                                      _entries[forIndex]
-                                                          .selectedPurposeCode = extractedVoucherCode
+                                                            // single setState + single pop/unfocus
+                                                            setState(() {
+
+                                                              _entries[forIndex]
+                                                                  .selectedVoucher =
+                                                                  childTitle
+                                                                      .toString();
+                                                              _entries[forIndex]
+                                                                  .selectedVoucherIcon =
+                                                                  extractedVoucherIcon
+                                                                      .toString();
+                                                              _entries[forIndex]
+                                                                  .selectedChildId =
+                                                                  childId
+                                                                      ?.toString();
+                                                              _entries[forIndex]
+                                                                  .selectedPurposeCode =
+                                                              extractedVoucherCode
                                                                   ?.isNotEmpty ==
-                                                              true
-                                                          ? extractedVoucherCode
-                                                          : (extractedPurposeCode ??
-                                                              (cat['purposeCode'] ??
+                                                                  true
+                                                                  ? extractedVoucherCode
+                                                                  : (extractedPurposeCode ??
+                                                                  (cat['purposeCode'] ??
                                                                       cat['purpose_code'])
-                                                                  ?.toString());
-                                                      _entries[forIndex]
-                                                              .selectedTopId =
-                                                          (cat['topId'] ??
-                                                                  cat['id'])
-                                                              ?.toString();
-                                                      _entries[forIndex]
-                                                              .selectedMcc =
-                                                          extractedMcc;
-                                                      _entries[forIndex]
-                                                              .selectedMccDesc =
-                                                          extractedMccDesc;
-                                                      _entries[forIndex]
-                                                              .selectedTopVoucherName =
-                                                          (cat['title']
+                                                                      ?.toString());
+                                                              _entries[forIndex]
+                                                                  .selectedTopId =
+                                                                  (cat['topId'] ??
+                                                                      cat['id'])
+                                                                      ?.toString();
+                                                              _entries[forIndex]
+                                                                  .selectedMcc =
+                                                                  extractedMcc;
+                                                              _entries[forIndex]
+                                                                  .selectedMccDesc =
+                                                                  extractedMccDesc;
+                                                              _entries[forIndex]
+                                                                  .selectedTopVoucherName =
+                                                              (cat['title']
                                                                   ?.toString() ??
-                                                              null);
-                                                    });
+                                                                  null);
+                                                            });
 
-                                                    Navigator.of(ctx).pop();
-                                                    WidgetsBinding.instance
-                                                        .addPostFrameCallback(
-                                                            (_) {
-                                                      FocusScope.of(context)
-                                                          .unfocus();
-                                                    });
-                                                  },
-                                                ),
-                                                Divider(
-                                                    color: Colors.grey.shade200,
-                                                    height: 1),
-                                              ]);
-                                            }).toList(),
+                                                            Navigator
+                                                                .of(ctx)
+                                                                .pop();
+                                                            WidgetsBinding
+                                                                .instance
+                                                                .addPostFrameCallback(
+                                                                    (_) {
+                                                                  FocusScope.of(
+                                                                      context)
+                                                                      .unfocus();
+                                                                });
+                                                          },
+                                                        ),
+                                                        Divider(
+                                                            color: Colors.grey
+                                                                .shade200,
+                                                            height: 1),
+                                                      ]);
+                                                    }).toList(),
+                                              ],
+                                            ),
+                                            crossFadeState: isExpanded
+                                                ? CrossFadeState.showSecond
+                                                : CrossFadeState.showFirst,
+                                            duration:
+                                            const Duration(milliseconds: 160),
+                                          ),
                                         ],
-                                      ),
-                                      crossFadeState: isExpanded
-                                          ? CrossFadeState.showSecond
-                                          : CrossFadeState.showFirst,
-                                      duration:
-                                          const Duration(milliseconds: 160),
-                                    ),
-                                  ],
-                                );
-                              }),
+                                      );
+                                    }),
                           ],
                         ),
                       ),
@@ -1385,7 +1470,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                   ),
                   onTap: () {
                     setState(
-                        () => _entries[forIndex].redemptionType = 'Single');
+                            () => _entries[forIndex].redemptionType = 'Single');
                     Navigator.of(ctx).pop();
                   },
                 ),
@@ -1411,7 +1496,8 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                   ),
                   onTap: () {
                     setState(
-                        () => _entries[forIndex].redemptionType = 'Multiple');
+                            () =>
+                        _entries[forIndex].redemptionType = 'Multiple');
                     Navigator.of(ctx).pop();
                   },
                 ),
@@ -1540,59 +1626,60 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                 const Padding(
                     padding: EdgeInsets.symmetric(vertical: 32.0),
                     child: Center(child: CircularProgressIndicator()))
-              else if (_banks.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24.0),
-                  child: Column(
-                    children: [
-                      const Text('No accounts available'),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                          onPressed: _loadBanks, child: const Text('Retry')),
-                    ],
-                  ),
-                )
               else
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _banks.length,
-                    separatorBuilder: (_, __) =>
-                        Divider(height: 1, color: Colors.grey.shade200),
-                    itemBuilder: (context, index) {
-                      final bank = _banks[index];
-                      final bankName =
-                          (bank['bankName'] ?? bank['name'] ?? 'Bank')
-                              .toString();
-                      final account = (bank['acNumber'] ??
-                              bank['account'] ??
-                              bank['accountNumber'] ??
-                              '')
-                          .toString();
-                      final masked = _maskAccount(account);
-                      final bankIconBase64 = bank['bankIcon']?.toString();
-                      return ListTile(
-                        onTap: () {
-                          debugPrint(
-                              '[IssueVoucher] bank list tapped index=$index, account=$account');
-                          _selectBankAtIndex(index);
-                          Navigator.of(ctx).pop();
-                        },
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 6),
-                        leading: _bankIconWidget(bankIconBase64, size: 44),
-                        title: Text(bankName,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: _formFontSize)),
-                        subtitle: Text(masked,
-                            style: const TextStyle(fontSize: _formFontSize)),
-                        trailing: const Icon(Icons.chevron_right),
-                      );
-                    },
+                if (_banks.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24.0),
+                    child: Column(
+                      children: [
+                        const Text('No accounts available'),
+                        const SizedBox(height: 8),
+                        ElevatedButton(
+                            onPressed: _loadBanks, child: const Text('Retry')),
+                      ],
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _banks.length,
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 1, color: Colors.grey.shade200),
+                      itemBuilder: (context, index) {
+                        final bank = _banks[index];
+                        final bankName =
+                        (bank['bankName'] ?? bank['name'] ?? 'Bank')
+                            .toString();
+                        final account = (bank['acNumber'] ??
+                            bank['account'] ??
+                            bank['accountNumber'] ??
+                            '')
+                            .toString();
+                        final masked = _maskAccount(account);
+                        final bankIconBase64 = bank['bankIcon']?.toString();
+                        return ListTile(
+                          onTap: () {
+                            debugPrint(
+                                '[IssueVoucher] bank list tapped index=$index, account=$account');
+                            _selectBankAtIndex(index);
+                            Navigator.of(ctx).pop();
+                          },
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 6),
+                          leading: _bankIconWidget(bankIconBase64, size: 44),
+                          title: Text(bankName,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: _formFontSize)),
+                          subtitle: Text(masked,
+                              style: const TextStyle(fontSize: _formFontSize)),
+                          trailing: const Icon(Icons.chevron_right),
+                        );
+                      },
+                    ),
                   ),
-                ),
             ]),
           ),
         );
@@ -1655,7 +1742,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
               // masked account in a small rounded box (right side)
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF26282C),
                   borderRadius: BorderRadius.circular(8),
@@ -1701,10 +1788,13 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
       try {
         final rawIcon = _selectedBankFull != null
             ? (_selectedBankFull!['bankIcon'] ??
-                _selectedBankFull!['bankicon'] ??
-                _selectedBankFull!['left_vouchericon'])
+            _selectedBankFull!['bankicon'] ??
+            _selectedBankFull!['left_vouchericon'])
             : null;
-        if (rawIcon != null && rawIcon.toString().trim().isNotEmpty) {
+        if (rawIcon != null && rawIcon
+            .toString()
+            .trim()
+            .isNotEmpty) {
           return _bankIconWidget(rawIcon.toString(), size: 36);
         }
       } catch (_) {}
@@ -1744,7 +1834,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                             borderRadius: BorderRadius.circular(4))),
                     const Padding(
                         padding:
-                            EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
                         child: Align(
                             alignment: Alignment.centerLeft,
                             child: Text('SELECT ACCOUNT',
@@ -1755,63 +1845,65 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                       const Padding(
                           padding: EdgeInsets.symmetric(vertical: 32.0),
                           child: Center(child: CircularProgressIndicator()))
-                    else if (_banks.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24.0),
-                        child: Column(
-                          children: [
-                            const Text('No accounts available'),
-                            const SizedBox(height: 8),
-                            ElevatedButton(
-                              onPressed: _loadBanks,
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
-                      )
                     else
-                      Flexible(
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemCount: _banks.length,
-                          separatorBuilder: (_, __) =>
-                              Divider(height: 1, color: Colors.grey.shade200),
-                          itemBuilder: (context, index) {
-                            final bank = _banks[index];
-                            final bankName =
-                                (bank['bankName'] ?? bank['name'] ?? 'Bank')
-                                    .toString();
-                            final account = (bank['acNumber'] ??
-                                    bank['account'] ??
-                                    bank['accountNumber'] ??
-                                    '')
-                                .toString();
-                            final masked = _maskAccount(account);
-                            final bankIconBase64 = bank['bankIcon']?.toString();
-                            return ListTile(
-                              onTap: () {
-                                debugPrint(
-                                    '[IssueVoucher] bank list tapped index=$index, account=$account');
-                                _selectBankAtIndex(index);
-                                Navigator.of(ctx).pop();
-                              },
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 6),
-                              leading:
-                                  _bankIconWidget(bankIconBase64, size: 44),
-                              title: Text(bankName,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: _formFontSize)),
-                              subtitle: Text(masked,
-                                  style:
-                                      const TextStyle(fontSize: _formFontSize)),
-                              trailing: const Icon(Icons.chevron_right),
-                            );
-                          },
+                      if (_banks.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24.0),
+                          child: Column(
+                            children: [
+                              const Text('No accounts available'),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: _loadBanks,
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Flexible(
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: _banks.length,
+                            separatorBuilder: (_, __) =>
+                                Divider(height: 1, color: Colors.grey.shade200),
+                            itemBuilder: (context, index) {
+                              final bank = _banks[index];
+                              final bankName =
+                              (bank['bankName'] ?? bank['name'] ?? 'Bank')
+                                  .toString();
+                              final account = (bank['acNumber'] ??
+                                  bank['account'] ??
+                                  bank['accountNumber'] ??
+                                  '')
+                                  .toString();
+                              final masked = _maskAccount(account);
+                              final bankIconBase64 = bank['bankIcon']
+                                  ?.toString();
+                              return ListTile(
+                                onTap: () {
+                                  debugPrint(
+                                      '[IssueVoucher] bank list tapped index=$index, account=$account');
+                                  _selectBankAtIndex(index);
+                                  Navigator.of(ctx).pop();
+                                },
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 6),
+                                leading:
+                                _bankIconWidget(bankIconBase64, size: 44),
+                                title: Text(bankName,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: _formFontSize)),
+                                subtitle: Text(masked,
+                                    style:
+                                    const TextStyle(fontSize: _formFontSize)),
+                                trailing: const Icon(Icons.chevron_right),
+                              );
+                            },
+                          ),
                         ),
-                      ),
                   ]),
                 ),
               );
@@ -1845,7 +1937,10 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                       color: dark ? Colors.white : Colors.black87,
                       fontWeight: FontWeight.w600,
                       fontSize: _clamp(
-                          MediaQuery.of(context).size.width * 0.038, 13, 18),
+                          MediaQuery
+                              .of(context)
+                              .size
+                              .width * 0.038, 13, 18),
                     ),
                   ),
                   // show masked account inline (smaller / muted)
@@ -1873,7 +1968,9 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   }
 
   Widget _bankIconWidget(String? rawBase64, {double size = 44}) {
-    if (rawBase64 == null || rawBase64.trim().isEmpty) {
+    if (rawBase64 == null || rawBase64
+        .trim()
+        .isEmpty) {
       return Container(
           width: size,
           height: size,
@@ -1884,7 +1981,9 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     }
     try {
       String cleaned = rawBase64;
-      if (cleaned.contains(',')) cleaned = cleaned.split(',').last;
+      if (cleaned.contains(',')) cleaned = cleaned
+          .split(',')
+          .last;
       final Uint8List bytes = base64Decode(cleaned);
       return CircleAvatar(
           radius: size / 2,
@@ -1906,7 +2005,10 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   // ---------------- build ----------------
   @override
   Widget build(BuildContext context) {
-    final sw = MediaQuery.of(context).size.width;
+    final sw = MediaQuery
+        .of(context)
+        .size
+        .width;
     final horizontalPadding = _clamp(sw * 0.04, 12, 20);
     final cardRadius = _clamp(sw * 0.04, 14, 22);
     final innerPadding = _clamp(sw * 0.035, 10, 16);
@@ -1952,12 +2054,12 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
           padding: EdgeInsets.symmetric(
               horizontal: horizontalPadding, vertical: horizontalPadding),
           child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
                 color:
-                    _isWalletAccount ? const Color(0xFF26282C) : Colors.white,
+                _isWalletAccount ? const Color(0xFF26282C) : Colors.white,
                 borderRadius: BorderRadius.circular(cardRadius),
                 border: _isWalletAccount
                     ? null
@@ -1965,11 +2067,11 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                 boxShadow: _isWalletAccount
                     ? null
                     : [
-                        BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 6,
-                            offset: Offset(0, 2))
-                      ],
+                  BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 6,
+                      offset: Offset(0, 2))
+                ],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(cardRadius),
@@ -1977,7 +2079,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                   padding: EdgeInsets.symmetric(
                       horizontal: innerPadding, vertical: innerPadding),
                   color:
-                      _isWalletAccount ? const Color(0xFF26282C) : Colors.white,
+                  _isWalletAccount ? const Color(0xFF26282C) : Colors.white,
                   child: Column(
                     children: [
                       // Bank selector row (same widget but it adapts to dark / light)
@@ -1985,9 +2087,9 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                         Expanded(
                           child: _isWalletAccount
                               ? _bankSelectorDarkBox(sw,
-                                  innerPadding) // new dark-style tappable selector (cotoBalance)
+                              innerPadding) // new dark-style tappable selector (cotoBalance)
                               : _bankSelectorBox(_clamp(sw * 0.05, 18, 24),
-                                  innerPadding), // light bank header (existing)
+                              innerPadding), // light bank header (existing)
                         ),
                       ]),
 
@@ -2046,7 +2148,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                           ],
                         )
                       else
-                        // non-positive balance: show disabled Check Balance CTA and info text inside same card
+                      // non-positive balance: show disabled Check Balance CTA and info text inside same card
                         Column(
                           children: [
                             SizedBox(
@@ -2187,14 +2289,14 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                 onPressed: _allEntriesValid ? _onSubmit : null,
                 style: ButtonStyle(
                   backgroundColor:
-                      MaterialStateProperty.resolveWith<Color>((states) {
+                  MaterialStateProperty.resolveWith<Color>((states) {
                     if (states.contains(MaterialState.disabled)) {
                       return const Color(0xFFEBF2FF); // Inactive BG (#EBF2FF)
                     }
                     return const Color(0xFF367AFF); // Active BG (#367AFF)
                   }),
                   foregroundColor:
-                      MaterialStateProperty.resolveWith<Color>((states) {
+                  MaterialStateProperty.resolveWith<Color>((states) {
                     if (states.contains(MaterialState.disabled)) {
                       return const Color(0xFFA3C2FF); // Inactive Text (#A3C2FF)
                     }
@@ -2332,13 +2434,13 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
                   suffixIcon: entry.searching
                       ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
                       : null,
                 ),
                 onChanged: (_) => setState(() {}),
@@ -2402,7 +2504,9 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                   title: Text(userName.toString(),
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text(
-                    '${mobile ?? ''}${(email != null && email.toString().isNotEmpty) ? ' • $email' : ''}',
+                    '${mobile ?? ''}${(email != null && email
+                        .toString()
+                        .isNotEmpty) ? ' • $email' : ''}',
                     style: const TextStyle(fontSize: 12),
                   ),
                 );
@@ -2430,7 +2534,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                       // 12px (label)
                       height: 1.4,
                       color: Color(0xFF86889B) // #86889B
-                      ),
+                  ),
                 ),
               ),
 
@@ -2862,7 +2966,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
   void _openValidityPicker(int forIndex) {
     final _entry = _entries[forIndex];
     final TextEditingController customController =
-        TextEditingController(text: _entry.validity ?? '');
+    TextEditingController(text: _entry.validity ?? '');
 
     showModalBottomSheet<void>(
       context: context,
@@ -2886,31 +2990,35 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                   String? errorText;
 
                   bool isValidNumber(String txt) {
-                    if (txt.trim().isEmpty) return false;
+                    if (txt
+                        .trim()
+                        .isEmpty) return false;
                     final n = int.tryParse(txt.trim());
                     if (n == null) return false;
                     return n >= 2 && n <= 365;
                   }
 
                   void onCustomChanged(String v) {
-                    if (v.trim().isEmpty) {
+                    if (v
+                        .trim()
+                        .isEmpty) {
                       sheetSetState(() => errorText = null);
                       return;
                     }
                     final n = int.tryParse(v.trim());
                     if (n == null) {
                       sheetSetState(
-                          () => errorText = 'Please enter a valid number');
+                              () => errorText = 'Please enter a valid number');
                       return;
                     }
                     if (n < 2) {
                       sheetSetState(
-                          () => errorText = 'Minimum validity is 2 days');
+                              () => errorText = 'Minimum validity is 2 days');
                       return;
                     }
                     if (n > 365) {
                       sheetSetState(
-                          () => errorText = 'Maximum allowed is 365 days');
+                              () => errorText = 'Maximum allowed is 365 days');
                       return;
                     }
                     sheetSetState(() => errorText = null);
@@ -3003,7 +3111,7 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                               border: InputBorder.none,
                               isDense: true,
                               contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 14),
+                              const EdgeInsets.symmetric(vertical: 14),
                               errorText: errorText,
                             ),
                           ),
@@ -3020,41 +3128,45 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
                           child: ElevatedButton(
                             onPressed: isValidNumber(customController.text)
                                 ? () {
-                                    final val = customController.text.trim();
-                                    final n = int.tryParse(val);
+                              final val = customController.text.trim();
+                              final n = int.tryParse(val);
 
-                                    if (n == null || n < 2 || n > 365) {
-                                      sheetSetState(() => errorText =
-                                          'Enter value between 2 and 365');
-                                      return;
-                                    }
+                              if (n == null || n < 2 || n > 365) {
+                                sheetSetState(() =>
+                                errorText =
+                                'Enter value between 2 and 365');
+                                return;
+                              }
 
-                                    setState(() => _entries[forIndex].validity =
-                                        n.toString());
-                                    Navigator.of(ctx).pop();
-                                  }
+                              setState(() =>
+                              _entries[forIndex].validity =
+                                  n.toString());
+                              Navigator.of(ctx).pop();
+                            }
                                 : null,
                             style: ButtonStyle(
                               backgroundColor:
-                                  MaterialStateProperty.resolveWith<Color>(
+                              MaterialStateProperty.resolveWith<Color>(
                                       (states) {
-                                if (states.contains(MaterialState.disabled)) {
-                                  return const Color(
-                                      0xFFEBF2FF); // Disabled BG (soft purple)
-                                }
-                                return const Color(
-                                    0xFF367AFF); // Active BG (light purple)
-                              }),
+                                    if (states.contains(
+                                        MaterialState.disabled)) {
+                                      return const Color(
+                                          0xFFEBF2FF); // Disabled BG (soft purple)
+                                    }
+                                    return const Color(
+                                        0xFF367AFF); // Active BG (light purple)
+                                  }),
                               foregroundColor:
-                                  MaterialStateProperty.resolveWith<Color>(
+                              MaterialStateProperty.resolveWith<Color>(
                                       (states) {
-                                if (states.contains(MaterialState.disabled)) {
-                                  return const Color(
-                                      0xFFA3C2FF); // Disabled Text
-                                }
-                                return const Color(
-                                    0xFFFFFFFF); // Active Text (dark purple)
-                              }),
+                                    if (states.contains(
+                                        MaterialState.disabled)) {
+                                      return const Color(
+                                          0xFFA3C2FF); // Disabled Text
+                                    }
+                                    return const Color(
+                                        0xFFFFFFFF); // Active Text (dark purple)
+                                  }),
                               padding: MaterialStateProperty.all(
                                 const EdgeInsets.symmetric(
                                     horizontal: 24, vertical: 12),
@@ -3110,10 +3222,10 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
 
     final merchantId = _bankField(['merchentIid', 'merchantId', 'merchantID']);
     final subMerchantId =
-        _bankField(['submurchentid', 'subMerchantId', 'subMerchantID']);
+    _bankField(['submurchentid', 'subMerchantId', 'subMerchantID']);
     final bankCodeField = _bankField(['bankCode', 'bankcode']);
     final accountNumberField =
-        _bankField(['acNumber', 'accountNumber', 'acnumber', 'account']);
+    _bankField(['acNumber', 'accountNumber', 'acnumber', 'account']);
     final payerVaField = _bankField(['payerva', 'payerVA', 'payerVa']);
 
     // final voucherDetails = _entries.map((e) {
@@ -3145,25 +3257,26 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         'mobile': e.mobileController.text.trim(),
         'voucher': e.selectedMccDesc,
         'mcc': e.selectedMcc,
-        'voucherIdPk': e.selectedChildId,
-        'mccDescription': e.selectedMccDesc,
-        'purposeCode': e.selectedPurposeCode,
-        'purposeDescription': e.selectedTopVoucherName ?? e.selectedVoucher,
-        'voucherCode': e.selectedPurposeCode,
-        'voucherDesc': e.selectedTopVoucherName ?? e.selectedVoucher,
-        'redemptionType': (e.redemptionType ?? '').toUpperCase(),
-        'amount': e.amountController.text.trim(),
-        'startDate': DateFormat('yyyy-MM-dd').format(e.selectedDate),
-        'validity': _validityToDays(e.validity),
+        'icon': e.selectedVoucherIcon,
+      'voucherIdPk': e.selectedChildId,
+      'mccDescription': e.selectedMccDesc,
+      'purposeCode': e.selectedPurposeCode,
+      'purposeDescription': e.selectedTopVoucherName ?? e.selectedVoucher,
+      'voucherCode': e.selectedPurposeCode,
+      'voucherDesc': e.selectedTopVoucherName ?? e.selectedVoucher,
+      'redemptionType': (e.redemptionType ?? '').toUpperCase(),
+      'amount': e.amountController.text.trim(),
+      'startDate': DateFormat('yyyy-MM-dd').format(e.selectedDate),
+      'validity': _validityToDays(e.validity),
 
 //        'type': null,
-        //      'bankcode': bankCodeField,
-        //    'voucherType': null,
-        "expenseType": "",
-        "vehicleNo": "",
-        "remarks": ""
+      //      'bankcode': bankCodeField,
+      //    'voucherType': null,
+      "expenseType": "",
+      "vehicleNo": "",
+      "remarks": ""
       };
-    }).toList();
+      }).toList();
 
     final user = await SessionManager.getUserData();
     final orgId = user?.employerid;
@@ -3193,11 +3306,12 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
     // navigate to verification screen (cast bank map to correct type)
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => VoucherVerifyScreen(
-          apiService: _apiService,
-          bankInfo: verifyPayload['bank'] as Map<String, dynamic>?,
-          entries: voucherDetails,
-        ),
+        builder: (_) =>
+            VoucherVerifyScreen(
+              apiService: _apiService,
+              bankInfo: verifyPayload['bank'] as Map<String, dynamic>?,
+              entries: voucherDetails,
+            ),
       ),
     );
   }
@@ -3228,6 +3342,7 @@ class _VoucherEntry {
 
   DateTime selectedDate = DateTime.now();
   String? selectedVoucher;
+  String? selectedVoucherIcon;
   String? redemptionType;
   String? validity;
   String? remarks;
@@ -3259,12 +3374,18 @@ class _VoucherEntry {
   bool suppressListener = false;
 
   bool get isValid =>
-      nameController.text.trim().isNotEmpty &&
-      mobileController.text.trim().isNotEmpty &&
-      amountController.text.trim().isNotEmpty &&
-      selectedVoucher != null &&
-      redemptionType != null &&
-      validity != null;
+      nameController.text
+          .trim()
+          .isNotEmpty &&
+          mobileController.text
+              .trim()
+              .isNotEmpty &&
+          amountController.text
+              .trim()
+              .isNotEmpty &&
+          selectedVoucher != null &&
+          redemptionType != null &&
+          validity != null;
 
   bool isAmountInvalid = false;
 

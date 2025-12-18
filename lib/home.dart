@@ -541,7 +541,7 @@ class HomeContent extends StatelessWidget {
                   color: const Color(0xff1C1C1E), child: _topBar(context)),
               SizedBox(height: screenHeight * 0.002),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenHeight * 0.02),
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03),
                 child: FutureBuilder<List<dynamic>>(
                   future: voucherListFuture,
                   builder: (context, snapshot) {
@@ -567,7 +567,7 @@ class HomeContent extends StatelessWidget {
               ),
               SizedBox(height: screenHeight * 0.03),
               SizedBox(
-                height: 180,
+                height: 185,
                 child: FutureBuilder<List<dynamic>>(
                   future: voucherListFuture,
                   builder: (context, snapshot) {
@@ -632,17 +632,13 @@ class HomeContent extends StatelessWidget {
                     return ListView.builder(
                         clipBehavior: Clip.none,
                         scrollDirection: Axis.horizontal,
-                        padding: EdgeInsets.symmetric(
-                            horizontal: math.max(12, screenWidth * 0.04)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18),
                         itemCount: createdVouchers.length,
                         itemBuilder: (context, index) {
                           final voucherData = createdVouchers[index];
-                          final double rightPadding =
-                              (index == createdVouchers.length - 1)
-                                  ? math.max(12, screenWidth * 0.04)
-                                  : 16.0;
                           return Padding(
-                              padding: EdgeInsets.only(right: rightPadding),
+                              padding: const EdgeInsets.only(right: 24),
                               child: _voucherCard(context,
                                   voucherData: voucherData,
                                   cardWidth: screenWidth * 0.6));

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cotopay/home.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -124,7 +126,11 @@ class VoucherStatusScreen extends StatelessWidget {
                             color: Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.local_gas_station, color: Colors.black54),
+                          child:
+                          // data.icon!=null?Image.memory(
+                          //   base64Decode(data.icon??''),color: Colors.black54
+                          // ):
+                          Container(),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
