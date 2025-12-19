@@ -1,6 +1,7 @@
 // voucher_verify_screen.dart
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:cotopay/session_manager.dart';
 import 'package:cotopay/voucher_status_screen.dart';
@@ -17,11 +18,11 @@ class VoucherVerifyScreen extends StatefulWidget {
   final List<Map<String, dynamic>> entries;
 
   const VoucherVerifyScreen({
-    Key? key,
+    super.key,
     required this.apiService,
     this.bankInfo,
     required this.entries,
-  }) : super(key: key);
+  });
 
   @override
   State<VoucherVerifyScreen> createState() => _VoucherVerifyScreenState();
@@ -52,8 +53,6 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   static const String MANDATE_TYPE = '01';
 
   bool _isOtpFilled = false;
-  final TextEditingController _otpController = TextEditingController();
-
   @override
   void dispose() {
     for (final c in _otpControllers) {
@@ -69,7 +68,6 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sw = MediaQuery.of(context).size.width;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -105,7 +103,9 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                 width: 420,
               ),
               const SizedBox(height: 16),
-              _buildHeaderCard(),
+              RepaintBoundary(
+                child: _buildHeaderCard(),
+              ),
               const SizedBox(height: 8),
               const SizedBox(height: 16),
               Row(children: [
@@ -141,52 +141,9 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 52,
-                child: ElevatedButton(
-                  onPressed:
-                      (!_consentChecked || _loading) ? null : _handleLogin,
-                  style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.resolveWith<Color>((states) {
-                      if (states.contains(MaterialState.disabled)) {
-                        return const Color(0xFFEBF2FF); // Inactive background
-                      }
-                      return const Color(0xFF367AFF); // Active background
-                    }),
-                    foregroundColor:
-                        MaterialStateProperty.resolveWith<Color>((states) {
-                      if (states.contains(MaterialState.disabled)) {
-                        return const Color(0xFFA3C2FF); // Inactive text
-                      }
-                      return Colors.white; // Active text
-                    }),
-                    shape: MaterialStateProperty.all(
-                      RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    elevation: MaterialStateProperty.all(0),
-                    padding: MaterialStateProperty.all(
-                      const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                  child: _loading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'ISSUE VOUCHER',
-                          style: TextStyle(
-                            fontFamily: 'Open Sans',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            height: 1.4,
-                            letterSpacing: 0,
-                          ),
-                        ),
+                child: IssueVoucherButton(
+                  consentChecked: _consentChecked,
+                  onPressed: _handleLogin,
                 ),
               ),
               const SizedBox(height: 20),
@@ -253,7 +210,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                 children: [
                   // "cotoBalance" RichText (left)
                   RichText(
-                    text: TextSpan(
+                    text: const TextSpan(
                       children: [
                         TextSpan(
                           text: 'coto',
@@ -265,7 +222,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                             color: Colors.white,
                           ),
                         ),
-                        const WidgetSpan(child: SizedBox(width: 6)),
+                        WidgetSpan(child: SizedBox(width: 6)),
                         TextSpan(
                           text: 'Balance',
                           style: TextStyle(
@@ -397,7 +354,6 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   }
 
   Widget _buildHeaderCard() {
-    final bank = widget.bankInfo;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -438,7 +394,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
           final idx = pair.key;
           final e = pair.value;
           return _buildEntryCard(idx + 1, e);
-        }).toList(),
+        }),
 
         /*if (bank != null) ...[
           const SizedBox(height: 12),
@@ -475,12 +431,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
               color: Colors.grey,
               borderRadius: BorderRadius.all(Radius.circular(6.0)),
             ),
-            child: e['icon'] != null
-                ? Image.memory(
-                    base64Decode(e['icon'] ?? ''),
-              color: Colors.black,
-                  )
-                : const Icon(Icons.local_offer_outlined, size: 20),
+            child: VoucherIcon(base64Icon: e['icon']),
           ),
           const SizedBox(width: 8),
           Text(e['purposeDescription'] ?? e['voucherDesc'] ?? 'Voucher',
@@ -726,7 +677,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     try {
       final user = await SessionManager.getUserData();
       final employerMobile = user?.mobile?.toString() ?? '';
-      final rowcount = widget.entries.length.toString();
+      widget.entries.length.toString();
 
       // Build payload - adapt keys if your backend needs different names
       final payload = {
@@ -738,7 +689,6 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         "value": widget.entries.length.toString(),
         "message": null,
         "userName": null,
-        "password1": null,
         "password1": null,
         "password2": null,
         "password3": null,
@@ -755,7 +705,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       final response = await widget.apiService.getVoucherOtp(payload);
       debugPrint('[getVoucherOtp] => $response');
 
-      if (response != null && response['status'] == true) {
+      if (response['status'] == true) {
         // store orderId if returned
         if (response['data'] != null && response['data']['orderId'] != null) {
           _orderId = response['data']['orderId'].toString();
@@ -766,7 +716,9 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         }
 
         // reset OTP controllers
-        for (final c in _otpControllers) c.text = '';
+        for (final c in _otpControllers) {
+          c.text = '';
+        }
 
         // start resend timer
         _startResendTimer();
@@ -774,9 +726,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         // open OTP dialog (responsive)
         _showOtpDialog(employerMobile);
       } else {
-        final msg = response != null
-            ? (response['message'] ?? 'Failed to send OTP')
-            : 'Failed to send OTP';
+        final msg = (response['message'] ?? 'Failed to send OTP');
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(msg), backgroundColor: Colors.red));
       }
@@ -810,17 +760,39 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
     });
   }
 
+  final resendNotifier = ValueNotifier<int>(30);
+  Timer? resendTimer;
+
+  void startResendTimer() {
+    resendTimer?.cancel();
+    resendNotifier.value = 30;
+    resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (resendNotifier.value <= 0) {
+        t.cancel();
+      } else {
+        resendNotifier.value -= 1;
+      }
+    });
+  }
+
+  bool timerStarted = false;
+
   /// Responsive OTP dialog
-  void _showOtpDialog(String mobile) {
-    showDialog(
+  void _showOtpDialog(String mobile) async {
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
         final mq = MediaQuery.of(ctx);
         final w = mq.size.width;
         final dialogWidth = w < 500 ? w * 0.92 : 480.0;
-        final otpBoxSize = (dialogWidth - 80) / 6; // approx spacing
+        final otpBoxSize = (dialogWidth - 80) / 6;
         final otpFont = otpBoxSize * 0.45;
+
+        if (!timerStarted) {
+          timerStarted = true;
+          startResendTimer();
+        }
 
         return StatefulBuilder(builder: (context, setDialogState) {
           Future<void> resendOtp() async {
@@ -832,32 +804,18 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                 "mobile": employerMobile,
                 "template": "OTP Vouchers Issuance CP",
                 "value": widget.entries.length.toString(),
-                "message": null,
-                "userName": null,
-                "password1": null,
-                "password1": null,
-                "password2": null,
-                "password3": null,
-                "password4": null,
-                "password5": null,
-                "password6": null,
-                "password": null,
-                "sresult": null,
-                "otp": null,
-                "orderId": null,
-                "countdown": null,
               };
 
               final resp = await widget.apiService.getVoucherOtp(payload);
               debugPrint('[resendOtp] => $resp');
-              if (resp != null && resp['status'] == true) {
-                _startResendTimer();
+              if (resp['status'] == true) {
+                startResendTimer();
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('OTP resent'),
                     backgroundColor: Colors.green));
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(resp?['message'] ?? 'Could not resend OTP'),
+                    content: Text(resp['message'] ?? 'Could not resend OTP'),
                     backgroundColor: Colors.red));
               }
             } catch (e) {
@@ -871,92 +829,22 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
           Future<void> verifyOtpFromDialog() async {
             setDialogState(() => _isVerifyingOtp = true);
-            debugPrint('>>> Dialog: starting OTP verify');
-
-            final success = await _handleVerifyOtp(); // returns bool
+            final success = await _handleVerifyOtp();
             setDialogState(() => _isVerifyingOtp = false);
 
             if (!mounted) return;
 
             if (success) {
-              debugPrint(
-                  '>>> Dialog: OTP verified successfully, closing dialog and calling _issueVoucher');
-              // close OTP dialog
-              try {
-                Navigator.of(ctx).pop();
-              } catch (_) {}
-              // quick green toast
+              Navigator.of(ctx).pop();
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('OTP Verified'),
-                  backgroundColor: Colors.green,
-                  duration: Duration(milliseconds: 900)));
-
-              // small delay then call issue
-              await Future.delayed(const Duration(milliseconds: 400));
-
-              // call _issueVoucher
+                content: Text('OTP Verified'),
+                backgroundColor: Colors.green,
+                duration: Duration(milliseconds: 900),
+              ));
+              // await Future.delayed(const Duration(milliseconds: 300));
               await _issueVoucher();
-            } else {
-              debugPrint(
-                  '>>> Dialog: OTP verification failed — not calling _issueVoucher');
             }
           }
-
-          /*  Widget otpBoxesRow() {
-            return Wrap(
-              spacing: otpBoxSize * 0.08,
-              alignment: WrapAlignment.center,
-              children: List.generate(6, (i) {
-                return SizedBox(
-                  width: otpBoxSize.clamp(40.0, 64.0),
-                  height: otpBoxSize.clamp(40.0, 64.0),
-                  child: TextField(
-                    controller: _otpControllers[i],
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    maxLength: 1,
-                    style: TextStyle(
-                        fontSize: otpFont.clamp(16.0, 22.0),
-                        fontWeight: FontWeight.w600),
-                    decoration: InputDecoration(
-                      counterText: '',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      focusedBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.blue.shade300, width: 2),
-                          borderRadius: BorderRadius.circular(8)),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    onChanged: (v) {
-                      // move focus
-                      if (v.isNotEmpty) {
-                        if (i + 1 < 6)
-                          FocusScope.of(context).nextFocus();
-                        else
-                          FocusScope.of(context).unfocus();
-                      } else {
-                        if (i - 1 >= 0) FocusScope.of(context).previousFocus();
-                      }
-
-                      // compute joined OTP and update _isOtpFilled in the dialog's state
-                      final entered =
-                          _otpControllers.map((c) => c.text.trim()).join();
-                      final filled = entered.length == 6 &&
-                          entered.runes
-                              .every((r) => r >= 48 && r <= 57); // digits only
-
-                      // update dialog state so button becomes enabled/disabled immediately
-                      setDialogState(() {
-                        _isOtpFilled = filled;
-                      });
-                    },
-                  ),
-                );
-              }),
-            );
-          }
-*/
 
           Widget otpBoxesRow() {
             return Wrap(
@@ -978,9 +866,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                     decoration: InputDecoration(
                       counterText: '',
                       filled: true,
-                      // IMPORTANT
                       fillColor: Colors.white,
-                      // BACKGROUND WHITE
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -1002,12 +888,10 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                       } else {
                         if (i - 1 >= 0) FocusScope.of(context).previousFocus();
                       }
-
                       final entered =
                           _otpControllers.map((c) => c.text.trim()).join();
                       final filled = entered.length == 6 &&
                           entered.runes.every((r) => r >= 48 && r <= 57);
-
                       setDialogState(() {
                         _isOtpFilled = filled;
                       });
@@ -1032,135 +916,140 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // header row with title and close
                     Row(
                       children: [
-                        Expanded(
+                        const Expanded(
                           child: Text(
                             'Authentication for Issuance',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w600,
-                              // Semi Bold
                               fontSize: 16,
                               height: 1.4,
-                              // 140%
-                              letterSpacing: 0,
-                              color: Color(0xFF1F212C), // #1F212C
+                              color: Color(0xFF1F212C),
                             ),
                           ),
                         ),
                         InkWell(
-                            onTap: () {
-                              _resendTimer?.cancel();
-                              Navigator.of(ctx).pop();
-                            },
-                            child: const Icon(Icons.close)),
+                          onTap: () {
+                            resendTimer?.cancel();
+                            timerStarted = false;
+                            Navigator.of(ctx).pop();
+                          },
+                          child: const Icon(Icons.close),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     otpBoxesRow(),
                     const SizedBox(height: 12),
 
-                    // resend line
-                    if (_resendSeconds > 0)
-                      Text(
-                          "Didn't receive the code? 00:${_resendSeconds.toString().padLeft(2, '0')}",
-                          style: const TextStyle(color: Colors.black54))
-                    else
-                      GestureDetector(
-                        onTap: resendOtp,
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: "Didn't receive the code? ",
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w400,
-                                  // Regular
-                                  fontSize: 14,
-                                  height: 1.4,
-                                  // line-height 140%
-                                  letterSpacing: 0,
-                                  color: Color(0xFF232323),
-                                ),
+                    // Timer / Resend
+                    ValueListenableBuilder<int>(
+                      valueListenable: resendNotifier,
+                      builder: (context, value, child) {
+                        if (value > 0) {
+                          return Text(
+                              "Didn't receive the code? 00:${value.toString().padLeft(2, '0')}",
+                              style: const TextStyle(color: Colors.black54));
+                        } else {
+                          return GestureDetector(
+                            onTap: () {
+                              resendOtp;
+                              // restart timer
+                              resendNotifier.value = 30;
+                              resendTimer?.cancel();
+                              resendTimer = Timer.periodic(
+                                  const Duration(seconds: 1), (t) {
+                                if (resendNotifier.value <= 0) {
+                                  t.cancel();
+                                } else {
+                                  resendNotifier.value -= 1;
+                                }
+                              });
+                            },
+                            child: RichText(
+                              text: const TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: "Didn't receive the code? ",
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w400,
+                                      // Regular
+                                      fontSize: 14,
+                                      height: 1.4,
+                                      // line-height 140%
+                                      letterSpacing: 0,
+                                      color: Color(0xFF232323),
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: "Resend",
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,
+                                      // SemiBold
+                                      fontSize: 14,
+                                      height: 1.4,
+                                      letterSpacing: 0,
+                                      color: Color(0xFF367AFF),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              TextSpan(
-                                text: "Resend",
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w600,
-                                  // SemiBold
-                                  fontSize: 14,
-                                  height: 1.4,
-                                  letterSpacing: 0,
-                                  color: Color(0xFF367AFF),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
 
                     const SizedBox(height: 12),
-                    Column(
-                      children: [
-                        FutureBuilder(
-                          future: SessionManager.getUserData(),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                  child: CircularProgressIndicator());
-                            }
 
-                            if (!snapshot.hasData) {
-                              return const Text('Unable to load user data');
-                            }
-
-                            final user = snapshot.data;
-                            final maskedNumber = (user?.mobile != null &&
-                                    user!.mobile!.length >= 4)
-                                ? '+91-xxxxxx ${user.mobile!.substring(user.mobile!.length - 4)}'
-                                : '+91-xxxxxxXXXX';
-
-                            return Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEBF2FF), // background
-                                border: Border.all(
-                                  color: const Color(0xFFC1D6FF),
-                                  // border color
-                                  width: 1,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'OTP code has been sent to your phone $maskedNumber. Enter OTP to validate issuance.',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w400,
-                                  // Regular
-                                  fontSize: 12,
-                                  // 12px
-                                  height: 1.4,
-                                  // 140%
-                                  letterSpacing: 0,
-                                  color: Color(0xFF367AFF), // #367AFF
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                    // OTP info container
+                    FutureBuilder(
+                      future: SessionManager.getUserData(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+                        if (!snapshot.hasData) {
+                          return const Text('Unable to load user data');
+                        }
+                        final user = snapshot.data;
+                        final maskedNumber = (user?.mobile != null &&
+                                user!.mobile!.length >= 4)
+                            ? '+91-xxxxxx ${user.mobile!.substring(user.mobile!.length - 4)}'
+                            : '+91-xxxxxxXXXX';
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEBF2FF),
+                            border: Border.all(
+                                color: const Color(0xFFC1D6FF), width: 1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'OTP code has been sent to your phone $maskedNumber. Enter OTP to validate issuance.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w400,
+                              fontSize: 12,
+                              height: 1.4,
+                              color: Color(0xFF367AFF),
+                            ),
+                          ),
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 16),
 
-                    // button
+                    // Authenticate button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -1170,30 +1059,30 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                                 : verifyOtpFromDialog,
                         style: ButtonStyle(
                           backgroundColor:
-                              MaterialStateProperty.resolveWith<Color>(
+                              WidgetStateProperty.resolveWith<Color>(
                                   (states) {
-                            if (states.contains(MaterialState.disabled)) {
-                              return const Color(0xFFEBF2FF); // Inactive BG
+                            if (states.contains(WidgetState.disabled)) {
+                              return const Color(0xFFEBF2FF);
                             }
-                            return const Color(0xFF367AFF); // Active BG
+                            return const Color(0xFF367AFF);
                           }),
                           foregroundColor:
-                              MaterialStateProperty.resolveWith<Color>(
+                              WidgetStateProperty.resolveWith<Color>(
                                   (states) {
-                            if (states.contains(MaterialState.disabled)) {
-                              return const Color(0xFFA3C2FF); // Inactive text
+                            if (states.contains(WidgetState.disabled)) {
+                              return const Color(0xFFA3C2FF);
                             }
-                            return Colors.white; // Active text
+                            return Colors.white;
                           }),
-                          padding: MaterialStateProperty.all(
+                          padding: WidgetStateProperty.all(
                             const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          shape: MaterialStateProperty.all(
+                          shape: WidgetStateProperty.all(
                             RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          elevation: MaterialStateProperty.all(0),
+                          elevation: WidgetStateProperty.all(0),
                         ),
                         child: _isVerifyingOtp
                             ? const SizedBox(
@@ -1276,12 +1165,12 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       final resp = await widget.apiService.verifyOtpVoucher(otpPayload);
       debugPrint('<<< _handleVerifyOtp: verifyOtp response: $resp');
 
-      if (resp != null && resp['status'] == true) {
+      if (resp['status'] == true) {
         _verifyInProgress = false;
         return true;
       } else {
         final msg =
-            resp != null ? (resp['message'] ?? 'Invalid OTP') : 'Invalid OTP';
+            (resp['message'] ?? 'Invalid OTP');
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(msg), backgroundColor: Colors.red));
         _verifyInProgress = false;
@@ -1450,12 +1339,12 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
       debugPrint('[VoucherVerify] requestBody => ${jsonEncode(requestBody)}');
 
-      final resp = await widget.apiService.createSingleVoucher(requestBody);
 
+      final resp = await widget.apiService.createSingleVoucher(requestBody);
       debugPrint('<<< _issueVoucher: api response => $resp');
 
       // if (resp != null && (resp['status'] == true || resp['success'] == true)) {
-      if (resp != null && resp['data'] != null &&
+      if (resp['data'] != null &&
           (resp['data'][0]['response'] == "SUCCESS" &&
               resp['status'] == true)) {
         // --- Call WhatsApp API for each detail's amount ---
@@ -1509,10 +1398,10 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    Text(
+                    const Text(
                       'Congratulations!',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w600,
                         // Semi Bold
@@ -1524,10 +1413,10 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    const Text(
                       'Voucher Successfully Issued',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w400,
                         // Regular
@@ -1544,7 +1433,6 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
                       height: 46,
                       child: ElevatedButton(
                         onPressed: () async {
-                          // final resp = await widget.apiService.createSingleVoucher(requestBody);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -1590,9 +1478,7 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
         Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
         //final msg = resp != null ? (resp['message'] ?? 'Failed to issue voucher') : 'Failed to issue voucher';
-        final msg = resp != null
-            ? (resp['responseApi'] ?? 'Failed to issue voucher')
-            : 'Failed to issue voucher';
+        final msg = (resp['responseApi'] ?? 'Failed to issue voucher');
         debugPrint('!!! _issueVoucher failed: $msg');
         setState(() {
           _statusMessage = msg;
@@ -1655,10 +1541,10 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
       final resp = await widget.apiService.getMeesageAPi(payload);
       debugPrint('[resendOtp] => $resp');
-      if (resp != null && resp['status'] == true) {
+      if (resp['status'] == true) {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(resp?['message'] ?? 'Something went wrong'),
+            content: Text(resp['message'] ?? 'Something went wrong'),
             backgroundColor: Colors.red));
       }
     } catch (e) {}
@@ -1690,12 +1576,108 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
 
       final resp = await widget.apiService.getWhatsappApi(payload);
       debugPrint('[resendOtp] => $resp');
-      if (resp != null && resp['status'] == true) {
+      if (resp['status'] == true) {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(resp?['message'] ?? 'Something went wrong'),
+            content: Text(resp['message'] ?? 'Something went wrong'),
             backgroundColor: Colors.red));
       }
     } catch (e) {}
+  }
+}
+
+class VoucherIcon extends StatefulWidget {
+  final String? base64Icon;
+
+  const VoucherIcon({super.key, this.base64Icon});
+
+  @override
+  State<VoucherIcon> createState() => _VoucherIconState();
+}
+
+class IssueVoucherButton extends StatefulWidget {
+  final bool consentChecked;
+  final Future<void> Function() onPressed;
+
+  const IssueVoucherButton(
+      {super.key, required this.consentChecked, required this.onPressed});
+
+  @override
+  State<IssueVoucherButton> createState() => _IssueVoucherButtonState();
+}
+
+class _IssueVoucherButtonState extends State<IssueVoucherButton> {
+  bool _loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return const Color(0xFFEBF2FF); // Inactive background
+            }
+            return const Color(0xFF367AFF); // Active background
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return const Color(0xFFA3C2FF); // Inactive text
+            }
+            return Colors.white; // Active text
+          }),
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          elevation: WidgetStateProperty.all(0),
+          padding: WidgetStateProperty.all(
+            const EdgeInsets.symmetric(vertical: 12),
+          ),
+        ),
+        onPressed: (!_loading && widget.consentChecked)
+            ? () async {
+                setState(() => _loading = true);
+                await widget.onPressed();
+                setState(() => _loading = false);
+              }
+            : null,
+        child: _loading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : const Text('ISSUE VOUCHER'),
+      ),
+    );
+  }
+}
+
+class _VoucherIconState extends State<VoucherIcon> {
+  Uint8List? iconBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.base64Icon != null && widget.base64Icon!.isNotEmpty) {
+      iconBytes = base64Decode(widget.base64Icon!);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      decoration: const BoxDecoration(
+        color: Colors.grey,
+        borderRadius: BorderRadius.all(Radius.circular(6.0)),
+      ),
+      child: iconBytes != null
+          ? Image.memory(iconBytes!, color: Colors.black)
+          : const Icon(Icons.local_offer_outlined, size: 20),
+    );
   }
 }

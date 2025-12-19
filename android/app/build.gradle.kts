@@ -69,31 +69,30 @@ android {
 
     signingConfigs {
         create("release") {
+
             val keystoreProperties = Properties()
-            val keystorePropertiesFile = file("key.properties")  // <-- THIS line changed
+            val keystorePropertiesFile = rootProject.file("key.properties")
 
-            if (keystorePropertiesFile.exists()) {
-                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-                storeFile = file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
+            if (!keystorePropertiesFile.exists()) {
+                throw GradleException("❌ key.properties not found")
             }
+
+            keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+
+            storeFile = rootProject.file(
+                keystoreProperties["storeFile"] as String
+            )
+            storePassword = keystoreProperties["storePassword"] as String
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
         }
-
     }
-
 
     buildTypes {
         getByName("release") {
-            /*signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )*/
-            signingConfig = null // <--- remove signing
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
