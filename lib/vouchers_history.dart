@@ -904,7 +904,7 @@ class _VouchersScreenState extends State<VouchersScreen> {
 
     try {
       final userData = await SessionManager.getUserData();
-      final params = {"orgId": userData?.employerid ?? "", "timePeriod": "AH"};
+      final params = {"orgId": userData?.employerid ?? "", "timePeriod": "AH","mobile": userData?.mobile};
       final response = await _apiService.getVoucherList(params);
       if (mounted) {
         if (response['status'] == true && response['data'] is List) {
@@ -1170,12 +1170,14 @@ class _VouchersScreenState extends State<VouchersScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: Colors.black.withOpacity(0.05),
-                    child: Icon(_getIconForPurpose(title), color: Colors.black87, size: 24),
 
-                  ),
+                    // child: Icon(_getIconForPurpose(title), color: Colors.black87, size: 24),
+                  Image.memory(base64ToBytes(voucherData['mccMainIcon']),
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.contain,),
+
+
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -1352,6 +1354,15 @@ class _VouchersScreenState extends State<VouchersScreen> {
       return 'Expires: $expDateStr';
     }
   }
+
+  Uint8List base64ToBytes(String base64String) {
+    // Remove data URI if present
+    final cleaned = base64String.contains(',')
+        ? base64String.split(',').last
+        : base64String;
+
+    return base64Decode(cleaned);
+  }
 }
 
 extension NullableStringHelpers on String? {
@@ -1360,4 +1371,6 @@ extension NullableStringHelpers on String? {
     final String trimmed = this!.trim();
     return trimmed[0].toUpperCase() + trimmed.substring(1).toLowerCase();
   }
+
+
 }

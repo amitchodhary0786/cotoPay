@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'api_service.dart';
 import 'session_manager.dart';
@@ -170,7 +171,9 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
     if (mounted) setState(() { _isVouchersLoading = true; _vouchersError = null; });
     try {
       final userData = await SessionManager.getUserData();
-      final params = {"orgId": userData?.employerid ?? "", "timePeriod": "Yes"};
+      //Amit Comment
+     // final params = {"orgId": userData?.employerid ?? "", "timePeriod": "Yes" ,   "mobile": userData?.mobile};
+      final params = {"orgId": userData?.employerid ?? "", "timePeriod": "AH" ,   "mobile": userData?.mobile};
       final response = await _apiService.getVoucherList(params);
       if (mounted) {
         if (response['status'] == true && response['data'] is List) {
@@ -189,7 +192,9 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
     if (mounted) setState(() { _isTransactionsLoading = true; _transactionsError = null; });
     try {
       final userData = await SessionManager.getUserData();
-      final params = {"orgId": "59", "timePeriod": "Yes", "mobile": ""};
+      //Amit Comment
+     // final params = {"orgId": userData?.employerid, "timePeriod": "Yes", "mobile": userData?.mobile};
+      final params = {"orgId": userData?.employerid ?? "", "timePeriod": "AH" ,   "mobile": userData?.mobile};
       final response = await _apiService.getVoucherListRedeem(params);
       if (mounted) {
         if (response['status'] == true && response['data'] is List) {
@@ -355,11 +360,13 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: Colors.grey.shade100,
-                  child: Icon(_getIconForPurpose(title), color: Colors.black87, size: 26),
-                ),
+
+                 // child: Icon(_getIconForPurpose(title), color: Colors.black87, size: 26),
+                   Image.memory(base64ToBytes(voucherData['mccMainIcon']),
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.contain,),
+
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -381,10 +388,23 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Row(
                       children: [
-                        Icon(redemptionType == 'Single' ? Icons.replay_circle_filled_outlined : Icons.all_inclusive_rounded, color: Colors.green, size: 20),
+                        (redemptionType.toLowerCase() == 'multiple')
+                            ? SvgPicture.asset(
+                          'assets/multiple.svg',
+                          width: 20,
+                          height: 20,
+                          color: Color(0xff2F945A),
+                        )
+                            : SvgPicture.asset(
+                          'assets/single.svg',
+                          width: 20,
+                          height: 20,
+                          color: Color(0xff2F945A),
+                        ),
                         const SizedBox(width: 6),
                         Text(redemptionType, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
                       ],
@@ -473,5 +493,14 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
       debugPrint("Failed to decode base64 icon: $e");
       return CircleAvatar(backgroundColor: Colors.grey.shade100, radius: 24, child: Icon(Icons.business, color: Colors.grey.shade700));
     }
+  }
+
+  Uint8List base64ToBytes(String base64String) {
+    // Remove data URI if present
+    final cleaned = base64String.contains(',')
+        ? base64String.split(',').last
+        : base64String;
+
+    return base64Decode(cleaned);
   }
 }

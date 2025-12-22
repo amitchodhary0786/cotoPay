@@ -81,8 +81,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final params = {
         "orgId": userData.employerid,
         "timePeriod": "AH",
-        "mobile": ""
-        // "mobile": userData.mobile
+       // "mobile": ""
+         "mobile": userData.mobile
       };
 
       // Reassign future so FutureBuilder re-runs (and API is hit)
