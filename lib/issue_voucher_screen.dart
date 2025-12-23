@@ -2665,155 +2665,140 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         Row(
           children: [
             // Amount field (left)
-            Expanded(
-              child: SizedBox(
-                height: fieldHeight,
-                child: Stack(
-                  children: [
-                    // STATIC TOP LABEL
-                    Positioned(
-                      left: 12,
-                      top: 8,
-                      child: Text(
-                        'Enter Amount',
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                          fontSize: 12,
-                          // label 12px
-                          height: 1.4,
-                          color: Color(0xFF86889B), // #86889B
-                        ),
-                      ),
-                    ),
+    Expanded(
+    child: SizedBox(
+    height: fieldHeight,
+    child: TextField(
+    controller: entry.amountController,
+    keyboardType: TextInputType.number,
+    style: const TextStyle(
+    fontFamily: 'Inter',
+    fontWeight: FontWeight.w400,
+    fontSize: 14,
+    height: 1.4,
+    color: Color(0xFF1F212C),
+    ),
+    decoration: InputDecoration(
+    labelText: 'Enter Amount',
+    labelStyle: const TextStyle(
+    fontFamily: 'Inter',
+    fontWeight: FontWeight.w400,
+    fontSize: 14,
+    color: Color(0xFF86889B),
+    ),
+    floatingLabelStyle: const TextStyle(
+    fontFamily: 'Inter',
+    fontWeight: FontWeight.w400,
+    fontSize: 12,
+    color: Color(0xFF86889B),
+    ),
+    floatingLabelBehavior: FloatingLabelBehavior.auto,
+    contentPadding: const EdgeInsets.fromLTRB(12, 22, 12, 12),
+    border: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(8),
+    ),
+    enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(8),
+    borderSide: BorderSide(
+    color: entry.isAmountInvalid
+    ? Colors.red
+        : Colors.grey.shade300,
+    ),
+    ),
+    focusedBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(8),
+    borderSide: BorderSide(
+    color: entry.isAmountInvalid
+    ? Colors.red
+        : Colors.blue,
+    width: 2,
+    ),
+    ),
+    ),
+    onChanged: (value) {
+    final entered = double.tryParse(value) ?? 0;
 
-                    // TEXT FIELD (amount)
-                    TextField(
-                      controller: entry.amountController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                        fontSize: 14,
-                        // input 14px
-                        height: 1.4,
-                        color: Color(0xFF1F212C), // #1F212C
-                      ),
-                      decoration: InputDecoration(
-                        labelText: null,
-                        floatingLabelBehavior: FloatingLabelBehavior.never,
-                        contentPadding: const EdgeInsets.fromLTRB(8, 50, 12, 3),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: entry.isAmountInvalid
-                                ? Colors.red
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: entry.isAmountInvalid
-                                ? Colors.red
-                                : Colors.blue,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        final entered = double.tryParse(value) ?? 0;
+    setState(() {
+    entry.isAmountInvalid = entered > 50000;
+    });
 
-                        if (entered > 50000) {
-                          // clear value
-                          entry.amountController.clear();
-
-                          // set invalid state
-                          setState(() {
-                            entry.isAmountInvalid = true;
-                          });
-                        } else {
-                          // reset invalid state
-                          setState(() {
-                            entry.isAmountInvalid = false;
-                          });
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    if (entered > 50000) {
+    entry.amountController.clear();
+    }
+    },
+    ),
+    ),
+    ),
 
             const SizedBox(width: 12),
 
             // Redemption Type picker (right)
-            Expanded(
-              child: SizedBox(
-                height: fieldHeight,
-                child: Stack(
-                  children: [
-                    // STATIC TOP LABEL
-                    Positioned(
-                      left: 12,
-                      top: 8,
-                      child: Text(
-                        'Redemption Type',
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                          fontSize: 12,
-                          // label 12px
-                          height: 1.4,
-                          color: Color(0xFF86889B), // #86889B
-                        ),
-                      ),
-                    ),
+    Expanded(
+    child: SizedBox(
+    height: fieldHeight,
+    child: Stack(
+    children: [
+    // ANIMATED LABEL
+    AnimatedPositioned(
+    duration: const Duration(milliseconds: 200),
+    left: 12,
+    top: entry.redemptionType == null ? 22 : 8,
+    child: Text(
+    'Redemption Type',
+    style: TextStyle(
+    fontFamily: 'Inter',
+    fontWeight: FontWeight.w400,
+    fontSize: entry.redemptionType == null ? 14 : 12,
+    height: 1.4,
+    color: const Color(0xFF86889B),
+    ),
+    ),
+    ),
 
-                    // Picker container (acts like a read-only field)
-                    InkWell(
-                      onTap: () => _openRedemptionPicker(index),
-                      child: Container(
-                        height: fieldHeight,
-                        padding: const EdgeInsets.fromLTRB(10, 20, 12, 5),
-                        // keep text aligned under label
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300),
-                          color: Colors.transparent,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                entry.redemptionType ?? '',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w400,
-                                  fontSize: _formFontSize,
-                                  // your existing form font size
-                                  height: 1.4,
-                                  color: entry.redemptionType == null
-                                      ? Colors.grey.shade600
-                                      : const Color(0xFF1F212C),
-                                ),
-                              ),
-                            ),
-                            const Icon(Icons.keyboard_arrow_down,
-                                color: Colors.black54, size: 20),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+    // Picker container
+    InkWell(
+    onTap: () => _openRedemptionPicker(index),
+    child: Container(
+    height: fieldHeight,
+    padding: const EdgeInsets.fromLTRB(10, 20, 12, 5),
+    decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(8),
+    border: Border.all(color: Colors.grey.shade300),
+    color: Colors.transparent,
+    ),
+    child: Row(
+    children: [
+    Expanded(
+    child: Text(
+    entry.redemptionType ?? '',
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: TextStyle(
+    fontFamily: 'Inter',
+    fontWeight: FontWeight.w400,
+    fontSize: _formFontSize,
+    height: 1.4,
+    color: entry.redemptionType == null
+    ? Colors.grey.shade600
+        : const Color(0xFF1F212C),
+    ),
+    ),
+    ),
+    const Icon(
+    Icons.keyboard_arrow_down,
+    color: Colors.black54,
+    size: 20,
+    ),
+    ],
+    ),
+    ),
+    ),
+    ],
+    ),
+    ),
+    ),
+
+    ],
         ),
 
         const SizedBox(height: 12),
@@ -2822,141 +2807,147 @@ class _IssueVoucherScreenState extends State<IssueVoucherScreen> {
         Row(
           children: [
             // ======================= DATE PICKER =======================
-            Expanded(
-              child: SizedBox(
-                height: fieldHeight,
-                child: Stack(
-                  children: [
-                    // FIELD (clickable) — draw this first so label can paint above it
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: entry.selectedDate,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null)
-                          setState(() => entry.selectedDate = picked);
-                      },
-                      child: Container(
-                        height: fieldHeight,
-                        padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
-                        // keeps value below label
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                          color: Colors.white,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                DateFormat('dd/MM/yyyy')
-                                    .format(entry.selectedDate),
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w400,
-                                  fontSize: _formFontSize,
-                                  height: 1.4,
-                                  color: const Color(0xFF1F212C),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Icon(Icons.calendar_month,
-                                color: Colors.black54, size: 20),
-                          ],
-                        ),
-                      ),
-                    ),
+    Expanded(
+    child: SizedBox(
+    height: fieldHeight,
+    child: Stack(
+    children: [
+    // FIELD
+    InkWell(
+    onTap: () async {
+    final picked = await showDatePicker(
+    context: context,
+    initialDate: entry.selectedDate,
+    firstDate: DateTime.now(),
+    lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+    setState(() => entry.selectedDate = picked);
+    }
+    },
+    child: Container(
+    height: fieldHeight,
+    padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+    decoration: BoxDecoration(
+    border: Border.all(color: Colors.grey.shade300),
+    borderRadius: BorderRadius.circular(8),
+    color: Colors.white,
+    ),
+    child: Row(
+    children: [
+    Expanded(
+    child: Text(
+    entry.selectedDate == null
+    ? ''
+        : DateFormat('dd/MM/yyyy')
+        .format(entry.selectedDate),
+    style: TextStyle(
+    fontFamily: 'Inter',
+    fontWeight: FontWeight.w400,
+    fontSize: _formFontSize,
+    height: 1.4,
+    color: const Color(0xFF1F212C),
+    ),
+    ),
+    ),
+    const SizedBox(width: 6),
+    const Icon(Icons.calendar_month,
+    color: Colors.black54, size: 20),
+    ],
+    ),
+    ),
+    ),
 
-                    // LABEL (top-left) — draw this AFTER the field so it remains visible
-                    const Positioned(
-                      left: 12,
-                      top: 8,
-                      child: Text(
-                        'Start Date',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                          fontSize: 12,
-                          height: 1.4,
-                          color: Color(0xFF86889B),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    // ANIMATED LABEL
+    AnimatedPositioned(
+    duration: const Duration(milliseconds: 200),
+    left: 12,
+    top: entry.selectedDate == null ? 22 : 8,
+    child: Text(
+    'Start Date',
+    style: TextStyle(
+    fontFamily: 'Inter',
+    fontWeight: FontWeight.w400,
+    fontSize: entry.selectedDate == null ? 14 : 12,
+    height: 1.4,
+    color: const Color(0xFF86889B),
+    ),
+    ),
+    ),
+    ],
+    ),
+    ),
+    ),
 
-            const SizedBox(width: 12),
+
+    const SizedBox(width: 12),
 
             // ======================= VALIDITY PICKER =======================
-            Expanded(
-              child: SizedBox(
-                height: fieldHeight,
-                child: Stack(
-                  children: [
-                    // FIELD (clickable)
-                    InkWell(
-                      onTap: () => _openValidityPicker(index),
-                      child: Container(
-                        height: fieldHeight,
-                        padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300),
-                          color: Colors.transparent,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                entry.validity != null
-                                    ? '${entry.validity} days'
-                                    : 'Select',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w400,
-                                  fontSize: _formFontSize,
-                                  height: 1.4,
-                                  color: entry.validity == null
-                                      ? Colors.grey.shade600
-                                      : const Color(0xFF1F212C),
-                                ),
-                              ),
-                            ),
-                            const Icon(Icons.keyboard_arrow_down,
-                                color: Colors.black54, size: 20),
-                          ],
-                        ),
-                      ),
-                    ),
+    Expanded(
+    child: SizedBox(
+    height: fieldHeight,
+    child: Stack(
+    children: [
+    // FIELD (clickable)
+    InkWell(
+    onTap: () => _openValidityPicker(index),
+    child: Container(
+    height: fieldHeight,
+    padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+    decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(8),
+    border: Border.all(color: Colors.grey.shade300),
+    color: Colors.transparent,
+    ),
+    child: Row(
+    children: [
+    Expanded(
+    child: Text(
+    entry.validity != null
+    ? '${entry.validity} days'
+        : '',
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: TextStyle(
+    fontFamily: 'Inter',
+    fontWeight: FontWeight.w400,
+    fontSize: _formFontSize,
+    height: 1.4,
+    color: entry.validity == null
+    ? Colors.grey.shade600
+        : const Color(0xFF1F212C),
+    ),
+    ),
+    ),
+    const Icon(Icons.keyboard_arrow_down,
+    color: Colors.black54, size: 20),
+    ],
+    ),
+    ),
+    ),
 
-                    // LABEL (top-left)
-                    const Positioned(
-                      left: 12,
-                      top: 8,
-                      child: Text(
-                        'Validity',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                          fontSize: 12,
-                          height: 1.4,
-                          color: Color(0xFF86889B),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+    // ANIMATED LABEL
+    AnimatedPositioned(
+    duration: const Duration(milliseconds: 200),
+    left: 12,
+    top: entry.validity == null ? 22 : 8,
+    child: Text(
+    'Validity',
+    style: TextStyle(
+    fontFamily: 'Inter',
+    fontWeight: FontWeight.w400,
+    fontSize: entry.validity == null ? 14 : 12,
+    height: 1.4,
+    color: const Color(0xFF86889B),
+    ),
+    ),
+    ),
+    ],
+    ),
+    ),
+    ),
+
+    ],
         ),
         const SizedBox(height: 12),
       ]),

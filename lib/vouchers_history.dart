@@ -904,7 +904,7 @@ class _VouchersScreenState extends State<VouchersScreen> {
 
     try {
       final userData = await SessionManager.getUserData();
-      final params = {"orgId": userData?.employerid ?? "", "timePeriod": "AH","mobile": userData?.mobile};
+      final params = {"orgId": userData?.employerid ?? "", "timePeriod": "AH"};
       final response = await _apiService.getVoucherList(params);
       if (mounted) {
         if (response['status'] == true && response['data'] is List) {

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'api_service.dart';
 
@@ -140,7 +141,7 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
   Widget _buildVoucherInfoCard() {
     final data = _detailedData!;
     String purpose = data['voucherDesc'] ?? 'N/A';
-    String redemptionType = (data['redemtionType'] as String?)?.capitalize() ?? 'N/A';
+    String redemptionType = data['redemptionType']  ?? 'N/A';
     double voucherValue = double.tryParse(data['voucherAmount']?.toString() ?? '0.0') ?? 0.0;
     double balance = double.tryParse(data['activeAmount']?.toString() ?? '0.0') ?? 0.0;
     String voucherStatus = (data['voucherStatus'] as String?)?.capitalize() ?? 'N/A';
@@ -172,8 +173,21 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      Icon(redemptionType == 'Single' ? Icons.refresh : Icons.repeat, size: 16, color: Colors.white70),
-                      const SizedBox(width: 4),
+                      (redemptionType.toLowerCase() == 'multiple')
+                          ? SvgPicture.asset(
+                        'assets/multiple.svg',
+                        width: 20,
+                        height: 20,
+                        color: Color(0xFFFFFFFF),
+                      )
+                          : SvgPicture.asset(
+                        'assets/single.svg',
+                        width: 20,
+                        height: 20,
+                        color: Color(0xFFFFFFFF),
+                      ),
+                      const SizedBox(width: 6),
+
                       Text(redemptionType, style: const TextStyle(color: Colors.white70, fontSize: 14)),
                     ],
                   ),
