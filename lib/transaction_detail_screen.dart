@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -23,6 +25,8 @@ Transaction Details:
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('📦 transactionData ++===> $transactionData');
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
@@ -55,36 +59,40 @@ Transaction Details:
   }
 
   Widget _buildTopSection() {
+
     return Column(
       children: [
         CircleAvatar(
           radius: 24,
           backgroundColor: Colors.green.shade50,
           child:
-          Icon(Icons.receipt_long_outlined, color: Colors.green.shade700),
+          Image.memory(
+            base64Decode(transactionData['mccMainIcon']),
+          ),
+          //Icon(Icons.receipt_long_outlined, color: Colors.green.shade700),
         ),
         const SizedBox(height: 8),
         Text(
-          'To ${transactionData['title']}',
+          'To ${transactionData['purposeDesc'] ?? ''}',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         Text(
-          '${transactionData['amount']}',
+          '${transactionData['amount'] ?? ''}',
           style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 16),
-            SizedBox(width: 4),
-            Text('Completed', style: TextStyle(color: Colors.green)),
+            const Icon(Icons.check_circle, color: Colors.green, size: 16),
+            const SizedBox(width: 4),
+            Text( transactionData['type']?.toString() ?? '', style: const TextStyle(color: Colors.green)),
           ],
         ),
         const SizedBox(height: 8),
         Text(
-          '${transactionData['date']}, ${transactionData['time']}',
+          '${transactionData['date'] ?? '' }, ${transactionData['time'] ?? ''}',
           style: const TextStyle(color: Colors.grey),
         ),
       ],
@@ -124,10 +132,10 @@ Transaction Details:
                   ),
                   const Divider(),
                   const SizedBox(height: 16),
-                  _buildDetailRow('Merchant Name', '${transactionData['title']}'),
-                  _buildDetailRow('UPI transaction ID', '${transactionData['upiTransactionId']}'),
-                  _buildDetailRow('Voucher ID', '${transactionData['voucherId']}'),
-                  _buildDetailRow('Transaction RRN', '${transactionData['transactionRrn']}'),
+                  _buildDetailRow('Merchant Name', '${transactionData['mccDesc']}'),
+                  _buildDetailRow('Merchant Txn Id', '${transactionData['merchanttxnId']}'),
+                  _buildDetailRow('Account Number', '${transactionData['accountNumber']}'),
+                  _buildDetailRow('Bank RRN', '${transactionData['bankrrn']}'),
                   _buildUmnRow('UMN', '${transactionData['umn']}'),
                 ],
               ),
@@ -140,22 +148,24 @@ Transaction Details:
     );
   }
 
-  Widget _buildDetailRow(String title, String value) {
+  Widget _buildDetailRow(String title, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: const TextStyle(color: Colors.grey)),
-          Text(value,
-              style:
-              const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
+          Text(
+            value ?? '—',
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildUmnRow(String title, String value) {
+
+  Widget _buildUmnRow(String title, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: Row(
@@ -167,14 +177,13 @@ Transaction Details:
               const SizedBox(width: 4),
               Tooltip(
                 message: 'Unique Mandate Number',
-                child:
-                Icon(Icons.info_outline, color: Colors.grey[400], size: 16),
+                child: Icon(Icons.info_outline, color: Colors.grey, size: 16),
               ),
             ],
           ),
           Expanded(
             child: Text(
-              value,
+              value ?? '—',
               textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),

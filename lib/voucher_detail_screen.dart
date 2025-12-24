@@ -325,9 +325,9 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
           margin: EdgeInsets.only(bottom: index < totalCount ? 16 : 0), padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
           child: Column(children: [
-            _buildTxRow('Transaction date', _formatDisplayDate(txData['transactionDate']), 'Transaction RRN', txData['merchantTranId'] ?? 'N/A'),
+            _buildTxRow('Transaction date', _formatDisplayDate(txData['transactionDate']), 'Transaction RRN', txData['bankrrn'] ?? 'N/A'),
             const SizedBox(height: 12),
-            _buildTxRow('Merchant Name', txData['merchantName'] ?? 'N/A', 'Amount',
+            _buildTxRow('Merchant Name', txData['marchantName'] ?? 'N/A', 'Amount',
                 NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(amount)),
           ]),
         ),
