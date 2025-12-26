@@ -465,20 +465,23 @@ class _UpiVouchersScreenState extends State<UpiVouchersScreen> {
                                     ),
                                   ),
                                   Container(width: 1, height: screenHeight * 0.03, margin: EdgeInsets.symmetric(horizontal: horizontalPadding * 0.6), color: Colors.white.withOpacity(0.4)),
-                                  Text(
-                                    "₹${_activeAmount.toStringAsFixed(
-                                      _activeAmount.truncateToDouble() == _activeAmount ? 0 : 2,
-                                    )}",
-                                    textAlign: TextAlign.right,
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w600, // Semi Bold
-                                      fontSize: 16,
-                                      height: 1.4, // 140%
-                                      letterSpacing: 0,
-                                      color: const Color(0xFFFFFFFF),
-                                    ),
-                                  ),
+              Text(
+                NumberFormat.currency(
+                  locale: 'en_IN',
+                  symbol: '₹',
+                  decimalDigits:
+                  _activeAmount.truncateToDouble() == _activeAmount ? 0 : 2,
+                ).format(_activeAmount), // ✅ converts to String
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  height: 1.4,
+                  letterSpacing: 0,
+                  color: Color(0xFFFFFFFF),
+                ),
+              ),
                                 ],
                               ),
                             ],

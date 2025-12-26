@@ -882,14 +882,18 @@ class _HistoryScreenState extends State<HistoryScreen>
     final DateTime? date = _parseDate(transactionData['creationDate']);
     final String displayDate =
         date != null ? DateFormat('d MMM').format(date) : '';
-    final amount = (transactionData['amount'] as num?)?.toDouble() ?? 0.0;
+    //amit comment
+   // final amount = (transactionData['amount'] as num?)?.toDouble() ?? 0.0;
+    final amount = double.tryParse(
+        transactionData['redeemAmount']?.toString() ?? '0'
+    ) ?? 0.0;
     final displayAmount =
         NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0)
             .format(amount);
     final bool isBillAttached = transactionData['billAttached'] == true;
-    final Widget iconWidget = (transactionData['bankIcon'] != null &&
-            transactionData['bankIcon'].isNotEmpty)
-        ? _buildBase64Icon(transactionData['bankIcon'])
+    final Widget iconWidget = (transactionData['mccMainIcon'] != null &&
+            transactionData['mccMainIcon'].isNotEmpty)
+        ? _buildBase64Icon(transactionData['mccMainIcon'])
         : CircleAvatar(
             backgroundColor: Colors.green.shade50,
             radius: 24,

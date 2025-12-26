@@ -31,6 +31,8 @@ class VoucherVerifyScreen extends StatefulWidget {
 class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
   final ApiService _apiService = ApiService();
 
+
+
   bool _consentChecked = false;
   bool _loading = false; // main button loading / disabled
   String _statusMessage = '';
@@ -1238,19 +1240,22 @@ class _VoucherVerifyScreenState extends State<VoucherVerifyScreen> {
       String payerVA = '';
       String bankCode = '';
 
+
       if (selfBank != null) {
         merchantId = selfBank['merchentIid']?.toString() ?? '';
         subMerchantId = selfBank['submurchentid']?.toString() ?? '';
-        accountNumber = selfBank['acNumber']?.toString() ?? '';
+        //Amit Comment this bank sai hi create ho rehe hai voucher cotopay sai nahi ho rehe hai
+       // accountNumber = selfBank['acNumber']?.toString() ?? '';
+        accountNumber = widget.bankInfo?['accountNumber']?.toString() ?? widget.bankInfo?['acNumber']?.toString() ?? '';
         payerVA = selfBank['payerva']?.toString() ?? '';
         bankCode = selfBank['bankCode']?.toString() ?? '';
       }
 
-      // final merchantId = widget.bankInfo?['merchantId']?.toString() ?? widget.bankInfo?['merchentIid']?.toString() ?? '610954';
-      // final subMerchantId = widget.bankInfo?['subMerchantId']?.toString() ?? widget.bankInfo?['submurchentid']?.toString() ?? merchantId;
-      // final accountNumber = widget.bankInfo?['accountNumber']?.toString() ?? widget.bankInfo?['acNumber']?.toString() ?? '';
-      // final payerVA = widget.bankInfo?['payerVA']?.toString() ?? widget.bankInfo?['payeeVPA']?.toString() ?? widget.bankInfo?['payerva']?.toString() ?? 'merchant@icici';
-      // final bankcode = widget.bankInfo?['bankCode']?.toString() ?? widget.bankInfo?['bankcode']?.toString() ?? widget.bankInfo?['bankName']?.toString() ?? '';
+     //  String merchantId = widget.bankInfo?['merchantId']?.toString() ?? widget.bankInfo?['merchentIid']?.toString() ?? '610954';
+     //  String subMerchantId = widget.bankInfo?['subMerchantId']?.toString() ?? widget.bankInfo?['submurchentid']?.toString() ?? merchantId;
+     //  String accountNumber = widget.bankInfo?['accountNumber']?.toString() ?? widget.bankInfo?['acNumber']?.toString() ?? '';
+     //  String payerVA = widget.bankInfo?['payerVA']?.toString() ?? widget.bankInfo?['payeeVPA']?.toString() ?? widget.bankInfo?['payerva']?.toString() ?? 'merchant@icici';
+     //  String bankCode = widget.bankInfo?['bankCode']?.toString() ?? widget.bankInfo?['bankcode']?.toString() ?? widget.bankInfo?['bankName']?.toString() ?? '';
 
       final List<Map<String, dynamic>> details = widget.entries.map((e) {
         return {
